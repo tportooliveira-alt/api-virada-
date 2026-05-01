@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Código da Virada — Prévia da Planilha Premium</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Inter', 'Segoe UI', sans-serif; background:#1a1a2e; color:#e2e8f0; }
+
+  /* ── Barra de abas tipo Google Sheets ── */
+  .tabs-bar { background:#0f0f1a; border-bottom:1px solid #2d3748; display:flex; align-items:flex-end; padding:0 12px; gap:2px; overflow-x:auto; }
+  .tab { padding:8px 20px; font-size:12px; cursor:pointer; border-radius:6px 6px 0 0; border:1px solid transparent; border-bottom:none; white-space:nowrap; color:#94a3b8; transition:all .2s; }
+  .tab:hover { background:#1e2235; color:#e2e8f0; }
+  .tab.active { background:#07111F; color:#F5C542; border-color:#2d3748; font-weight:600; }
+
+  /* ── Container da aba ── */
+  .sheet { display:none; }
+  .sheet.active { display:block; }
+
+  /* ── DASHBOARD ── */
+  .banner { background:linear-gradient(135deg,#07111F 0%,#0d1a2e 100%); padding:20px 28px; border-bottom:3px solid #F5C542; }
+  .banner h1 { font-size:22px; font-weight:800; color:#F5C542; letter-spacing:-.5px; }
+  .banner p { font-size:12px; color:#94a3b8; margin-top:4px; }
+  .banner .sync { font-size:11px; color:#64748b; margin-top:2px; }
+
+  .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0; border-bottom:1px solid #1e2a3a; }
+  .kpi-card { background:#0f1c2e; padding:14px 18px; border-right:1px solid #1e2a3a; }
+  .kpi-card:last-child { border-right:none; }
+  .kpi-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:#F5C542; margin-bottom:6px; }
+  .kpi-value { font-size:22px; font-weight:800; color:#fff; }
+  .kpi-value.green { color:#22C55E; }
+  .kpi-value.red { color:#f87171; }
+  .kpi-value.gold { color:#F5C542; }
+  .kpi-value.count { color:#cbd5e1; }
+
+  .charts-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:20px; background:#07111F; }
+  .chart-box { background:#0d1a2e; border:1px solid #1e2a3a; border-radius:8px; padding:14px; }
+  .chart-title { font-size:11px; font-weight:700; color:#F5C542; text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px; }
+
+  .cats-row { display:grid; grid-template-columns:340px 1fr; gap:16px; padding:0 20px 20px; background:#07111F; }
+  .cat-table { background:#0d1a2e; border:1px solid #1e2a3a; border-radius:8px; overflow:hidden; }
+  .cat-table table { width:100%; border-collapse:collapse; font-size:12px; }
+  .cat-table thead tr { background:#07111F; }
+  .cat-table thead th { padding:8px 12px; text-align:left; font-size:10px; font-weight:700; color:#fff; text-transform:uppercase; letter-spacing:.5px; border-bottom:2px solid #F5C542; }
+  .cat-table tbody tr:nth-child(odd) { background:#0d1a2e; }
+  .cat-table tbody tr:nth-child(even) { background:#0a1525; }
+  .cat-table tbody td { padding:7px 12px; color:#cbd5e1; }
+  .cat-table tbody td.money { text-align:right; color:#f87171; font-weight:600; }
+  .bar-mini { height:4px; border-radius:2px; background:#f87171; margin-top:3px; transition:width .3s; }
+
+  /* ── TABELAS DE DADOS (Receitas, Despesas, etc.) ── */
+  .data-sheet { background:#fff; color:#1e293b; }
+  .data-sheet table { width:100%; border-collapse:collapse; font-size:12px; }
+  .data-sheet thead tr { background:#07111F; }
+  .data-sheet thead th { padding:10px 12px; text-align:left; color:#fff; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; border-bottom:3px solid #F5C542; white-space:nowrap; }
+  .data-sheet tbody tr:nth-child(odd) { background:#fff; }
+  .data-sheet tbody tr:nth-child(even) { background:#f8fafc; }
+  .data-sheet tbody tr:hover { background:#f1f5f9; }
+  .data-sheet tbody td { padding:8px 12px; border-bottom:1px solid #e2e8f0; color:#374151; }
+  .data-sheet tbody td.money { text-align:right; font-weight:600; color:#16a34a; }
+  .data-sheet tbody td.money.red { color:#dc2626; }
+  .data-sheet tbody td.center { text-align:center; }
+  .data-sheet tfoot td { background:#F5C542; color:#07111F; font-weight:800; padding:8px 12px; }
+  .data-sheet tfoot td.money { text-align:right; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:99px; font-size:10px; font-weight:700; }
+  .badge.essencial { background:#dbeafe; color:#1d4ed8; }
+  .badge.impulso { background:#fef3c7; color:#92400e; }
+  .badge.aberta { background:#fee2e2; color:#991b1b; }
+  .badge.negociando { background:#fef3c7; color:#92400e; }
+  .badge.quitada { background:#dcfce7; color:#166534; }
+
+  /* ── COMO USAR ── */
+  .ajuda-hero { background:#07111F; padding:28px 32px; }
+  .ajuda-hero h1 { font-size:20px; font-weight:800; color:#F5C542; }
+  .ajuda-steps { background:#fff; color:#1e293b; }
+  .step { display:grid; grid-template-columns:56px 1fr; border-bottom:1px solid #e2e8f0; }
+  .step-num { background:#F5C542; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; color:#07111F; }
+  .step-body { padding:14px 20px; }
+  .step-body h3 { font-size:13px; font-weight:700; color:#07111F; margin-bottom:4px; }
+  .step-body p { font-size:12px; color:#64748b; line-height:1.6; }
+
+  /* ── CONFERÊNCIA ── */
+  .conf-banner { background:#07111F; padding:16px 24px; border-bottom:3px solid #F5C542; }
+  .conf-banner h2 { font-size:16px; font-weight:800; color:#F5C542; }
+  .status-ok { background:#dcfce7; color:#166534; font-weight:700; padding:6px 14px; border-radius:6px; font-size:12px; display:inline-block; }
+  .conf-table { background:#fff; color:#1e293b; }
+  .conf-table table { width:100%; border-collapse:collapse; font-size:12px; }
+  .conf-table thead tr { background:#07111F; }
+  .conf-table thead th { padding:10px 12px; color:#fff; font-size:11px; font-weight:700; border-bottom:3px solid #F5C542; }
+  .conf-table tbody td { padding:9px 12px; border-bottom:1px solid #e2e8f0; }
+  .conf-table tbody tr:nth-child(even) { background:#f8fafc; }
+</style>
+</head>
+<body>
+
+<!-- ABAS -->
+<div class="tabs-bar">
+  <div class="tab active" onclick="showTab('dashboard')">📊 Dashboard</div>
+  <div class="tab" onclick="showTab('lancamentos')">📋 Lançamentos</div>
+  <div class="tab" onclick="showTab('receitas')">💚 Receitas</div>
+  <div class="tab" onclick="showTab('despesas')">🔴 Despesas</div>
+  <div class="tab" onclick="showTab('dividas')">⚠️ Dívidas</div>
+  <div class="tab" onclick="showTab('metas')">🎯 Metas</div>
+  <div class="tab" onclick="showTab('fluxo')">📈 Fluxo de Caixa</div>
+  <div class="tab" onclick="showTab('resumo')">📅 Resumo Mensal</div>
+  <div class="tab" onclick="showTab('ajuda')">❓ Como usar</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     DASHBOARD
+══════════════════════════════════════════════════════════════ -->
+<div id="tab-dashboard" class="sheet active">
+  <div class="banner">
+    <h1>CÓDIGO DA VIRADA — RELATÓRIO FINANCEIRO</h1>
+    <p>Dashboard gerado automaticamente pelo app • Dados do período completo</p>
+    <div class="sync">Atualizado em 01/05/2026 às 08:32</div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Entradas do período</div>
+      <div class="kpi-value green">R$ 4.250,00</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Saídas do período</div>
+      <div class="kpi-value red">R$ 2.980,50</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Saldo</div>
+      <div class="kpi-value gold">R$ 1.269,50</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Lançamentos</div>
+      <div class="kpi-value count">14</div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-box">
+      <div class="chart-title">Gastos por Categoria</div>
+      <canvas id="pieChart" height="220"></canvas>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Receitas vs Despesas — Mês a Mês</div>
+      <canvas id="barChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <div class="cats-row">
+    <div class="cat-table">
+      <table>
+        <thead><tr><th>Categoria</th><th>Total</th></tr></thead>
+        <tbody id="catRows"></tbody>
+      </table>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Saldo Acumulado</div>
+      <canvas id="lineChart" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     LANÇAMENTOS
+══════════════════════════════════════════════════════════════ -->
+<div id="tab-lancamentos" class="sheet data-sheet">
+  <table>
+    <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Pagamento</th><th>Natureza</th></tr></thead>
+    <tbody>
+      <tr><td>05/04/2026</td><td>Entrada</td><td>Salário abril</td><td>Salário</td><td class="money">R$ 3.000,00</td><td>—</td><td>—</td></tr>
+      <tr><td>08/04/2026</td><td>Saída</td><td>Supermercado</td><td>Mercado</td><td class="money red">R$ 480,00</td><td>Pix</td><td><span class="badge essencial">essencial</span></td></tr>
+      <tr><td>10/04/2026</td><td>Saída</td><td>Conta de luz</td><td>Energia</td><td class="money red">R$ 187,50</td><td>Boleto</td><td><span class="badge essencial">essencial</span></td></tr>
+      <tr><td>12/04/2026</td><td>Entrada</td><td>Freela design</td><td>Renda extra</td><td class="money">R$ 750,00</td><td>—</td><td>—</td></tr>
+      <tr><td>15/04/2026</td><td>Saída</td><td>Almoço delivery</td><td>Delivery</td><td class="money red">R$ 62,00</td><td>Crédito</td><td><span class="badge impulso">impulso</span></td></tr>
+      <tr><td>18/04/2026</td><td>Saída</td><td>Farmácia</td><td>Saúde</td><td class="money red">R$ 94,00</td><td>Débito</td><td><span class="badge essencial">essencial</span></td></tr>
+      <tr><td>20/04/2026</td><td>Saída</td><td>Academia</td><td>Saúde</td><td class="money red">R$ 110,00</td><td>Débito</td><td><span class="badge essencial">essencial</span></td></tr>
+      <tr><td>22/04/2026</td><td>Entrada</td><td>Venda produto</td><td>Venda</td><td class="money">R$ 500,00</td><td>—</td><td>—</td></tr>
+      <tr><td>25/04/2026</td><td>Saída</td><td>Cartão crédito fatura</td><td>Cartão</td><td class="money red">R$ 1.200,00</td><td>Boleto</td><td><span class="badge essencial">essencial</span></td></tr>
+      <tr><td>28/04/2026</td><td>Saída</td><td>Roupa impulso</td><td>Compra</td><td class="money red">R$ 280,00</td><td>Crédito</td><td><span class="badge impulso">impulso</span></td></tr>
+      <tr><td>30/04/2026</td><td>Saída</td><td>Plano de saúde</td><td>Saúde</td><td class="money red">R$ 320,00</td><td>Débito</td><td><span class="badge essencial">essencial</span></td></tr>
+      <tr><td>30/04/2026</td><td>Saída</td><td>Internet</td><td>Internet</td><td class="money red">R$ 99,00</td><td>Débito</td><td><span class="badge essencial">essencial</span></td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="4"><strong>TOTAL</strong></td><td class="money">R$ 4.250,00 / R$ 2.832,50</td><td colspan="2"></td></tr></tfoot>
+  </table>
+</div>
+
+<!-- RECEITAS -->
+<div id="tab-receitas" class="sheet data-sheet">
+  <table>
+    <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Escopo</th></tr></thead>
+    <tbody>
+      <tr><td>05/04/2026</td><td>Salário abril</td><td>Salário</td><td class="money">R$ 3.000,00</td><td>Casa</td></tr>
+      <tr><td>12/04/2026</td><td>Freela design</td><td>Renda extra</td><td class="money">R$ 750,00</td><td>Casa</td></tr>
+      <tr><td>22/04/2026</td><td>Venda produto</td><td>Venda</td><td class="money">R$ 500,00</td><td>Casa</td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="3"><strong>TOTAL</strong></td><td class="money">R$ 4.250,00</td><td></td></tr></tfoot>
+  </table>
+</div>
+
+<!-- DESPESAS -->
+<div id="tab-despesas" class="sheet data-sheet">
+  <table>
+    <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Pagamento</th><th>Natureza</th></tr></thead>
+    <tbody>
+      <tr><td>08/04/2026</td><td>Supermercado</td><td>Mercado</td><td class="money red">R$ 480,00</td><td>Pix</td><td><span class="badge essencial">essencial</span></td></tr>
+      <tr><td>10/04/2026</td><td>Conta de luz</td><td>Energia</td><td class="money red">R$ 187,50</td><td>Boleto</td><td><span class="badge essencial">essencial</span></td></tr>
+      <tr><td>15/04/2026</td><td>Almoço delivery</td><td>Delivery</td><td class="money red">R$ 62,00</td><td>Crédito</td><td><span class="badge impulso">impulso</span></td></tr>
+      <tr><td>18/04/2026</td><td>Farmácia</td><td>Saúde</td><td class="money red">R$ 94,00</td><td>Débito</td><td><span class="badge essencial">essencial</span></td></tr>
+      <tr><td>20/04/2026</td><td>Academia</td><td>Saúde</td><td class="money red">R$ 110,00</td><td>Débito</td><td><span class="badge essencial">essencial</span></td></tr>
+      <tr><td>25/04/2026</td><td>Cartão crédito</td><td>Cartão</td><td class="money red">R$ 1.200,00</td><td>Boleto</td><td><span class="badge essencial">essencial</span></td></tr>
+      <tr><td>28/04/2026</td><td>Roupa</td><td>Compra</td><td class="money red">R$ 280,00</td><td>Crédito</td><td><span class="badge impulso">impulso</span></td></tr>
+      <tr><td>30/04/2026</td><td>Plano de saúde</td><td>Saúde</td><td class="money red">R$ 320,00</td><td>Débito</td><td><span class="badge essencial">essencial</span></td></tr>
+      <tr><td>30/04/2026</td><td>Internet</td><td>Internet</td><td class="money red">R$ 99,00</td><td>Débito</td><td><span class="badge essencial">essencial</span></td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="3"><strong>TOTAL</strong></td><td class="money red">R$ 2.832,50</td><td colspan="2"></td></tr></tfoot>
+  </table>
+</div>
+
+<!-- DÍVIDAS -->
+<div id="tab-dividas" class="sheet data-sheet">
+  <table>
+    <thead><tr><th>Nome</th><th>Vencimento</th><th>Prioridade</th><th>Status</th><th>Parcela</th><th>Valor Total</th><th>Em aberto</th></tr></thead>
+    <tbody>
+      <tr><td>Cartão Nubank</td><td class="center">05/05/2026</td><td class="center">Alta</td><td class="center"><span class="badge aberta">aberta</span></td><td class="money red">R$ 600,00</td><td class="money red">R$ 1.800,00</td><td class="money red">R$ 1.800,00</td></tr>
+      <tr><td>Empréstimo pessoal</td><td class="center">15/05/2026</td><td class="center">Média</td><td class="center"><span class="badge negociando">negociando</span></td><td class="money red">R$ 450,00</td><td class="money red">R$ 5.400,00</td><td class="money red">R$ 5.400,00</td></tr>
+      <tr><td>Boleto atrasado</td><td class="center">01/04/2026</td><td class="center">Alta</td><td class="center"><span class="badge aberta">aberta</span></td><td class="money red">R$ 320,00</td><td class="money red">R$ 320,00</td><td class="money red">R$ 320,00</td></tr>
+      <tr><td>Parcela carro</td><td class="center">10/03/2026</td><td class="center">Baixa</td><td class="center"><span class="badge quitada">quitada</span></td><td class="money">R$ 850,00</td><td class="money">R$ 850,00</td><td class="money">R$ 0,00</td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="6"><strong>TOTAL EM ABERTO</strong></td><td class="money red">R$ 7.520,00</td></tr></tfoot>
+  </table>
+</div>
+
+<!-- METAS -->
+<div id="tab-metas" class="sheet data-sheet">
+  <table>
+    <thead><tr><th>Meta</th><th>Tipo</th><th>Valor Alvo</th><th>Valor Atual</th><th>Faltando</th><th>Progresso</th></tr></thead>
+    <tbody>
+      <tr><td>Reserva de emergência</td><td>Reserva</td><td class="money">R$ 15.000,00</td><td class="money">R$ 3.200,00</td><td class="money red">R$ 11.800,00</td><td class="center">21,3%</td></tr>
+      <tr><td>Quitar empréstimo</td><td>Dívida</td><td class="money">R$ 5.400,00</td><td class="money">R$ 900,00</td><td class="money red">R$ 4.500,00</td><td class="center">16,7%</td></tr>
+      <tr><td>Viagem nas férias</td><td>Economia</td><td class="money">R$ 4.000,00</td><td class="money">R$ 2.800,00</td><td class="money red">R$ 1.200,00</td><td class="center">70,0%</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- FLUXO DE CAIXA -->
+<div id="tab-fluxo" class="sheet data-sheet">
+  <table>
+    <thead><tr><th>Data</th><th>Entradas</th><th>Saídas</th><th>Resultado do Dia</th><th>Saldo Acumulado</th></tr></thead>
+    <tbody>
+      <tr><td>05/04/2026</td><td class="money">R$ 3.000,00</td><td class="money red">R$ 0,00</td><td class="money">R$ 3.000,00</td><td class="money">R$ 3.000,00</td></tr>
+      <tr><td>08/04/2026</td><td class="money">R$ 0,00</td><td class="money red">R$ 480,00</td><td class="money red">-R$ 480,00</td><td class="money">R$ 2.520,00</td></tr>
+      <tr><td>10/04/2026</td><td class="money">R$ 0,00</td><td class="money red">R$ 187,50</td><td class="money red">-R$ 187,50</td><td class="money">R$ 2.332,50</td></tr>
+      <tr><td>12/04/2026</td><td class="money">R$ 750,00</td><td class="money red">R$ 0,00</td><td class="money">R$ 750,00</td><td class="money">R$ 3.082,50</td></tr>
+      <tr><td>15/04/2026</td><td class="money">R$ 0,00</td><td class="money red">R$ 62,00</td><td class="money red">-R$ 62,00</td><td class="money">R$ 3.020,50</td></tr>
+      <tr><td>18/04/2026</td><td class="money">R$ 0,00</td><td class="money red">R$ 94,00</td><td class="money red">-R$ 94,00</td><td class="money">R$ 2.926,50</td></tr>
+      <tr><td>20/04/2026</td><td class="money">R$ 0,00</td><td class="money red">R$ 110,00</td><td class="money red">-R$ 110,00</td><td class="money">R$ 2.816,50</td></tr>
+      <tr><td>22/04/2026</td><td class="money">R$ 500,00</td><td class="money red">R$ 0,00</td><td class="money">R$ 500,00</td><td class="money">R$ 3.316,50</td></tr>
+      <tr><td>25/04/2026</td><td class="money">R$ 0,00</td><td class="money red">R$ 1.200,00</td><td class="money red">-R$ 1.200,00</td><td class="money">R$ 2.116,50</td></tr>
+      <tr><td>28/04/2026</td><td class="money">R$ 0,00</td><td class="money red">R$ 280,00</td><td class="money red">-R$ 280,00</td><td class="money">R$ 1.836,50</td></tr>
+      <tr><td>30/04/2026</td><td class="money">R$ 0,00</td><td class="money red">R$ 419,00</td><td class="money red">-R$ 419,00</td><td class="money gold">R$ 1.417,50</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- RESUMO MENSAL -->
+<div id="tab-resumo" class="sheet data-sheet">
+  <table>
+    <thead><tr><th>Mês</th><th>Entradas</th><th>Saídas</th><th>Resultado</th><th>Saldo Acumulado</th><th>Economia %</th><th>Lançamentos</th></tr></thead>
+    <tbody>
+      <tr><td>Fev/2026</td><td class="money">R$ 3.000,00</td><td class="money red">R$ 2.100,00</td><td class="money">R$ 900,00</td><td class="money">R$ 900,00</td><td class="center">30,0%</td><td class="center">8</td></tr>
+      <tr><td>Mar/2026</td><td class="money">R$ 3.500,00</td><td class="money red">R$ 3.200,00</td><td class="money red">R$ 300,00</td><td class="money">R$ 1.200,00</td><td class="center">8,6%</td><td class="center">11</td></tr>
+      <tr><td>Abr/2026</td><td class="money">R$ 4.250,00</td><td class="money red">R$ 2.832,50</td><td class="money">R$ 1.417,50</td><td class="money gold">R$ 2.617,50</td><td class="center">33,4%</td><td class="center">12</td></tr>
+    </tbody>
+    <tfoot><tr><td><strong>TOTAL</strong></td><td class="money">R$ 10.750,00</td><td class="money red">R$ 8.132,50</td><td class="money">R$ 2.617,50</td><td colspan="3"></td></tr></tfoot>
+  </table>
+</div>
+
+<!-- COMO USAR -->
+<div id="tab-ajuda" class="sheet">
+  <div class="ajuda-hero">
+    <h1>COMO USAR ESTA PLANILHA</h1>
+  </div>
+  <div class="ajuda-steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Sincronize sempre que lançar algo no app</h3>
+        <p>Cada vez que você adiciona uma receita, despesa, dívida ou meta no app, basta tocar em "Exportar minha planilha" para ver os números atualizados aqui.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>O Dashboard é o seu painel principal</h3>
+        <p>Comece por ele: traz entradas, saídas, saldo e os 10 maiores gastos por categoria, com gráficos para você enxergar tudo de uma vez.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Use as abas de detalhe para investigar</h3>
+        <p>Receitas, Despesas, Dívidas e Metas mostram cada item separado. Clique no ícone de funil para filtrar por categoria, mês ou status.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>Fluxo de Caixa e Resumo Mensal contam sua história</h3>
+        <p>O Fluxo mostra o saldo dia a dia. O Resumo Mensal mostra mês a mês: quanto entrou, saiu, sobrou e qual foi o seu percentual de economia.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h3>A planilha é só leitura — e isso é proposital</h3>
+        <p>Esta planilha é gerada pelo app. Para mudar dados, edite no app e sincronize de novo. Isso garante que os gráficos e fórmulas nunca quebrem.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Pizza — gastos por categoria ──
+const cats = [
+  { label: 'Cartão',   value: 1200, color: '#f87171' },
+  { label: 'Mercado',  value: 480,  color: '#fb923c' },
+  { label: 'Saúde',    value: 524,  color: '#facc15' },
+  { label: 'Compra',   value: 280,  color: '#a78bfa' },
+  { label: 'Energia',  value: 187,  color: '#60a5fa' },
+  { label: 'Internet', value: 99,   color: '#34d399' },
+  { label: 'Delivery', value: 62,   color: '#f472b6' },
+];
+const total = cats.reduce((s,c)=>s+c.value,0);
+
+// Popula tabela de categorias
+const catRows = document.getElementById('catRows');
+cats.forEach(c => {
+  const pct = ((c.value/total)*100).toFixed(1);
+  catRows.innerHTML += `<tr>
+    <td>${c.label} <div class="bar-mini" style="width:${pct}%;background:${c.color}"></div></td>
+    <td class="money" style="color:${c.color}">R$ ${c.value.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+  </tr>`;
+});
+
+new Chart(document.getElementById('pieChart'), {
+  type: 'doughnut',
+  data: { labels: cats.map(c=>c.label), datasets: [{ data: cats.map(c=>c.value), backgroundColor: cats.map(c=>c.color), borderWidth: 2, borderColor: '#0d1a2e' }] },
+  options: { plugins: { legend: { position:'right', labels:{ color:'#cbd5e1', font:{size:11} } } }, cutout:'60%' }
+});
+
+// ── Coluna — Mês a Mês ──
+new Chart(document.getElementById('barChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Fev/26','Mar/26','Abr/26'],
+    datasets: [
+      { label:'Entradas', data:[3000,3500,4250], backgroundColor:'#22C55E' },
+      { label:'Saídas',   data:[2100,3200,2832], backgroundColor:'#f87171' }
+    ]
+  },
+  options: {
+    plugins: { legend: { labels:{ color:'#cbd5e1' } } },
+    scales: {
+      x: { ticks:{color:'#94a3b8'}, grid:{color:'#1e2a3a'} },
+      y: { ticks:{color:'#94a3b8', callback: v=>'R$'+v.toLocaleString('pt-BR')}, grid:{color:'#1e2a3a'} }
+    }
+  }
+});
+
+// ── Linha — Saldo acumulado ──
+new Chart(document.getElementById('lineChart'), {
+  type: 'line',
+  data: {
+    labels: ['05/04','08/04','10/04','12/04','15/04','18/04','20/04','22/04','25/04','28/04','30/04'],
+    datasets: [{ label:'Saldo', data:[3000,2520,2332,3082,3020,2926,2816,3316,2116,1836,1417], borderColor:'#F5C542', backgroundColor:'rgba(245,197,66,.1)', fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#F5C542' }]
+  },
+  options: {
+    plugins:{ legend:{ labels:{ color:'#cbd5e1' } } },
+    scales:{
+      x:{ ticks:{color:'#94a3b8',font:{size:10}}, grid:{color:'#1e2a3a'} },
+      y:{ ticks:{color:'#94a3b8', callback:v=>'R$'+v.toLocaleString('pt-BR')}, grid:{color:'#1e2a3a'} }
+    }
+  }
+});
+</script>
+</body>
+</html>

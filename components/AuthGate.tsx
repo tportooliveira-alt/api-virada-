@@ -120,6 +120,21 @@ export function AuthGate({ children }: PropsWithChildren) {
     }
   }, []);
 
+  // Dev bypass — só aparece em localhost quando não há Client ID configurado
+  function handleDevLogin() {
+    const record: AccessRecord = {
+      email: "dev@localhost",
+      sub: "dev-local",
+      name: "Dev Local",
+      picture: null,
+      status: "ativo",
+      checkedAt: new Date().toISOString(),
+    };
+    saveAccess(record);
+    setAccess(record);
+    setStage("ok");
+  }
+
   // Carrega Google Identity Services + revalida sessão
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -213,6 +228,7 @@ export function AuthGate({ children }: PropsWithChildren) {
             error={error}
             clientId={clientId}
             onSignIn={handleSignIn}
+            onDevLogin={handleDevLogin}
           />
         )}
 
@@ -254,11 +270,13 @@ function NeedsLogin({
   error,
   clientId,
   onSignIn,
+  onDevLogin,
 }: {
   submitting: boolean;
   error: string;
   clientId: string;
   onSignIn: () => void;
+  onDevLogin: () => void;
 }) {
   return (
     <>
@@ -302,6 +320,17 @@ function NeedsLogin({
       <p className="mt-5 text-center text-xs text-slate-500">
         Ainda não comprou? <a href="https://hotmart.com" className="text-virada-gold hover:underline" target="_blank" rel="noreferrer">Compre agora</a>.
       </p>
+
+      {/* Botão dev — aparece APENAS em localhost, invisível em produção */}
+      {typeof window !== "undefined" && window.location.hostname === "localhost" && (
+        <button
+          type="button"
+          onClick={onDevLogin}
+          className="mt-4 w-full rounded-xl border border-dashed border-slate-700 py-2.5 text-xs text-slate-600 transition hover:border-slate-500 hover:text-slate-400"
+        >
+          ⚙ Entrar como Dev (localhost)
+        </button>
+      )}
     </>
   );
 }
