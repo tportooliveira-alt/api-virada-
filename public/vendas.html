@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Código da Virada — Tira o caos do dinheiro do seu celular</title>
+  <meta name="description" content="App + planilha que mostram pra onde seu dinheiro está indo. Sem cadastro, sem mensalidade. Compre uma vez e use o resto da vida." />
+  <meta property="og:title" content="Código da Virada — App de controle financeiro" />
+  <meta property="og:description" content="Controle suas entradas, gastos, dívidas e metas no celular. Exporta uma planilha pronta pro Google Planilhas." />
+  <meta property="og:type" content="website" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #07111F;
+      --bg-soft: #0B1020;
+      --card: rgba(11, 16, 32, 0.78);
+      --line: rgba(203, 213, 225, 0.12);
+      --gold: #F5C542;
+      --green: #22C55E;
+      --white: #FFFFFF;
+      --gray: #CBD5E1;
+      --slate: #94A3B8;
+    }
+    html, body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 34%),
+                  radial-gradient(circle at right top, rgba(245, 197, 66, 0.12), transparent 24%),
+                  linear-gradient(180deg, #07111F 0%, #0B1020 100%);
+      color: var(--gray);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+    header { padding: 24px 0; border-bottom: 1px solid var(--line); }
+    .logo { font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+    .hero { padding: 80px 0 60px; text-align: center; }
+    .hero h1 {
+      font-size: clamp(32px, 6vw, 56px);
+      color: var(--white);
+      font-weight: 700;
+      line-height: 1.15;
+      max-width: 800px;
+      margin: 0 auto 20px;
+    }
+    .hero h1 .highlight { color: var(--gold); }
+    .hero p {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--gray);
+      max-width: 640px;
+      margin: 0 auto 32px;
+    }
+    .cta {
+      display: inline-block;
+      background: var(--gold);
+      color: var(--bg);
+      padding: 18px 42px;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 18px 48px rgba(245, 197, 66, 0.35);
+      transition: transform 0.15s;
+    }
+    .cta:hover { transform: translateY(-2px); }
+    .cta-sub { display: block; margin-top: 12px; font-size: 13px; color: var(--slate); }
+    .price-tag { display: inline-block; padding: 4px 12px; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 999px; color: var(--green); font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+    section { padding: 60px 0; border-top: 1px solid var(--line); }
+    section h2 {
+      font-size: clamp(26px, 4vw, 38px);
+      color: var(--white);
+      font-weight: 700;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    section .lead { text-align: center; max-width: 640px; margin: 0 auto 40px; font-size: 17px; }
+    .grid-3 { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+    .card h3 { color: var(--white); font-size: 18px; margin-bottom: 8px; }
+    .card .icon { font-size: 32px; margin-bottom: 12px; display: block; }
+    .pain-list { max-width: 700px; margin: 0 auto; }
+    .pain-list li { list-style: none; padding: 12px 0 12px 32px; position: relative; border-bottom: 1px solid var(--line); }
+    .pain-list li:last-child { border-bottom: 0; }
+    .pain-list li:before { content: "✕"; position: absolute; left: 8px; top: 12px; color: #ef4444; font-weight: 700; }
+    .gain-list li:before { content: "✓"; color: var(--green); }
+    .testimonials { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .testimonial { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+    .testimonial p { color: var(--gray); font-style: italic; margin-bottom: 16px; }
+    .testimonial .name { color: var(--gold); font-weight: 600; font-size: 14px; }
+    .testimonial .role { color: var(--slate); font-size: 13px; }
+    .price-box {
+      max-width: 480px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 2px solid var(--gold);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+    }
+    .price-box .old { text-decoration: line-through; color: var(--slate); font-size: 16px; }
+    .price-box .now { color: var(--gold); font-size: 56px; font-weight: 800; line-height: 1; margin: 8px 0; }
+    .price-box .now .cents { font-size: 28px; vertical-align: top; }
+    .price-box .install { color: var(--gray); margin-bottom: 16px; }
+    .price-box ul { text-align: left; margin: 24px 0; list-style: none; }
+    .price-box ul li { padding: 8px 0 8px 28px; position: relative; }
+    .price-box ul li:before { content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+    .faq { max-width: 700px; margin: 0 auto; }
+    .faq details { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq summary { cursor: pointer; color: var(--white); font-weight: 600; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq details[open] summary { color: var(--gold); }
+    .faq p { margin-top: 12px; }
+    .guarantee { background: var(--card); border: 1px solid var(--green); border-radius: 12px; padding: 24px; max-width: 600px; margin: 0 auto; text-align: center; }
+    .guarantee strong { color: var(--green); }
+    footer { padding: 40px 0; text-align: center; color: var(--slate); font-size: 13px; border-top: 1px solid var(--line); }
+    footer a { color: var(--gold); text-decoration: none; margin: 0 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <span class="logo">Código da Virada</span>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero" style="border-top: 0;">
+    <div class="container">
+      <span class="price-tag">Lançamento — preço promocional</span>
+      <h1>Pare de chegar no fim do mês <span class="highlight">sem saber pra onde foi seu dinheiro</span>.</h1>
+      <p>App + planilha que mostram, no celular, suas entradas, gastos, dívidas e metas. Sem cadastro chato. Sem mensalidade. Compre uma vez e use o resto da vida.</p>
+      <a href="#comprar" class="cta">QUERO O CONTROLE NA MÃO →</a>
+      <span class="cta-sub">Acesso vitalício • Garantia de 7 dias • Sem mensalidade</span>
+    </div>
+  </section>
+
+  <!-- DOR -->
+  <section>
+    <div class="container">
+      <h2>Você se reconhece em alguma dessas?</h2>
+      <p class="lead">A maioria das pessoas não tem problema de dinheiro. Tem problema de <strong style="color: var(--white);">ver onde o dinheiro está indo</strong>.</p>
+      <ul class="pain-list">
+        <li>Recebe o salário e na metade do mês já não sabe onde gastou.</li>
+        <li>Tem dívida em mais de 2 lugares e não lembra o valor exato de cada uma.</li>
+        <li>Já tentou planilha do Excel mas parou na primeira semana.</li>
+        <li>Já baixou app de banco "premium" e nunca abriu de novo.</li>
+        <li>Sente que ganha dinheiro mas no fim do mês a conta sempre fecha no zero.</li>
+        <li>Quer juntar pra alguma coisa (casa, viagem, gado, equipamento) e nunca consegue.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SOLUÇÃO -->
+  <section>
+    <div class="container">
+      <h2>O Código da Virada resolve isso de um jeito diferente</h2>
+      <p class="lead">App leve no celular + planilha profissional no Google Planilhas. Tudo conversa entre si.</p>
+      <div class="grid-3">
+        <div class="card">
+          <span class="icon">📱</span>
+          <h3>App no seu celular</h3>
+          <p>Lança gasto, entrada, dívida ou meta em 5 segundos. Funciona offline. Sem cadastro de senha — entra com Google.</p>
+        </div>
+        <div class="card">
+          <span class="icon">📊</span>
+          <h3>Planilha pronta</h3>
+          <p>Com 1 clique você exporta uma planilha profissional pro Google Planilhas. Dashboard, gráficos, fluxo de caixa, resumo mensal.</p>
+        </div>
+        <div class="card">
+          <span class="icon">🎯</span>
+          <h3>Metas e dívidas</h3>
+          <p>Acompanha sua evolução com barras de progresso. Vê quanto falta pra quitar cada dívida e bater cada meta.</p>
+        </div>
+        <div class="card">
+          <span class="icon">🔒</span>
+          <h3>Seu dado fica com você</h3>
+          <p>Tudo salvo no seu celular. Não fica num servidor de empresa. Você é dono dos seus dados.</p>
+        </div>
+        <div class="card">
+          <span class="icon">⚡</span>
+          <h3>Funciona offline</h3>
+          <p>Lançou no sinal ruim? Sem problema. Salva no celular e sincroniza depois.</p>
+        </div>
+        <div class="card">
+          <span class="icon">💰</span>
+          <h3>Pague uma vez</h3>
+          <p>Sem mensalidade. Sem renovação. Comprou, é seu pra sempre. Acesso vitalício às atualizações.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- O QUE VOCÊ RECEBE -->
+  <section>
+    <div class="container">
+      <h2>O que você leva quando comprar</h2>
+      <ul class="pain-list gain-list" style="max-width: 700px; margin: 0 auto;">
+        <li><strong style="color: var(--white);">App Código da Virada</strong> instalável no celular (Android e iPhone)</li>
+        <li><strong style="color: var(--white);">Planilha Profissional</strong> com 9 abas, gráficos e fluxo de caixa</li>
+        <li><strong style="color: var(--white);">eBook Código da Virada</strong> — método pra organizar o dinheiro em 7 dias</li>
+        <li><strong style="color: var(--white);">Bônus 1: Planilha de planejamento mensal</strong> editável</li>
+        <li><strong style="color: var(--white);">Bônus 2: 50 ideias de renda extra</strong> testadas</li>
+        <li><strong style="color: var(--white);">Bônus 3: Roteiro de negociação de dívidas</strong> que funciona</li>
+        <li><strong style="color: var(--white);">Bônus 4: Plano de 7 dias</strong> pra começar do zero</li>
+        <li><strong style="color: var(--white);">Bônus 5: Checklist mensal</strong> de finanças saudáveis</li>
+        <li><strong style="color: var(--white);">Atualizações vitalícias</strong> — novas versões, sem cobrança</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- DEPOIMENTOS (placeholder — substituir quando tiver reais) -->
+  <section>
+    <div class="container">
+      <h2>O que estão dizendo</h2>
+      <p class="lead" style="font-size: 13px; color: var(--slate);">[ Substituir por depoimentos reais quando tiver os primeiros clientes ]</p>
+      <div class="testimonials">
+        <div class="testimonial">
+          <p>"Em 2 meses consegui ver que estava gastando R$ 480 por mês com coisas que nem lembrava. Cortei e consegui guardar pra primeira vez na vida."</p>
+          <div class="name">— Cliente exemplo</div>
+          <div class="role">Pequeno produtor rural</div>
+        </div>
+        <div class="testimonial">
+          <p>"Trabalho na lida o dia todo, não tenho paciência pra planilha gigante. O app é só lançar e pronto. A planilha eu olho no domingo."</p>
+          <div class="name">— Cliente exemplo</div>
+          <div class="role">Pecuarista</div>
+        </div>
+        <div class="testimonial">
+          <p>"Tinha 4 dívidas em parcelas. Lancei tudo no app, vi o total real e fiz um plano. Quitei a primeira em 3 meses."</p>
+          <div class="name">— Cliente exemplo</div>
+          <div class="role">Autônoma</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PREÇO + COMPRAR -->
+  <section id="comprar">
+    <div class="container">
+      <h2>Investimento</h2>
+      <p class="lead">Menos de uma pizza por mês durante 1 ano. Pague uma vez, use pra sempre.</p>
+      <div class="price-box">
+        <span class="old">De R$ 197</span>
+        <div class="now">R$ 47<span class="cents">,00</span></div>
+        <p class="install">ou 5x de R$ 9,90</p>
+        <ul>
+          <li>App vitalício no celular</li>
+          <li>Planilha profissional pra Google Planilhas</li>
+          <li>eBook + 5 bônus</li>
+          <li>Atualizações grátis pra sempre</li>
+          <li>Garantia de 7 dias incondicional</li>
+        </ul>
+        <!-- TROCAR pelo link real do checkout Hotmart -->
+        <a href="https://pay.hotmart.com/SEU_CHECKOUT_AQUI" class="cta">QUERO COMPRAR AGORA →</a>
+        <span class="cta-sub">Pagamento 100% seguro via Hotmart</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- GARANTIA -->
+  <section>
+    <div class="container">
+      <div class="guarantee">
+        <h2 style="margin-bottom: 12px;">Garantia incondicional de 7 dias</h2>
+        <p>Comprou, instalou, usou e <strong>não gostou por qualquer motivo</strong>? Manda um email e a Hotmart devolve 100% do seu dinheiro nos primeiros 7 dias. Sem perguntas, sem burocracia.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section>
+    <div class="container">
+      <h2>Perguntas frequentes</h2>
+      <div class="faq">
+        <details>
+          <summary>Funciona em iPhone e Android?</summary>
+          <p>Sim. É um app web (PWA) que se instala como aplicativo nos dois sistemas. No iPhone: abre no Safari → compartilhar → adicionar à tela. No Android: abre no Chrome → instalar app.</p>
+        </details>
+        <details>
+          <summary>Preciso de internet pra usar?</summary>
+          <p>Não. Depois do primeiro login, o app funciona offline. Você só precisa de internet pra exportar a planilha pro Google Planilhas.</p>
+        </details>
+        <details>
+          <summary>Meus dados ficam onde?</summary>
+          <p>No seu celular. Não enviamos pra nenhum servidor. Você é dono dos seus dados. Quando exporta pra planilha, ela vai pra <strong>sua</strong> conta Google — não pra nossa.</p>
+        </details>
+        <details>
+          <summary>Tem mensalidade?</summary>
+          <p>Não. Você paga uma vez e usa pra sempre. As atualizações também são grátis.</p>
+        </details>
+        <details>
+          <summary>Como recebo depois da compra?</summary>
+          <p>Imediato. Assim que a Hotmart confirma o pagamento, seu email já é liberado automaticamente. Você recebe o link, entra com sua conta Google e pronto.</p>
+        </details>
+        <details>
+          <summary>E se eu comprar e não gostar?</summary>
+          <p>Tem 7 dias pra pedir reembolso. A Hotmart devolve 100% do valor. Sem perguntas.</p>
+        </details>
+        <details>
+          <summary>Serve pra quem trabalha por conta (autônomo / produtor)?</summary>
+          <p>Serve. O app separa "casa" e "empresa", então quem mistura conta pessoal com profissional consegue ver os dois lados sem confundir.</p>
+        </details>
+        <details>
+          <summary>Preciso saber de Excel ou ser bom com tecnologia?</summary>
+          <p>Não. O app foi feito pra quem nunca usou planilha. É lançar igual zap: data, valor, descrição. A planilha bonita aparece sozinha.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section style="text-align: center;">
+    <div class="container">
+      <h2>O dinheiro continua entrando e saindo do mesmo jeito.</h2>
+      <p class="lead">A diferença é que agora <strong style="color: var(--gold);">você sabe pra onde foi</strong>.</p>
+      <a href="#comprar" class="cta">COMEÇAR AGORA POR R$ 47 →</a>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>© Código da Virada. Todos os direitos reservados.</p>
+      <p style="margin-top: 8px;">
+        <a href="/politica-privacidade.html">Política de Privacidade</a> ·
+        <a href="/termos-de-uso.html">Termos de Uso</a> ·
+        <a href="mailto:contato@SEUDOMINIO.com.br">Suporte</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>

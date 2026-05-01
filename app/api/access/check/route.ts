@@ -4,7 +4,8 @@
  *
  * 1) Valida o ID token chamando o endpoint público do Google
  * 2) Confere se o email está na lista de membros (Hotmart)
- * 3) Devolve { status, email, name, sub } — sub é o ID Google imutável
+ *    OU se está em ADMIN_EMAILS — admins entram sem precisar comprar.
+ * 3) Devolve { status, email, name, sub, isAdmin } — sub é o ID Google imutável
  *
  * O cliente grava { email, sub, status } no IndexedDB. A próxima abertura
  * pode usar offline-first: se já está "ativo" localmente e o sub bate, libera.
@@ -21,6 +22,14 @@ interface TokenInfo {
   picture?: string;
   exp?: string | number;
   error_description?: string;
+}
+
+function isAdminEmail(email: string): boolean {
+  const list = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(email.trim().toLowerCase());
 }
 
 export async function POST(request: Request) {
@@ -57,7 +66,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Email Google não verificado." }, { status: 401 });
   }
 
-  const ativo = isMember(info.email);
+  const admin = isAdminEmail(info.email);
+  const ativo = admin || isMember(info.email);
 
   return NextResponse.json({
     status: ativo ? "ativo" : "inativo",
@@ -65,5 +75,6 @@ export async function POST(request: Request) {
     sub: info.sub,
     name: info.name ?? info.email,
     picture: info.picture ?? null,
+    isAdmin: admin,
   });
 }
