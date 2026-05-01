@@ -1,0 +1,7 @@
+id,user_id,date,scope,description,amount,category,payment_method,nature,source,created_at
+"d5633947-ad02-43ad-b03b-3a88d913ebce","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","casa","Mercado semanal","280","Mercado","Pix","essencial","app","2026-04-29T09:12:20.136Z"
+"18ff4ebf-4856-4b90-8cf2-f1d0dc3ff43b","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","casa","Energia elétrica","180","Energia","Boleto","essencial","app","2026-04-29T09:12:20.170Z"
+"de3888c0-19c0-4335-9ec5-07ff010adfd1","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","casa","iFood jantar","55","Delivery","Cartão","impulso","app","2026-04-29T09:12:20.200Z"
+"a28b1564-f6f6-4430-8e97-ddcd8a0ee879","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","casa","Uber","42","Transporte","Cartão","essencial","app","2026-04-29T09:12:20.240Z"
+"8ab07d20-6f22-4f4e-bd49-6450155c3f73","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","casa","Netflix + Spotify","75","Lazer","Cartão","impulso","app","2026-04-29T09:12:20.270Z"
+"6bcefa8e-17dd-432e-b6f1-68fa597e1d1c","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","casa","Mercado","20","Mercado","Crédito","impulso","app","2026-04-29T09:24:51.783Z"

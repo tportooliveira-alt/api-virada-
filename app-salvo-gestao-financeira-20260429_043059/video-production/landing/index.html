@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Codigo da Virada Financeira</title>
+    <style>
+      :root {
+        --bg: #07111f;
+        --surface: #0b1020;
+        --line: rgba(203, 213, 225, 0.14);
+        --text: #ffffff;
+        --muted: #cbd5e1;
+        --green: #22c55e;
+        --gold: #f5c542;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, Arial, sans-serif;
+        background: radial-gradient(circle at top, #0f1c35 0%, var(--bg) 48%, #040812 100%);
+        color: var(--text);
+      }
+
+      .wrap {
+        width: min(100%, 760px);
+        margin: 0 auto;
+        padding: 24px 16px 64px;
+      }
+
+      .hero,
+      .section {
+        background: rgba(11, 16, 32, 0.88);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 22px;
+        margin-bottom: 16px;
+        backdrop-filter: blur(10px);
+      }
+
+      .eyebrow {
+        display: inline-block;
+        color: var(--gold);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 10px;
+      }
+
+      h1,
+      h2 {
+        margin: 0 0 12px;
+        line-height: 1.1;
+      }
+
+      h1 {
+        font-size: clamp(32px, 7vw, 48px);
+      }
+
+      h2 {
+        font-size: 22px;
+      }
+
+      p,
+      li {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 54px;
+        margin-top: 16px;
+        padding: 0 18px;
+        border-radius: 12px;
+        background: var(--green);
+        color: #04110a;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .cta.secondary {
+        background: transparent;
+        color: var(--text);
+        border: 1px solid var(--line);
+      }
+
+      .grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .proof {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      ul {
+        padding-left: 18px;
+        margin: 0;
+      }
+
+      .faq-item + .faq-item {
+        margin-top: 12px;
+      }
+
+      @media (min-width: 720px) {
+        .grid.cols-2 {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero">
+        <span class="eyebrow">Metodo pratico</span>
+        <h1>Seu dinheiro nao some. Ele esta sem direcao.</h1>
+        <p>
+          O Codigo da Virada Financeira foi feito para quem quer sair do caos,
+          entender o que esta drenando o orcamento e retomar o controle com um
+          plano simples.
+        </p>
+        <a class="cta" href="#cta">Quero conhecer o metodo</a>
+      </section>
+
+      <section class="section">
+        <h2>O que voce encontra</h2>
+        <div class="grid cols-2">
+          <div class="proof">
+            <p>Clareza para entender para onde o dinheiro esta indo.</p>
+          </div>
+          <div class="proof">
+            <p>Passo a passo para priorizar contas e reorganizar dividas.</p>
+          </div>
+          <div class="proof">
+            <p>Direcao para criar reserva e respirar com menos pressao.</p>
+          </div>
+          <div class="proof">
+            <p>Ideias praticas de renda extra sem promessa milagrosa.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Para quem e</h2>
+        <ul>
+          <li>Para quem recebe e nao entende como o dinheiro acabou.</li>
+          <li>Para quem quer sair do improviso e agir com metodo.</li>
+          <li>Para quem precisa de linguagem simples e aplicacao pratica.</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>Prova plausivel</h2>
+        <div class="grid">
+          <div class="proof">
+            <p>
+              Voce passa a enxergar gastos invisiveis, definir prioridades e
+              tomar decisoes com mais calma.
+            </p>
+          </div>
+          <div class="proof">
+            <p>
+              O foco nao e parecer rico. E parar de andar em circulo e recuperar
+              direcao.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Perguntas frequentes</h2>
+        <div class="faq-item">
+          <p><strong>Isso promete dinheiro facil?</strong></p>
+          <p>Nao. O foco e organizacao, plano, clareza e acao pratica.</p>
+        </div>
+        <div class="faq-item">
+          <p><strong>Serve para quem esta endividado?</strong></p>
+          <p>Sim, especialmente para quem precisa priorizar e retomar controle.</p>
+        </div>
+        <div class="faq-item">
+          <p><strong>Preciso entender de financas?</strong></p>
+          <p>Nao. O material foi pensado para linguagem simples e direta.</p>
+        </div>
+      </section>
+
+      <section class="section" id="cta">
+        <h2>Seu proximo passo</h2>
+        <p>
+          Veja como o Codigo da Virada Financeira pode ajudar voce a sair do
+          aperto com mais clareza e menos improviso.
+        </p>
+        <a class="cta" href="https://seu-link-aqui.com/?utm_source=youtube&utm_medium=video&utm_campaign=ads-01">
+          Abrir pagina de venda
+        </a>
+        <a class="cta secondary" href="https://seu-link-aqui.com/?utm_source=youtube&utm_medium=video&utm_campaign=ads-01&utm_content=saiba-mais">
+          Ver detalhes primeiro
+        </a>
+      </section>
+    </main>
+  </body>
+</html>

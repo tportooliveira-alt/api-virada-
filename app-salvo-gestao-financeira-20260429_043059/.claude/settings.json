@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Thiago Porto/vendas e book/**)",
+      "Bash(python scripts/build_pdfs.py)"
+    ]
+  }
+}

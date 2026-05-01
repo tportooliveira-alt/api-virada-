@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  @apply bg-virada-bg text-virada-white antialiased;
+  background-image:
+    linear-gradient(140deg, rgba(34, 197, 94, 0.08), transparent 26%),
+    linear-gradient(220deg, rgba(245, 197, 66, 0.06), transparent 24%),
+    linear-gradient(180deg, #07111f 0%, #0a1220 48%, #0b1020 100%);
+  overflow-x: hidden;
+}
+
+button,
+a,
+input,
+select {
+  min-width: 0;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(203, 213, 225, 0.3) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(203, 213, 225, 0.2);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.8;
+}

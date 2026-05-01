@@ -1,0 +1,3 @@
+id,user_id,date,scope,description,amount,category,source,created_at
+"e1bd50b7-0af2-4860-a344-a1646b13ddf5","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","casa","Salário","3500","Salário","app","2026-04-29T09:12:20.304Z"
+"11cc2d65-2cec-42af-b7aa-1309ca04d232","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","casa","Freela design","800","Renda extra","app","2026-04-29T09:12:20.333Z"

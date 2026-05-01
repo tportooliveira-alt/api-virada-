@@ -1,0 +1,2 @@
+id,full_name,email,whatsapp,password_salt,password_hash,role,plan,access_status,sheet_provider,sheet_url,created_at
+"e89bb1fd-48ca-4883-a5ab-8b9d40295198","thiago","tportooliveira@gmail.com","77999226268","147eafe8c917993efdae0c8a44bc4b1a","43594eabdee319b0c033ae6fdab3aab35a9eed81319d7c80670f1f15059f93c9ef7c47413eb90c0f486439dce9b8bf8ebb818892e4dffa4ab525e5c9caa89459","customer","basic","active","google_sheets","","2026-04-29T09:03:46.380Z"

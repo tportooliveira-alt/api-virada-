@@ -1,0 +1,9 @@
+id,user_id,date,month,scope,description,category,source,cash_in,cash_out,movement_result,running_balance
+"d5633947-ad02-43ad-b03b-3a88d913ebce","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","2026-04","casa","Mercado semanal","Mercado","app","0","280","-280","-280"
+"18ff4ebf-4856-4b90-8cf2-f1d0dc3ff43b","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","2026-04","casa","Energia elétrica","Energia","app","0","180","-180","-460"
+"de3888c0-19c0-4335-9ec5-07ff010adfd1","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","2026-04","casa","iFood jantar","Delivery","app","0","55","-55","-515"
+"a28b1564-f6f6-4430-8e97-ddcd8a0ee879","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","2026-04","casa","Uber","Transporte","app","0","42","-42","-557"
+"8ab07d20-6f22-4f4e-bd49-6450155c3f73","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","2026-04","casa","Netflix + Spotify","Lazer","app","0","75","-75","-632"
+"e1bd50b7-0af2-4860-a344-a1646b13ddf5","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","2026-04","casa","Salário","Salário","app","3500","0","3500","2868"
+"11cc2d65-2cec-42af-b7aa-1309ca04d232","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","2026-04","casa","Freela design","Renda extra","app","800","0","800","3668"
+"6bcefa8e-17dd-432e-b6f1-68fa597e1d1c","e89bb1fd-48ca-4883-a5ab-8b9d40295198","2026-04-29","2026-04","casa","Mercado","Mercado","app","0","20","-20","3648"

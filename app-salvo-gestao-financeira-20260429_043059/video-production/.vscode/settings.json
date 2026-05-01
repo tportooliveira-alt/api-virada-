@@ -1,0 +1,9 @@
+{
+  "editor.formatOnSave": true,
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "markdown.preview.breaks": true,
+  "todo-tree.tree.showScanModeButton": true,
+  "cSpell.language": "pt,en",
+  "workbench.iconTheme": "material-icon-theme"
+}

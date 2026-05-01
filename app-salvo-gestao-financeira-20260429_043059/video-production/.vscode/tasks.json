@@ -1,0 +1,66 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "SRT: gerar legenda",
+      "type": "process",
+      "command": "python",
+      "args": [
+        "scripts/make_srt.py",
+        "voice/ads-01-30s-tts.txt",
+        "subtitles/ads-01-30s.srt",
+        "30"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "FFmpeg: render vertical 9x16",
+      "type": "process",
+      "command": "ffmpeg",
+      "args": [
+        "-y",
+        "-i",
+        "edits/master.mp4",
+        "-vf",
+        "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,subtitles=subtitles/ads-01-30s.srt",
+        "-c:v",
+        "libx264",
+        "-crf",
+        "20",
+        "-preset",
+        "medium",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        "exports/ads-01-30s-vertical.mp4"
+      ]
+    },
+    {
+      "label": "FFmpeg: thumbnail",
+      "type": "process",
+      "command": "ffmpeg",
+      "args": [
+        "-y",
+        "-ss",
+        "00:00:02",
+        "-i",
+        "exports/ads-01-30s-vertical.mp4",
+        "-frames:v",
+        "1",
+        "thumbnails/ads-01-thumb.jpg"
+      ]
+    },
+    {
+      "label": "Vercel: deploy landing",
+      "type": "process",
+      "command": "vercel",
+      "args": [
+        "--prod"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/landing"
+      }
+    }
+  ]
+}

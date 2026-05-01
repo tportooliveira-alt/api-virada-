@@ -1,0 +1,53 @@
+.next
+.next-dev
+node_modules
+tsconfig.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dev-*.log
+start-*.log
+dist
+coverage
+.DS_Store
+data/planilhas/*.csv
+video-production/.env*
+video-production/scripts/client_secret.json
+video-production/landing/.vercel
+video-production/voice/*.mp3
+video-production/voice/*.wav
+video-production/voice/*.m4a
+video-production/voice/*.aac
+video-production/stock/*.mp4
+video-production/stock/*.mov
+video-production/stock/*.wav
+video-production/stock/*.mp3
+video-production/edits/*.mp4
+video-production/edits/*.mov
+video-production/exports/*
+!video-production/exports/.gitkeep
+video-production/thumbnails/*.jpg
+video-production/thumbnails/*.jpeg
+video-production/thumbnails/*.png
+
+# Acesso e dados sensíveis
+.env
+.env.local
+.env.production
+data/access.db
+data/access.db-wal
+data/access.db-shm
+data/membros.json
+
+# Backup local não vai pro git
+../codigo-da-virada-BACKUP-*
+
+# Logs e caches locais
+.tmp-dev-*.log
+.tmp-dev-*.out.log
+.tmp-dev-*.err.log
+.tmp-mobile/
+
+# Configs de IDE local
+.claude/
