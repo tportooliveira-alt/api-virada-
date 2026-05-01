@@ -326,9 +326,9 @@ export function condFormatGradient(
       rule: {
         ranges: [{ sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startCol, endColumnIndex: endCol }],
         gradientRule: {
-          minpoint: { color: COLOR.redSoft, type: "NUMBER", value: "0" },
-          midpoint: { color: COLOR.goldSoft, type: "NUMBER", value: "0.5" },
-          maxpoint: { color: COLOR.greenSoft, type: "NUMBER", value: "1" },
+          minpoint: { color: COLOR.redSoft, type: "MIN" },
+          midpoint: { color: COLOR.goldSoft, type: "PERCENT", value: "50" },
+          maxpoint: { color: COLOR.greenSoft, type: "MAX" },
         },
       },
       index: 0,
