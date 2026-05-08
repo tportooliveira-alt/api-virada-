@@ -451,8 +451,8 @@ export function buildStaticValues() {
   data.push({
     range: `${TAB.dashboard}!A1`,
     values: [
-      ["CÓDIGO DA VIRADA — BASE FINANCEIRA ESTRUTURADA"],
-      ["Dashboard pronto para leitura rápida. Sincronize pelo app para preencher dados reais com fidelidade visual."],
+      ["CÓDIGO DA VIRADA • MARCA OFICIAL — BASE FINANCEIRA ESTRUTURADA"],
+      ["Código da Virada: dashboard oficial da marca. Sincronize pelo app para preencher dados reais com fidelidade visual."],
     ],
   });
   data.push({
@@ -496,7 +496,7 @@ export function buildStaticValues() {
 
   for (const key of ["lancamentos", "receitas", "despesas", "dividas", "metas", "fluxo", "resumo"] as const) {
     const panel = PANEL_META[key];
-    data.push({ range: `${TAB[key]}!J1`, values: [[panel.title]] });
+    data.push({ range: `${TAB[key]}!J1`, values: [[`${panel.title} • Código da Virada`]] });
     data.push({ range: `${TAB[key]}!J2`, values: [[panel.hint]] });
     data.push({ range: `${TAB[key]}!J4:J7`, values: panel.labels.map((label) => [label]) });
     data.push({
@@ -507,7 +507,7 @@ export function buildStaticValues() {
     data.push({ range: `${TAB[key]}!J11:J14`, values: panel.notes.map((line) => [line]) });
   }
 
-  data.push({ range: `${TAB.ajuda}!A1`, values: [["COMO USAR ESTA PLANILHA", ""]] });
+  data.push({ range: `${TAB.ajuda}!A1`, values: [["CÓDIGO DA VIRADA • COMO USAR ESTA PLANILHA", ""]] });
   const steps: Array<[string, string]> = [
     ["Sincronize pelo app sempre que lançar algo", "A planilha foi desenhada para ser reflexo fiel do aplicativo. Edite no app e sincronize para manter tudo consistente."],
     ["Comece pelo Dashboard", "Ele concentra entradas, saídas, saldo, lançamentos, categorias de gasto e uma leitura mensal do desempenho."],
