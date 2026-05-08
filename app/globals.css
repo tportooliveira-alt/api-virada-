@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
@@ -16,9 +16,9 @@ body {
 body {
   @apply bg-virada-bg text-virada-white antialiased;
   background-image:
-    linear-gradient(140deg, rgba(34, 197, 94, 0.08), transparent 26%),
-    linear-gradient(220deg, rgba(245, 197, 66, 0.06), transparent 24%),
-    linear-gradient(180deg, #07111f 0%, #0a1220 48%, #0b1020 100%);
+    linear-gradient(140deg, rgba(34, 197, 94, 0.12), transparent 28%),
+    linear-gradient(220deg, rgba(245, 197, 66, 0.1), transparent 26%),
+    linear-gradient(180deg, #f7fbff 0%, #eaf5ff 52%, #e6f1ff 100%);
   overflow-x: hidden;
 }
 
@@ -49,6 +49,46 @@ select {
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
+  filter: invert(0.2);
   opacity: 0.8;
+}
+
+/* Tema claro do app: mantém cores vivas com fundo claro para uso externo */
+.virada-light {
+  color: #0f172a;
+}
+
+.virada-light .bg-slate-900,
+.virada-light .bg-slate-900\/60,
+.virada-light .bg-slate-900\/80,
+.virada-light .bg-slate-900\/95,
+.virada-light .bg-slate-950,
+.virada-light .bg-slate-950\/45,
+.virada-light .bg-slate-950\/40,
+.virada-light .bg-slate-950\/35,
+.virada-light .bg-virada-bg {
+  background-color: #ffffff !important;
+}
+
+.virada-light .text-white {
+  color: #0f172a !important;
+}
+
+.virada-light .text-virada-gray,
+.virada-light .text-slate-500,
+.virada-light .text-slate-600,
+.virada-light .text-slate-400 {
+  color: #475569 !important;
+}
+
+.virada-light .border-virada-line,
+.virada-light .border-white\/10,
+.virada-light .border-white\/\[0\.08\],
+.virada-light .border-white\/\[0\.06\] {
+  border-color: rgba(15, 23, 42, 0.14) !important;
+}
+
+.virada-light .shadow-panel,
+.virada-light .shadow-glow {
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.1) !important;
 }

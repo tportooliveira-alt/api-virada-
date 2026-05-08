@@ -41,7 +41,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const meta = pageMeta[pathname] ?? pageMeta["/app/inicio"];
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[1280px] overflow-x-hidden px-4 pb-24 pt-4 md:gap-6 md:px-6 md:pb-6">
+    <div className="virada-light mx-auto flex min-h-screen w-full max-w-[1280px] flex-col overflow-x-hidden px-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-3 md:px-6 md:pt-4 lg:flex-row lg:gap-6 lg:pb-6">
 
       {/* Sidebar desktop */}
       <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-72 flex-col rounded-lg border border-virada-line bg-slate-950/45 p-4 shadow-glow backdrop-blur lg:flex">
@@ -91,7 +91,7 @@ export function AppShell({ children }: PropsWithChildren) {
       </aside>
 
       {/* Conteúdo principal */}
-      <div className="w-full min-w-0 flex-1 space-y-4">
+      <div className="w-full min-w-0 flex-1 space-y-3 md:space-y-4">
         <Header title={meta.title} subtitle={meta.subtitle} />
         <main className="w-full min-w-0">{children}</main>
       </div>

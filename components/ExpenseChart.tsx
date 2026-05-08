@@ -98,6 +98,8 @@ interface PieProps { data: { value: number; color: string }[]; total: number }
 
 function PieSVG({ data, total }: PieProps) {
   const R = 60; const CX = 70; const CY = 70;
+  const nonZero = data.filter((d) => d.value > 0);
+  const single = nonZero.length === 1;
   let startAngle = -Math.PI / 2;
   const slices = data.map((d) => {
     const angle = total > 0 ? (d.value / total) * 2 * Math.PI : 0;
@@ -111,14 +113,18 @@ function PieSVG({ data, total }: PieProps) {
   });
   return (
     <svg viewBox="0 0 140 140" className="h-32 w-32 shrink-0">
-      {slices.filter((s) => s.angle > 0.01).map((s, i) => (
-        <path key={i}
-          d={`M ${CX} ${CY} L ${s.x1} ${s.y1} A ${R} ${R} 0 ${s.large} 1 ${s.x2} ${s.y2} Z`}
-          fill={s.color} stroke="#07111F" strokeWidth="2"
-        />
-      ))}
+      {single ? (
+        <circle cx={CX} cy={CY} r={R} fill={nonZero[0].color} stroke="#E2E8F0" strokeWidth="2" />
+      ) : (
+        slices.filter((s) => s.angle > 0.01).map((s, i) => (
+          <path key={i}
+            d={`M ${CX} ${CY} L ${s.x1} ${s.y1} A ${R} ${R} 0 ${s.large} 1 ${s.x2} ${s.y2} Z`}
+            fill={s.color} stroke="#E2E8F0" strokeWidth="2"
+          />
+        ))
+      )}
       {/* donut hole */}
-      <circle cx={CX} cy={CY} r={36} fill="#0B1020" />
+      <circle cx={CX} cy={CY} r={36} fill="#F8FAFC" />
     </svg>
   );
 }
@@ -152,8 +158,8 @@ export function ExpenseChart({ expenses, incomes }: Props) {
 
   if (expenses.length === 0 && incomes.length === 0) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center text-sm text-slate-400">
-        Nenhum lançamento ainda. Toque em <strong className="text-white">Lançar</strong>.
+      <div className="rounded-xl border border-virada-line bg-slate-50 p-6 text-center text-sm text-slate-600">
+        Nenhum lançamento ainda. Toque em <strong className="text-slate-900">Lançar</strong>.
       </div>
     );
   }
@@ -180,29 +186,33 @@ export function ExpenseChart({ expenses, incomes }: Props) {
       </div>
 
       {/* Filtros de período */}
-      <div className="flex gap-1 rounded-xl bg-white/5 p-1">
+      <div className="flex gap-1 rounded-xl border border-slate-300 bg-slate-200 p-1 shadow-sm">
         {PERIODS.map((p) => (
           <button key={p.key} onClick={() => setPeriod(p.key)}
-            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition
-              ${period === p.key ? "bg-emerald-500 text-slate-950" : "text-slate-400"}`}>
+            className={`flex-1 rounded-lg border py-1.5 text-xs font-semibold transition
+              ${period === p.key
+                ? "border-emerald-500 bg-emerald-500 text-slate-950 shadow-sm"
+                : "border-slate-300 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50"}`}>
             {p.label}
           </button>
         ))}
       </div>
 
       {/* Filtros de natureza */}
-      <div className="flex gap-1 rounded-xl bg-white/5 p-1">
+      <div className="flex gap-1 rounded-xl border border-slate-300 bg-slate-200 p-1 shadow-sm">
         {NATURES.map((n) => (
           <button key={n.key} onClick={() => setNature(n.key)}
-            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition
-              ${nature === n.key ? "bg-amber-400 text-slate-950" : "text-slate-400"}`}>
+            className={`flex-1 rounded-lg border py-1.5 text-xs font-semibold transition
+              ${nature === n.key
+                ? "border-amber-400 bg-amber-400 text-slate-950 shadow-sm"
+                : "border-slate-300 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50"}`}>
             {n.label}
           </button>
         ))}
       </div>
 
       {byCategory.length === 0 ? (
-        <p className="text-center text-sm text-slate-400">Nenhum gasto neste período.</p>
+        <p className="text-center text-sm text-slate-600">Nenhum gasto neste período.</p>
       ) : (
         <>
           {/* Pizza + Legenda */}
@@ -212,8 +222,8 @@ export function ExpenseChart({ expenses, incomes }: Props) {
               {byCategory.slice(0, 6).map((d) => (
                 <div key={d.name} className="flex items-center gap-2">
                   <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: d.color }} />
-                  <span className="flex-1 truncate text-xs text-slate-300">{d.name}</span>
-                  <span className="shrink-0 text-xs font-bold text-white">
+                  <span className="flex-1 truncate text-xs text-slate-500">{d.name}</span>
+                  <span className="shrink-0 text-xs font-bold text-slate-900">
                     {totalExp > 0 ? ((d.value / totalExp) * 100).toFixed(0) : 0}%
                   </span>
                 </div>
@@ -223,15 +233,15 @@ export function ExpenseChart({ expenses, incomes }: Props) {
 
           {/* Barras horizontais */}
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">
               💸 Pra onde foi
             </p>
             <BarChartSVG data={byCategory} total={totalExp} />
           </div>
 
           {/* Ranking com barra de progresso CSS */}
-          <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <div className="space-y-2 rounded-xl border border-virada-line bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">
               Maior gasto do período
             </p>
             {byCategory.slice(0, 5).map((d, i) => {
@@ -239,13 +249,13 @@ export function ExpenseChart({ expenses, incomes }: Props) {
               return (
                 <div key={d.name}>
                   <div className="mb-1 flex justify-between text-xs">
-                    <span className="text-slate-300 flex items-center gap-1">
+                    <span className="text-slate-700 flex items-center gap-1">
                       {i === 0 && <span className="text-[10px] rounded bg-red-500/20 px-1 text-red-400">MAIOR</span>}
                       {d.name}
                     </span>
-                    <span className="font-semibold text-white">{brl(d.value)}</span>
+                    <span className="font-semibold text-slate-900">{brl(d.value)}</span>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
                     <div className="h-full rounded-full transition-all"
                       style={{ width: `${pct}%`, background: d.color }} />
                   </div>

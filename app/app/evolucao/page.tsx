@@ -43,7 +43,7 @@ function Chip({ label, color }: { label: string; color: string }) {
 function Bar({ value, total, color }: { value: number; total: number; color: string }) {
   const w = total > 0 ? Math.max((value / total) * 100, 2) : 0;
   return (
-    <div className="h-1.5 w-full rounded-full bg-white/10">
+    <div className="h-1.5 w-full rounded-full bg-slate-200">
       <div className="h-full rounded-full transition-all" style={{ width: `${w}%`, background: color }} />
     </div>
   );
@@ -64,7 +64,7 @@ function KPI({
         </p>
         <span className="text-base">{emoji}</span>
       </div>
-      <p className="mt-1.5 text-xl font-extrabold text-white">{value}</p>
+      <p className="mt-1.5 text-xl font-extrabold text-slate-900">{value}</p>
       {sub && <p className="mt-0.5 text-[11px] text-slate-500">{sub}</p>}
     </div>
   );
@@ -73,11 +73,15 @@ function KPI({
 // ─── Gráfico de pizza SVG ─────────────────────────────────────────────────────
 function PieChart({ slices }: { slices: { value: number; color: string; label: string }[] }) {
   const total = slices.reduce((s, d) => s + d.value, 0);
+  const nonZeroSlices = slices.filter((d) => d.value > 0);
+  const isSingleSlice = nonZeroSlices.length === 1;
   let angle = -Math.PI / 2;
   return (
     <svg viewBox="0 0 100 100" className="h-28 w-28 shrink-0">
       {total === 0 ? (
         <circle cx="50" cy="50" r="40" fill="#1e293b" />
+      ) : isSingleSlice ? (
+        <circle cx="50" cy="50" r="40" fill={nonZeroSlices[0].color} stroke="#E2E8F0" strokeWidth="1.5" />
       ) : slices.map((d, i) => {
         if (d.value === 0) return null;
         const sweep = (d.value / total) * 2 * Math.PI;
@@ -92,15 +96,15 @@ function PieChart({ slices }: { slices: { value: number; color: string; label: s
             key={i}
             d={`M50 50 L${x1} ${y1} A40 40 0 ${large} 1 ${x2} ${y2} Z`}
             fill={d.color}
-            stroke="#07111F"
+            stroke="#E2E8F0"
             strokeWidth="1.5"
           />
         );
       })}
-      <circle cx="50" cy="50" r="22" fill="#07111F" />
+      <circle cx="50" cy="50" r="22" fill="#F8FAFC" />
       {total > 0 && (
-        <text x="50" y="55" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold">
-          {slices.length}
+        <text x="50" y="55" textAnchor="middle" fill="#334155" fontSize="9" fontWeight="bold">
+          {nonZeroSlices.length}
         </text>
       )}
     </svg>
@@ -174,20 +178,20 @@ function ProTable({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] py-10 text-center text-sm text-slate-500">
+      <div className="rounded-xl border border-virada-line bg-white/[0.02] py-10 text-center text-sm text-slate-500">
         Nenhum dado para exibir com os filtros aplicados
       </div>
     );
   }
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/[0.08]">
+    <div className="overflow-x-auto rounded-xl border border-virada-line">
       <table className="w-full min-w-max text-xs">
         <thead>
-          <tr className="bg-slate-900/80">
+          <tr className="bg-slate-100">
             {headers.map((h, i) => (
               <th
                 key={i}
-                className="border-b border-white/[0.08] px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap"
+                className="border-b border-virada-line px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-600 whitespace-nowrap"
               >
                 {h}
               </th>
@@ -196,11 +200,11 @@ function ProTable({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className={i % 2 === 0 ? "bg-white/[0.015]" : ""}>
+            <tr key={i} className={i % 2 === 0 ? "bg-slate-50/60" : ""}>
               {row.map((cell, j) => (
                 <td
                   key={j}
-                  className="border-b border-white/[0.04] px-3 py-2 text-slate-300 whitespace-nowrap"
+                  className="border-b border-virada-line px-3 py-2 text-slate-700 whitespace-nowrap"
                 >
                   {cell}
                 </td>
@@ -210,11 +214,11 @@ function ProTable({
         </tbody>
         {totals && (
           <tfoot>
-            <tr className="bg-slate-900/80">
+            <tr className="bg-slate-100">
               {totals.map((cell, j) => (
                 <td
                   key={j}
-                  className="border-t border-white/[0.15] px-3 py-2.5 text-[11px] font-bold text-white whitespace-nowrap"
+                  className="border-t border-virada-line px-3 py-2.5 text-[11px] font-bold text-slate-900 whitespace-nowrap"
                 >
                   {cell}
                 </td>
@@ -253,33 +257,33 @@ function TxRow({
 
   return (
     <tr className="group">
-      <td className="border-b border-white/[0.04] px-3 py-2 whitespace-nowrap">
+      <td className="border-b border-virada-line px-3 py-2 whitespace-nowrap">
         <Chip label={tipo} color={isExpense ? "#EF4444" : "#22C55E"} />
       </td>
-      <td className="border-b border-white/[0.04] px-3 py-2 text-slate-300 max-w-[120px] truncate whitespace-nowrap">
+      <td className="border-b border-virada-line px-3 py-2 text-slate-700 max-w-[120px] truncate whitespace-nowrap">
         {tx.description}
       </td>
-      <td className="border-b border-white/[0.04] px-3 py-2 whitespace-nowrap">
+      <td className="border-b border-virada-line px-3 py-2 whitespace-nowrap">
         <span className={`font-semibold ${isExpense ? "text-red-300" : "text-emerald-300"}`}>
           {brl(tx.value)}
         </span>
       </td>
-      <td className="border-b border-white/[0.04] px-3 py-2 text-slate-400 whitespace-nowrap">{tx.category}</td>
-      <td className="border-b border-white/[0.04] px-3 py-2 text-slate-400 whitespace-nowrap">{tx.date}</td>
-      <td className="border-b border-white/[0.04] px-3 py-2 whitespace-nowrap">
+      <td className="border-b border-virada-line px-3 py-2 text-slate-500 whitespace-nowrap">{tx.category}</td>
+      <td className="border-b border-virada-line px-3 py-2 text-slate-500 whitespace-nowrap">{tx.date}</td>
+      <td className="border-b border-virada-line px-3 py-2 whitespace-nowrap">
         {"paymentMethod" in tx ? tx.paymentMethod : "—"}
       </td>
-      <td className="border-b border-white/[0.04] px-3 py-2 whitespace-nowrap">
+      <td className="border-b border-virada-line px-3 py-2 whitespace-nowrap">
         {"nature" in tx && tx.nature === "impulso"
           ? <Chip label="Impulso" color="#F97316" />
           : "nature" in tx
           ? <Chip label="Essencial" color="#3B82F6" />
           : "—"}
       </td>
-      <td className="border-b border-white/[0.04] px-3 py-2 whitespace-nowrap">
+      <td className="border-b border-virada-line px-3 py-2 whitespace-nowrap">
         {tx.scope ?? "casa"}
       </td>
-      <td className="border-b border-white/[0.04] px-2 py-2 whitespace-nowrap">
+      <td className="border-b border-virada-line px-2 py-2 whitespace-nowrap">
         {confirm === null ? (
           <div className="flex gap-1">
             <button
@@ -317,7 +321,7 @@ function TxRow({
             </button>
             <button
               onClick={() => setConfirm(null)}
-              className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-400 hover:text-white"
+              className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-500 hover:text-slate-900"
             >
               Não
             </button>
@@ -474,9 +478,9 @@ export default function EvolucaoPage() {
                           <div className="mb-0.5 flex items-center justify-between text-[11px]">
                             <div className="flex items-center gap-1.5">
                               <div className="h-2 w-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-                              <span className="text-slate-300 truncate max-w-[80px]">{cat}</span>
+                              <span className="text-slate-600 truncate max-w-[80px]">{cat}</span>
                             </div>
-                            <span className="font-semibold text-white shrink-0">{pct(val, totalExp)}</span>
+                            <span className="font-semibold text-slate-900 shrink-0">{pct(val, totalExp)}</span>
                           </div>
                           <Bar value={val} total={totalExp} color={COLORS[i % COLORS.length]} />
                         </div>
@@ -510,9 +514,9 @@ export default function EvolucaoPage() {
                           <div className="mb-0.5 flex items-center justify-between text-[11px]">
                             <div className="flex items-center gap-1.5">
                               <div className="h-2 w-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-                              <span className="text-slate-300 truncate max-w-[80px]">{cat}</span>
+                              <span className="text-slate-600 truncate max-w-[80px]">{cat}</span>
                             </div>
-                            <span className="font-semibold text-white shrink-0">{pct(val, totalInc)}</span>
+                            <span className="font-semibold text-slate-900 shrink-0">{pct(val, totalInc)}</span>
                           </div>
                           <Bar value={val} total={totalInc} color={COLORS[i % COLORS.length]} />
                         </div>
@@ -578,19 +582,19 @@ export default function EvolucaoPage() {
 
         if (allTx.length === 0) {
           return (
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] py-10 text-center text-sm text-slate-500">
+            <div className="rounded-xl border border-virada-line bg-white/[0.02] py-10 text-center text-sm text-slate-500">
               Nenhum dado para exibir com os filtros aplicados
             </div>
           );
         }
 
         return (
-          <div className="overflow-x-auto rounded-xl border border-white/[0.08]">
+          <div className="overflow-x-auto rounded-xl border border-virada-line">
             <table className="w-full min-w-max text-xs">
               <thead>
-                <tr className="bg-slate-900/80">
+                <tr className="bg-slate-100">
                   {["Tipo","Descrição","Valor","Categoria","Data","Pagto","Natureza","Escopo","Ações"].map((h, i) => (
-                    <th key={i} className="border-b border-white/[0.08] px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">{h}</th>
+                    <th key={i} className="border-b border-virada-line px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-600 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -606,13 +610,13 @@ export default function EvolucaoPage() {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-slate-900/80">
-                  <td className="border-t border-white/[0.15] px-3 py-2.5 text-[11px] font-bold text-white">TOTAL</td>
-                  <td className="border-t border-white/[0.15] px-3 py-2.5 text-[11px] font-bold text-white">{allTx.length} registros</td>
-                  <td className="border-t border-white/[0.15] px-3 py-2.5 text-[11px] font-bold">
+                <tr className="bg-slate-100">
+                  <td className="border-t border-virada-line px-3 py-2.5 text-[11px] font-bold text-slate-900">TOTAL</td>
+                  <td className="border-t border-virada-line px-3 py-2.5 text-[11px] font-bold text-slate-900">{allTx.length} registros</td>
+                  <td className="border-t border-virada-line px-3 py-2.5 text-[11px] font-bold">
                     <span className={balance >= 0 ? "text-emerald-300" : "text-red-300"}>{brl(balance)}</span>
                   </td>
-                  {Array(6).fill(null).map((_, i) => <td key={i} className="border-t border-white/[0.15] px-3 py-2.5" />)}
+                  {Array(6).fill(null).map((_, i) => <td key={i} className="border-t border-virada-line px-3 py-2.5" />)}
                 </tr>
               </tfoot>
             </table>
@@ -743,7 +747,7 @@ export default function EvolucaoPage() {
                 brl(g.targetValue),
                 <span key="a" className="text-emerald-300">{brl(g.currentValue)}</span>,
                 <div key="p" className="flex items-center gap-2 min-w-[80px]">
-                  <div className="h-1.5 flex-1 rounded-full bg-white/10">
+                  <div className="h-1.5 flex-1 rounded-full bg-slate-200">
                     <div
                       className="h-full rounded-full bg-purple-500"
                       style={{ width: `${Math.min(prog, 100)}%` }}
@@ -818,7 +822,7 @@ export default function EvolucaoPage() {
                 const result = inc - exp;
                 const eco = inc > 0 ? (result / inc * 100) : 0;
                 return [
-                  <span key="m" className="font-semibold text-white">{monthLabel(month)}</span>,
+                  <span key="m" className="font-semibold text-slate-800">{monthLabel(month)}</span>,
                   <span key="i" className="text-emerald-300">{brl(inc)}</span>,
                   <span key="e" className="text-red-300">{brl(exp)}</span>,
                   <span key="r" className={`font-bold ${result >= 0 ? "text-blue-300" : "text-orange-300"}`}>
@@ -845,17 +849,17 @@ export default function EvolucaoPage() {
     <div className="space-y-4 pb-6">
 
       {/* ── Google Sync ─────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-4">
-        <div className="mb-3 flex items-center justify-between">
+      <section className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-3 sm:p-4">
+        <div className="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
               Google Planilhas
             </p>
-            <p className="text-sm font-semibold text-white">Sincronizar com 1 clique</p>
+            <p className="text-sm font-semibold text-slate-900">Sincronizar com 1 clique</p>
           </div>
           <a
             href="/app/planilha-demo"
-            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-400 transition hover:text-white"
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-virada-line bg-white/70 px-3 py-2 text-xs text-slate-600 transition hover:text-slate-900 sm:w-auto sm:justify-start sm:py-1.5"
           >
             <FileSpreadsheet className="h-3.5 w-3.5" />
             Ver prévia
@@ -892,7 +896,7 @@ export default function EvolucaoPage() {
             <select
               value={monthFilter}
               onChange={e => setMonthFilter(e.target.value)}
-              className="rounded-xl border border-white/[0.08] bg-slate-900 px-3 py-2 text-xs text-white outline-none"
+              className="rounded-xl border border-virada-line bg-white px-3 py-2 text-xs text-slate-900 outline-none"
             >
               <option value="all">Todos os meses</option>
               {availableMonths.map(m => (
@@ -907,7 +911,7 @@ export default function EvolucaoPage() {
             <select
               value={typeFilter}
               onChange={e => handleTypeFilter(e.target.value as "all" | "receita" | "gasto")}
-              className="rounded-xl border border-white/[0.08] bg-slate-900 px-3 py-2 text-xs text-white outline-none"
+              className="rounded-xl border border-virada-line bg-white px-3 py-2 text-xs text-slate-900 outline-none"
             >
               <option value="all">Todos</option>
               <option value="receita">Receitas</option>
@@ -921,7 +925,7 @@ export default function EvolucaoPage() {
             <select
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
-              className="rounded-xl border border-white/[0.08] bg-slate-900 px-3 py-2 text-xs text-white outline-none"
+              className="rounded-xl border border-virada-line bg-white px-3 py-2 text-xs text-slate-900 outline-none"
             >
               <option value="all">Todas as categorias</option>
               {availableCategories.map(c => (
@@ -966,20 +970,21 @@ export default function EvolucaoPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
+              aria-label={t.label}
               className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-lg border-b-2 px-3 py-2 text-[11px] font-semibold transition ${
                 tab === t.key
-                  ? "border-emerald-400 bg-white/[0.04] text-white"
-                  : "border-transparent text-slate-500 hover:text-slate-300"
+                  ? "border-emerald-400 bg-emerald-50 text-slate-900"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
               }`}
             >
               <span>{t.emoji}</span>
-              {t.label}
+              <span className="hidden sm:inline">{t.label}</span>
             </button>
           ))}
         </div>
 
         {/* Conteúdo */}
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           {renderTab()}
         </div>
       </section>
