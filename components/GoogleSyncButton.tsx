@@ -139,6 +139,7 @@ interface Props {
 export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }: Props) {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
   const tokenClientRef = useRef<{ requestAccessToken: () => void } | null>(null);
+  const oauthPopupTimeoutRef = useRef<number | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [meta, setMeta] = useState<SheetMeta | null>(null);
   const [token, setToken] = useState<Token | null>(null);
@@ -209,6 +210,10 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       client_id: clientId,
       scope: SCOPES,
       callback: async (resp) => {
+        if (oauthPopupTimeoutRef.current !== null) {
+          window.clearTimeout(oauthPopupTimeoutRef.current);
+          oauthPopupTimeoutRef.current = null;
+        }
         if (resp.error || !resp.access_token) {
           setErrMsg(resp.error ?? "Erro ao conectar com Google.");
           setStatus("err");
@@ -227,10 +232,43 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   }, [gisLoaded, clientId, doSync]);
 
   function handleConnect() {
-    if (!tokenClientRef.current) return;
+    if (!tokenClientRef.current) {
+      setStatus("err");
+      setErrMsg("Login Google ainda não inicializou neste navegador. Aguarde 2 segundos e tente novamente.");
+
+      // Tenta reanexar o script GIS caso tenha carregado parcialmente.
+      const existing = document.getElementById("gis-script");
+      if (existing) {
+        existing.remove();
+      }
+      setGisLoaded(false);
+      const s = document.createElement("script");
+      s.id = "gis-script";
+      s.src = "https://accounts.google.com/gsi/client";
+      s.async = true;
+      s.defer = true;
+      s.onload = () => setGisLoaded(true);
+      document.head.appendChild(s);
+      return;
+    }
+
     setSyncing(true);
     if (token && token.expires_at > Date.now()) void doSync(token.access_token);
-    else tokenClientRef.current.requestAccessToken();
+    else {
+      // Em alguns navegadores o popup OAuth pode ser bloqueado sem callback.
+      // Este timeout evita botão travado em estado "criando".
+      if (oauthPopupTimeoutRef.current !== null) {
+        window.clearTimeout(oauthPopupTimeoutRef.current);
+      }
+      oauthPopupTimeoutRef.current = window.setTimeout(() => {
+        oauthPopupTimeoutRef.current = null;
+        setSyncing(false);
+        setStatus("err");
+        setErrMsg("Não consegui abrir o popup do Google. Libere popups para este site e tente novamente.");
+      }, 12000);
+
+      tokenClientRef.current.requestAccessToken();
+    }
   }
 
   function handleDisconnect() {
