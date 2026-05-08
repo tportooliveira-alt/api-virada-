@@ -130,6 +130,33 @@ export function AuthGate({ children }: PropsWithChildren) {
     }
   }, []);
 
+  const loadGisScript = useCallback(() => {
+    if (gisLoaded.current) return;
+    if (document.getElementById("gis-script")) {
+      gisLoaded.current = true;
+      return;
+    }
+    const s = document.createElement("script");
+    s.id = "gis-script";
+    s.src = "https://accounts.google.com/gsi/client";
+    s.async = true;
+    s.defer = true;
+    s.onload = () => {
+      gisLoaded.current = true;
+      if (window.google?.accounts?.id && !idInitialized.current && clientId) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          use_fedcm_for_prompt: false,
+          callback: (response) => {
+            void authenticate({ credential: response.credential });
+          },
+        });
+        idInitialized.current = true;
+      }
+    };
+    document.head.appendChild(s);
+  }, [authenticate, clientId]);
+
   const ensureIdClient = useCallback(() => {
     if (!clientId) {
       setError("NEXT_PUBLIC_GOOGLE_CLIENT_ID não está configurado.");
@@ -151,7 +178,7 @@ export function AuthGate({ children }: PropsWithChildren) {
     });
     idInitialized.current = true;
     return true;
-  }, [authenticate, clientId]);
+  }, [authenticate, clientId, loadGisScript]);
 
   const startOAuthPopupFallback = useCallback(() => {
     const oauth2 = window.google?.accounts?.oauth2;
@@ -230,36 +257,9 @@ export function AuthGate({ children }: PropsWithChildren) {
     // Já logado: confia por enquanto, revalida em background
     setStage(stored.status === "ativo" ? "ok" : "not-member");
     loadGisScript();
-  }, [pathname]);
+  }, [pathname, loadGisScript]);
 
   if (pathname === "/") return <>{children}</>;
-
-  function loadGisScript() {
-    if (gisLoaded.current) return;
-    if (document.getElementById("gis-script")) {
-      gisLoaded.current = true;
-      return;
-    }
-    const s = document.createElement("script");
-    s.id = "gis-script";
-    s.src = "https://accounts.google.com/gsi/client";
-    s.async = true;
-    s.defer = true;
-    s.onload = () => {
-      gisLoaded.current = true;
-      if (window.google?.accounts?.id && !idInitialized.current && clientId) {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          use_fedcm_for_prompt: false,
-          callback: (response) => {
-            void authenticate({ credential: response.credential });
-          },
-        });
-        idInitialized.current = true;
-      }
-    };
-    document.head.appendChild(s);
-  }
 
   function handleSignIn() {
     if (!ensureIdClient()) return;
