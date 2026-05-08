@@ -14,6 +14,53 @@ import { NextResponse } from "next/server";
 import { expectedToken, isPlatform, parseWebhook } from "@/lib/access/adapters";
 import { logWebhook, upsertMember } from "@/lib/access/members";
 
+function asString(v: unknown): string | null {
+  return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+function readPath(obj: unknown, path: string): unknown {
+  let cur: unknown = obj;
+  for (const key of path.split(".")) {
+    if (cur && typeof cur === "object" && key in (cur as Record<string, unknown>)) {
+      cur = (cur as Record<string, unknown>)[key];
+    } else {
+      return undefined;
+    }
+  }
+  return cur;
+}
+
+function normalizeToken(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function hotmartProductTokens(body: Record<string, unknown>): string[] {
+  const candidates = [
+    asString(readPath(body, "data.product.id")),
+    asString(readPath(body, "data.product.ucode")),
+    asString(readPath(body, "data.product.name")),
+    asString(readPath(body, "data.offer.code")),
+    asString(readPath(body, "data.offer.name")),
+  ].filter((v): v is string => Boolean(v));
+
+  return [...new Set(candidates.map(normalizeToken))];
+}
+
+function hotmartAllowedProducts(): string[] {
+  return (process.env.HOTMART_ALLOWED_PRODUCTS ?? "")
+    .split(",")
+    .map((item) => normalizeToken(item))
+    .filter(Boolean);
+}
+
+function shouldProcessHotmartEvent(body: Record<string, unknown>): boolean {
+  const allowed = hotmartAllowedProducts();
+  if (allowed.length === 0) return true;
+
+  const incoming = hotmartProductTokens(body);
+  return incoming.some((token) => allowed.includes(token));
+}
+
 export async function POST(request: Request, { params }: { params: { platform: string } }) {
   const platform = params.platform;
   if (!isPlatform(platform)) {
@@ -49,6 +96,13 @@ export async function POST(request: Request, { params }: { params: { platform: s
   }
 
   const parsed = parseWebhook(platform, body);
+
+  // Se HOTMART_ALLOWED_PRODUCTS estiver definido, só processa eventos de produtos permitidos.
+  // Isso evita liberar/revogar acesso do app para compra de ebook (isca).
+  if (platform === "hotmart" && !shouldProcessHotmartEvent(body)) {
+    logWebhook({ platform, event: parsed.event, ok: true, message: "produto ignorado por filtro HOTMART_ALLOWED_PRODUCTS" });
+    return NextResponse.json({ ok: true, ignored: true, reason: "product_not_allowed" });
+  }
 
   if (!parsed.upsert) {
     logWebhook({ platform, event: parsed.event, ok: false, message: "sem email" });

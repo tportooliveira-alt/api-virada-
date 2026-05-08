@@ -51,3 +51,5 @@ data/membros.json
 
 # Configs de IDE local
 .claude/
+
+.vercel
