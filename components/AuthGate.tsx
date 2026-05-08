@@ -5,17 +5,9 @@
  *
  * Fluxo:
  *  1) Usuário toca "Entrar com Google"
- *  2) Google devolve um ID token (JWT)
- *  3) /api/access/check valida o token e diz se o email é comprador (lista Hotmart)
- *  4) Status fica salvo no IndexedDB:
- *       { email, sub, status: "ativo"|"inativo", checkedAt }
- *  5) Próximas aberturas:
- *       • online → revalida e atualiza o status
- *       • offline + status "ativo" + sub bate → libera
- *       • offline + status "inativo" → pede pra conectar
- *
- * Não existe email/senha. Não existe código de ativação. O e-mail Google
- * é a chave: comprou com aquele e-mail → entra com aquele e-mail.
+ *  2) Tenta ID token (Google One Tap/FedCM)
+ *  3) Se FedCM falhar no navegador, cai automaticamente no popup OAuth
+ *  4) /api/access/check valida e diz se o email é comprador (lista Hotmart)
  */
 
 import { PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
@@ -40,6 +32,15 @@ declare global {
             isDismissedMoment: () => boolean;
           }) => void) => void;
           cancel: () => void;
+        };
+        oauth2?: {
+          initTokenClient: (cfg: {
+            client_id: string;
+            scope: string;
+            callback: (response: { access_token?: string; error?: string; error_description?: string }) => void;
+          }) => {
+            requestAccessToken: (opts?: { prompt?: string }) => void;
+          };
         };
       };
     };
@@ -100,15 +101,17 @@ export function AuthGate({ children }: PropsWithChildren) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const gisLoaded = useRef(false);
+  const idInitialized = useRef(false);
 
-  const handleCredential = useCallback(async (credential: string) => {
+  const authenticate = useCallback(async (payload: { credential?: string; accessToken?: string }) => {
     setSubmitting(true);
     setError("");
+    setStage("checking");
     try {
       const res = await fetch("/api/access/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { message?: string };
@@ -126,6 +129,54 @@ export function AuthGate({ children }: PropsWithChildren) {
       setSubmitting(false);
     }
   }, []);
+
+  const ensureIdClient = useCallback(() => {
+    if (!clientId) {
+      setError("NEXT_PUBLIC_GOOGLE_CLIENT_ID não está configurado.");
+      return false;
+    }
+    const id = window.google?.accounts?.id;
+    if (!id) {
+      setError("Aguarde, carregando login Google…");
+      loadGisScript();
+      return false;
+    }
+    if (idInitialized.current) return true;
+    id.initialize({
+      client_id: clientId,
+      use_fedcm_for_prompt: false,
+      callback: (response) => {
+        void authenticate({ credential: response.credential });
+      },
+    });
+    idInitialized.current = true;
+    return true;
+  }, [authenticate, clientId]);
+
+  const startOAuthPopupFallback = useCallback(() => {
+    const oauth2 = window.google?.accounts?.oauth2;
+    if (!oauth2?.initTokenClient) {
+      setError("Não foi possível abrir o login Google neste navegador. Tente novamente ou abra em outro navegador.");
+      setSubmitting(false);
+      return;
+    }
+
+    setSubmitting(true);
+    const tokenClient = oauth2.initTokenClient({
+      client_id: clientId,
+      scope: "openid email profile",
+      callback: (response) => {
+        if (response.error || !response.access_token) {
+          setError("Não foi possível abrir o login Google neste navegador. Tente novamente ou abra em outro navegador.");
+          setSubmitting(false);
+          return;
+        }
+        void authenticate({ accessToken: response.access_token });
+      },
+    });
+
+    tokenClient.requestAccessToken({ prompt: "consent" });
+  }, [authenticate, clientId]);
 
   // Dev bypass — só aparece em localhost quando não há Client ID configurado
   function handleDevLogin() {
@@ -185,33 +236,49 @@ export function AuthGate({ children }: PropsWithChildren) {
     s.defer = true;
     s.onload = () => {
       gisLoaded.current = true;
+      if (window.google?.accounts?.id && !idInitialized.current && clientId) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          use_fedcm_for_prompt: false,
+          callback: (response) => {
+            void authenticate({ credential: response.credential });
+          },
+        });
+        idInitialized.current = true;
+      }
     };
     document.head.appendChild(s);
   }
 
   function handleSignIn() {
-    if (!clientId) {
-      setError("NEXT_PUBLIC_GOOGLE_CLIENT_ID não está configurado.");
-      return;
-    }
-    if (!window.google?.accounts?.id) {
-      setError("Aguarde, carregando login Google…");
-      loadGisScript();
-      return;
-    }
+    if (!ensureIdClient()) return;
+
     setError("");
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      use_fedcm_for_prompt: false,
-      callback: (response) => {
-        void handleCredential(response.credential);
-      },
-    });
-    window.google.accounts.id.prompt((notification) => {
+    setSubmitting(true);
+
+    let handled = false;
+    const onFallback = () => {
+      if (handled) return;
+      handled = true;
+      startOAuthPopupFallback();
+    };
+
+    // Se o prompt nem abrir (caso FedCM quebrado), cai no popup OAuth.
+    const timeoutId = window.setTimeout(onFallback, 1200);
+
+    window.google?.accounts?.id?.prompt((notification) => {
       if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
-        setError("Não foi possível abrir o login Google neste navegador. Tente novamente ou abra em outro navegador.");
+        window.clearTimeout(timeoutId);
+        onFallback();
       }
     });
+
+    // Se o prompt abriu, o callback de credential assume o fluxo.
+    window.setTimeout(() => {
+      if (!handled) {
+        setSubmitting(false);
+      }
+    }, 2200);
   }
 
   // ─── UIs ──────────────────────────────────────────────────────────────────

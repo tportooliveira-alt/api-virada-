@@ -1,14 +1,11 @@
 /**
  * POST /api/access/check
- * Body: { credential: string }  // ID token JWT do Google
+ * Body: { credential?: string, accessToken?: string }
  *
- * 1) Valida o ID token chamando o endpoint público do Google
+ * 1) Valida ID token OU access token no endpoint público da Google
  * 2) Confere se o email está na lista de membros (Hotmart)
  *    OU se está em ADMIN_EMAILS — admins entram sem precisar comprar.
- * 3) Devolve { status, email, name, sub, isAdmin } — sub é o ID Google imutável
- *
- * O cliente grava { email, sub, status } no IndexedDB. A próxima abertura
- * pode usar offline-first: se já está "ativo" localmente e o sub bate, libera.
+ * 3) Devolve { status, email, name, sub, isAdmin }
  */
 import { NextResponse } from "next/server";
 import { isMember } from "@/lib/access/members";
@@ -24,6 +21,14 @@ interface TokenInfo {
   error_description?: string;
 }
 
+interface UserInfo {
+  sub?: string;
+  email?: string;
+  email_verified?: boolean;
+  name?: string;
+  picture?: string;
+}
+
 function isAdminEmail(email: string): boolean {
   const list = (process.env.ADMIN_EMAILS || "")
     .split(",")
@@ -32,49 +37,89 @@ function isAdminEmail(email: string): boolean {
   return list.includes(email.trim().toLowerCase());
 }
 
-export async function POST(request: Request) {
-  const expectedClient = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID;
+function emailVerified(value: unknown): boolean {
+  return value === true || value === "true";
+}
 
-  let credential = "";
-  try {
-    const body = (await request.json()) as { credential?: string };
-    credential = String(body.credential ?? "");
-  } catch {
-    return NextResponse.json({ message: "Body inválido." }, { status: 400 });
-  }
-  if (!credential) {
-    return NextResponse.json({ message: "Credential ausente." }, { status: 400 });
-  }
+async function validateByIdToken(idToken: string, expectedClient?: string) {
+  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+  if (!res.ok) throw new Error("Token Google inválido.");
 
-  // Valida o ID token via endpoint público da Google (sem dependências)
-  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
-  if (!res.ok) {
-    return NextResponse.json({ message: "Token Google inválido." }, { status: 401 });
-  }
   const info = (await res.json()) as TokenInfo;
+  if (info.error_description) throw new Error(info.error_description);
+  if (expectedClient && info.aud && info.aud !== expectedClient) throw new Error("Audiência inválida.");
+  if (!info.email || !info.sub) throw new Error("Token sem email/sub.");
+  if (!emailVerified(info.email_verified)) throw new Error("Email Google não verificado.");
 
-  if (info.error_description) {
-    return NextResponse.json({ message: info.error_description }, { status: 401 });
-  }
-  if (expectedClient && info.aud && info.aud !== expectedClient) {
-    return NextResponse.json({ message: "Audiência inválida." }, { status: 401 });
-  }
-  if (!info.email || !info.sub) {
-    return NextResponse.json({ message: "Token sem email/sub." }, { status: 401 });
-  }
-  if (info.email_verified !== true && info.email_verified !== "true") {
-    return NextResponse.json({ message: "Email Google não verificado." }, { status: 401 });
-  }
-
-  const admin = isAdminEmail(info.email);
-  const ativo = admin || isMember(info.email);
-
-  return NextResponse.json({
-    status: ativo ? "ativo" : "inativo",
+  return {
     email: info.email,
     sub: info.sub,
     name: info.name ?? info.email,
     picture: info.picture ?? null,
-    isAdmin: admin,
+  };
+}
+
+async function validateByAccessToken(accessToken: string, expectedClient?: string) {
+  const tokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`);
+  if (!tokenRes.ok) throw new Error("Access token inválido.");
+  const tokenInfo = (await tokenRes.json()) as TokenInfo;
+
+  if (expectedClient && tokenInfo.aud && tokenInfo.aud !== expectedClient) {
+    throw new Error("Audiência inválida.");
+  }
+
+  const userRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
+  if (!userRes.ok) throw new Error("Não foi possível obter perfil Google.");
+
+  const user = (await userRes.json()) as UserInfo;
+  if (!user.email || !user.sub) throw new Error("Perfil Google sem email/sub.");
+  if (!emailVerified(user.email_verified)) throw new Error("Email Google não verificado.");
+
+  return {
+    email: user.email,
+    sub: user.sub,
+    name: user.name ?? user.email,
+    picture: user.picture ?? null,
+  };
+}
+
+export async function POST(request: Request) {
+  const expectedClient = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID;
+
+  let credential = "";
+  let accessToken = "";
+  try {
+    const body = (await request.json()) as { credential?: string; accessToken?: string };
+    credential = String(body.credential ?? "");
+    accessToken = String(body.accessToken ?? "");
+  } catch {
+    return NextResponse.json({ message: "Body inválido." }, { status: 400 });
+  }
+
+  if (!credential && !accessToken) {
+    return NextResponse.json({ message: "Credential/access token ausente." }, { status: 400 });
+  }
+
+  try {
+    const profile = credential
+      ? await validateByIdToken(credential, expectedClient)
+      : await validateByAccessToken(accessToken, expectedClient);
+
+    const admin = isAdminEmail(profile.email);
+    const ativo = admin || isMember(profile.email);
+
+    return NextResponse.json({
+      status: ativo ? "ativo" : "inativo",
+      email: profile.email,
+      sub: profile.sub,
+      name: profile.name,
+      picture: profile.picture,
+      isAdmin: admin,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Token Google inválido.";
+    return NextResponse.json({ message }, { status: 401 });
+  }
 }
