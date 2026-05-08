@@ -332,33 +332,55 @@ function getColumnWidths(key: Exclude<keyof typeof TAB, "dashboard" | "ajuda">):
 }
 
 function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
+  // Valor monetário em colunas de dados: centralizado, bold, cor navy do tema —
+  // o valor é o "herói" da linha e precisa se destacar.
   const moneyCol = (sheetId: number, col: number) =>
     repeatCell(
       sheetId,
       { startRowIndex: 1, endRowIndex: MAX_DATA_ROWS + 1, startColumnIndex: col, endColumnIndex: col + 1 },
-      { numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain }, horizontalAlignment: "RIGHT" },
-      "userEnteredFormat(numberFormat,horizontalAlignment)",
+      {
+        numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
+        horizontalAlignment: "CENTER",
+        verticalAlignment: "MIDDLE",
+        textFormat: { fontFamily: "Inter", fontSize: 11, bold: true, foregroundColor: COLOR.navy },
+      },
+      "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)",
     );
   const dateCol = (sheetId: number, col: number) =>
     repeatCell(
       sheetId,
       { startRowIndex: 1, endRowIndex: MAX_DATA_ROWS + 1, startColumnIndex: col, endColumnIndex: col + 1 },
-      { numberFormat: { type: "DATE", pattern: FORMAT.date }, horizontalAlignment: "CENTER" },
-      "userEnteredFormat(numberFormat,horizontalAlignment)",
+      {
+        numberFormat: { type: "DATE", pattern: FORMAT.date },
+        horizontalAlignment: "CENTER",
+        verticalAlignment: "MIDDLE",
+        textFormat: { fontFamily: "Inter", fontSize: 10, foregroundColor: COLOR.text },
+      },
+      "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)",
     );
   const monthCol = (sheetId: number, col: number) =>
     repeatCell(
       sheetId,
       { startRowIndex: 1, endRowIndex: MAX_DATA_ROWS + 1, startColumnIndex: col, endColumnIndex: col + 1 },
-      { numberFormat: { type: "DATE", pattern: FORMAT.monthYear }, horizontalAlignment: "CENTER" },
-      "userEnteredFormat(numberFormat,horizontalAlignment)",
+      {
+        numberFormat: { type: "DATE", pattern: FORMAT.monthYear },
+        horizontalAlignment: "CENTER",
+        verticalAlignment: "MIDDLE",
+        textFormat: { fontFamily: "Inter", fontSize: 10, bold: true, foregroundColor: COLOR.navy },
+      },
+      "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)",
     );
   const pctCol = (sheetId: number, col: number) =>
     repeatCell(
       sheetId,
       { startRowIndex: 1, endRowIndex: MAX_DATA_ROWS + 1, startColumnIndex: col, endColumnIndex: col + 1 },
-      { numberFormat: { type: "PERCENT", pattern: FORMAT.percent }, horizontalAlignment: "RIGHT" },
-      "userEnteredFormat(numberFormat,horizontalAlignment)",
+      {
+        numberFormat: { type: "PERCENT", pattern: FORMAT.percent },
+        horizontalAlignment: "CENTER",
+        verticalAlignment: "MIDDLE",
+        textFormat: { fontFamily: "Inter", fontSize: 11, bold: true, foregroundColor: COLOR.navy },
+      },
+      "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)",
     );
 
   requests.push(moneyCol(ids[TAB.dashboard], 0));
