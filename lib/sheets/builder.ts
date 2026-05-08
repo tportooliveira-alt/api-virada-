@@ -162,7 +162,7 @@ export function buildSheetSpecs() {
       index,
       gridProperties: {
         rowCount: key === "dashboard" ? 70 : key === "ajuda" ? 40 : MAX_DATA_ROWS + 10,
-        columnCount: key === "ajuda" ? 2 : 12,
+        columnCount: 12,
       },
     },
   }));
