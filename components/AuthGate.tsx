@@ -231,7 +231,7 @@ export function AuthGate({ children }: PropsWithChildren) {
     setStage("ok");
   }
 
-  const isPublic = pathname === "/" || pathname === "/ebook" || pathname.startsWith("/obrigado");
+  const isPublic = pathname === "/";
 
   // Carrega Google Identity Services + revalida sessão
   useEffect(() => {
@@ -259,7 +259,7 @@ export function AuthGate({ children }: PropsWithChildren) {
     // Já logado: confia por enquanto, revalida em background
     setStage(stored.status === "ativo" ? "ok" : "not-member");
     loadGisScript();
-  }, [pathname, isPublic, loadGisScript]);
+  }, [pathname, loadGisScript]);
 
   if (isPublic) return <>{children}</>;
 
