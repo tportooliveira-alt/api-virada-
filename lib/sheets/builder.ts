@@ -162,7 +162,7 @@ export function buildSheetSpecs() {
       index,
       gridProperties: {
         rowCount: key === "dashboard" ? 70 : key === "ajuda" ? 40 : MAX_DATA_ROWS + 10,
-        columnCount: 12,
+        columnCount: key === "ajuda" ? 2 : 12,
       },
     },
   }));
@@ -187,18 +187,19 @@ export function buildLayoutRequests(ids: Record<string, number>): unknown[] {
 function buildDashboardLayout(requests: unknown[], sheetId: number) {
   requests.push(hideGridlines(sheetId));
 
-  const widths = [150, 110, 110, 150, 110, 110, 150, 110, 110, 150, 110, 110];
+  // Layout mais compacto para reduzir "respiro" excessivo entre blocos.
+  const widths = [132, 96, 96, 132, 96, 96, 132, 96, 96, 132, 96, 96];
   widths.forEach((width, index) => requests.push(setColumnWidth(sheetId, index, index + 1, width)));
 
-  requests.push(setRowHeight(sheetId, 0, 1, 58));
-  requests.push(setRowHeight(sheetId, 1, 2, 28));
+  requests.push(setRowHeight(sheetId, 0, 1, 52));
+  requests.push(setRowHeight(sheetId, 1, 2, 24));
   requests.push(mergeCells(sheetId, 0, 1, 0, 12));
   requests.push(mergeCells(sheetId, 1, 2, 0, 12));
   requests.push(repeatCell(sheetId, { startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 12 }, STYLE.banner));
   requests.push(repeatCell(sheetId, { startRowIndex: 1, endRowIndex: 2, startColumnIndex: 0, endColumnIndex: 12 }, STYLE.bannerSub));
 
-  requests.push(setRowHeight(sheetId, 4, 5, 22));
-  requests.push(setRowHeight(sheetId, 5, 6, 56));
+  requests.push(setRowHeight(sheetId, 4, 5, 20));
+  requests.push(setRowHeight(sheetId, 5, 6, 50));
   for (const startCol of [0, 3, 6, 9]) {
     requests.push(mergeCells(sheetId, 4, 5, startCol, startCol + 3));
     requests.push(mergeCells(sheetId, 5, 6, startCol, startCol + 3));
@@ -219,6 +220,8 @@ function buildDashboardLayout(requests: unknown[], sheetId: number) {
   requests.push(repeatCell(sheetId, { startRowIndex: 9, endRowIndex: 10, startColumnIndex: 6, endColumnIndex: 12 }, STYLE.sectionHint));
   requests.push(repeatCell(sheetId, { startRowIndex: 10, endRowIndex: 11, startColumnIndex: 0, endColumnIndex: 2 }, STYLE.tableHeader));
   requests.push(repeatCell(sheetId, { startRowIndex: 10, endRowIndex: 11, startColumnIndex: 6, endColumnIndex: 10 }, STYLE.tableHeader));
+  requests.push(repeatCell(sheetId, { startRowIndex: 10, endRowIndex: 21, startColumnIndex: 0, endColumnIndex: 2 }, STYLE.dataCellBorder, "userEnteredFormat.borders"));
+  requests.push(repeatCell(sheetId, { startRowIndex: 10, endRowIndex: 21, startColumnIndex: 6, endColumnIndex: 10 }, STYLE.dataCellBorder, "userEnteredFormat.borders"));
   requests.push(addBanding(sheetId, 10, 21, 0, 2));
   requests.push(addBanding(sheetId, 10, 21, 6, 10));
 
@@ -242,6 +245,12 @@ function buildDataSheetLayout(
   requests.push(repeatCell(sheetId, { startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: mainCols }, STYLE.tableHeader));
   requests.push(freezeRows(sheetId, 1));
   requests.push(addBanding(sheetId, 0, MAX_DATA_ROWS + 1, 0, mainCols));
+  requests.push(repeatCell(
+    sheetId,
+    { startRowIndex: 0, endRowIndex: MAX_DATA_ROWS + 1, startColumnIndex: 0, endColumnIndex: mainCols },
+    STYLE.dataCellBorder,
+    "userEnteredFormat.borders",
+  ));
 
   const widths = getColumnWidths(key);
   widths.forEach((width, index) => requests.push(setColumnWidth(sheetId, index, index + 1, width)));
@@ -251,8 +260,9 @@ function buildDataSheetLayout(
   if (mainCols < 9) {
     requests.push(hideColumns(sheetId, mainCols, 9));
   }
-  requests.push(setColumnWidth(sheetId, 9, 10, 150));
-  requests.push(setColumnWidth(sheetId, 10, 12, 170));
+  // Painel lateral compacto para sobrar menos "vazio" horizontal.
+  requests.push(setColumnWidth(sheetId, 9, 10, 124));
+  requests.push(setColumnWidth(sheetId, 10, 12, 146));
 
   requests.push(mergeCells(sheetId, 0, 1, 9, 12));
   requests.push(mergeCells(sheetId, 1, 2, 9, 12));
@@ -297,6 +307,8 @@ function buildHelpLayout(requests: unknown[], sheetId: number) {
   requests.push(hideGridlines(sheetId));
   requests.push(setColumnWidth(sheetId, 0, 1, 56));
   requests.push(setColumnWidth(sheetId, 1, 2, 640));
+  // Aba de ajuda usa apenas A:B; oculta qualquer sobra de colunas.
+  requests.push(hideColumns(sheetId, 2, 12));
   requests.push(setRowHeight(sheetId, 0, 1, 80));
   requests.push(mergeCells(sheetId, 0, 1, 0, 2));
   requests.push(repeatCell(sheetId, { startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 2 }, STYLE.helpHero));
@@ -315,19 +327,19 @@ function buildHelpLayout(requests: unknown[], sheetId: number) {
 function getColumnWidths(key: Exclude<keyof typeof TAB, "dashboard" | "ajuda">): number[] {
   switch (key) {
     case "lancamentos":
-      return [104, 94, 230, 150, 118, 120, 120, 110, 100];
+      return [96, 88, 198, 132, 108, 108, 108, 98, 92];
     case "receitas":
-      return [104, 230, 150, 118, 110, 100];
+      return [96, 198, 132, 108, 98, 92];
     case "despesas":
-      return [104, 230, 150, 118, 120, 120, 110];
+      return [96, 198, 132, 108, 108, 108, 98];
     case "dividas":
-      return [220, 110, 110, 110, 110, 120, 120];
+      return [194, 98, 98, 98, 98, 108, 108];
     case "metas":
-      return [220, 120, 120, 120, 120, 110];
+      return [194, 108, 108, 108, 108, 98];
     case "fluxo":
-      return [104, 118, 118, 130, 130];
+      return [96, 108, 108, 116, 116];
     case "resumo":
-      return [104, 118, 118, 130, 130, 100, 110];
+      return [96, 108, 108, 116, 116, 92, 98];
   }
 }
 
