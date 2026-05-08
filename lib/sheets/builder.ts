@@ -656,6 +656,10 @@ export function buildSyncBatch(input: SyncInput) {
     .sort(priorityOrder)
     .map((debt) => [debt.name, formatDate(debt.dueDate), debt.priority, debt.status, debt.installmentValue, debt.totalValue, debt.status === "quitada" ? 0 : debt.totalValue]);
 
+  const dividasSheetRows = dividas.length
+    ? dividas
+    : [["Sem dívidas em aberto", "", "baixa", "quitada", 0, 0, 0]];
+
   const metas = goals.map((goal) => {
     const faltando = Math.max(goal.targetValue - goal.currentValue, 0);
     const progresso = goal.targetValue > 0 ? goal.currentValue / goal.targetValue : 0;
@@ -677,6 +681,10 @@ export function buildSyncBatch(input: SyncInput) {
     saldoAcumulado += resultado;
     return [formatDate(date), values.income, values.expense, resultado, saldoAcumulado];
   });
+
+  const fluxoSheetRows = fluxo.length
+    ? fluxo
+    : [[formatDate(new Date().toISOString().slice(0, 10)), 0, 0, 0, 0]];
 
   const byMonth = new Map<string, { income: number; expense: number; count: number }>();
   for (const row of allRows) {
@@ -748,9 +756,9 @@ export function buildSyncBatch(input: SyncInput) {
       ...(lancamentos.length ? [{ range: `${TAB.lancamentos}!A2`, values: lancamentos }] : []),
       ...(receitas.length ? [{ range: `${TAB.receitas}!A2`, values: receitas }] : []),
       ...(despesas.length ? [{ range: `${TAB.despesas}!A2`, values: despesas }] : []),
-      ...(dividas.length ? [{ range: `${TAB.dividas}!A2`, values: dividas }] : []),
+      { range: `${TAB.dividas}!A2`, values: dividasSheetRows },
       ...(metas.length ? [{ range: `${TAB.metas}!A2`, values: metas }] : []),
-      ...(fluxo.length ? [{ range: `${TAB.fluxo}!A2`, values: fluxo }] : []),
+      { range: `${TAB.fluxo}!A2`, values: fluxoSheetRows },
       ...(resumo.length ? [{ range: `${TAB.resumo}!A2`, values: resumo }] : []),
       { range: `${TAB.dashboard}!A2`, values: [[`Atualizado em ${new Date().toLocaleString("pt-BR")}`]] },
       { range: `${TAB.dashboard}!A6`, values: [[totalEntradas]] },
