@@ -106,11 +106,11 @@ section("A) Exclusão de receita — totais regridem");
     assertEq((recVR.values as unknown[][]).length, 2, "A: planilha tem 2 receitas (não 3)");
   }
 
-  // Dashboard B6 = 1250
-  const dashB6 = getDashCell(batch, "B6");
-  assert(dashB6 !== undefined, "A: Dashboard!B6 presente");
-  if (dashB6) {
-    assertEq((dashB6.values as unknown[][])[0][0], 1250, "A: Dashboard B6 = 1250 (não 1750)");
+  // Dashboard A6 = entradas
+  const dashA6 = getDashCell(batch, "A6");
+  assert(dashA6 !== undefined, "A: Dashboard!A6 presente");
+  if (dashA6) {
+    assertEq((dashA6.values as unknown[][])[0][0], 1250, "A: Dashboard A6 = 1250 (não 1750)");
   }
 }
 
@@ -192,24 +192,26 @@ section("C) Exclusão do único item — não quebra, volta a zero");
 
   if (batch) {
     // Planilha retorna arrays vazios para receitas (range ausente ou vazio)
-    const recVR = getRange(batch, "Receitas");
+    const recVR = batch.valueRanges.find((vr) => vr.range === "Receitas!A2");
     assert(
       recVR === undefined || (recVR.values as unknown[][]).length === 0,
       "C: planilha Receitas retorna ausente ou vazio (não undefined explosivo)"
     );
 
-    // Fluxo de caixa vazio
+    // Fluxo de caixa com fallback (1 linha)
     const fluVR = getRange(batch, "Fluxo de Caixa");
-    assert(
-      fluVR === undefined || Array.isArray((fluVR.values as unknown[][])),
-      "C: fluxo de caixa não crasheia — retorna array ou está ausente"
-    );
+    assert(fluVR !== undefined, "C: fluxo de caixa com fallback existe");
     if (fluVR) {
-      assertEq((fluVR.values as unknown[][]).length, 0, "C: fluxo de caixa = [] (0 linhas)");
+      const frows = fluVR.values as unknown[][];
+      assertEq(frows.length, 1, "C: fluxo de caixa fallback = 1 linha");
+      assertEq(Number(frows[0][1]), 0, "C: fluxo fallback entradas = 0");
+      assertEq(Number(frows[0][2]), 0, "C: fluxo fallback saídas = 0");
+      assertEq(Number(frows[0][3]), 0, "C: fluxo fallback resultado = 0");
+      assertEq(Number(frows[0][4]), 0, "C: fluxo fallback saldo acumulado = 0");
     }
 
     // Resumo mensal vazio
-    const resVR = getRange(batch, "Resumo Mensal");
+    const resVR = batch.valueRanges.find((vr) => vr.range === "Resumo Mensal!A2");
     assert(
       resVR === undefined || Array.isArray((resVR.values as unknown[][])),
       "C: resumo mensal não crasheia — retorna array ou está ausente"
@@ -218,10 +220,10 @@ section("C) Exclusão do único item — não quebra, volta a zero");
       assertEq((resVR.values as unknown[][]).length, 0, "C: resumo mensal = [] (0 linhas)");
     }
 
-    // Dashboard B6 deve ser 0
-    const dashB6 = getDashCell(batch, "B6");
-    if (dashB6) {
-      assertEq((dashB6.values as unknown[][])[0][0], 0, "C: Dashboard B6 = 0 com lista vazia");
+    // Dashboard A6 deve ser 0
+    const dashA6 = getDashCell(batch, "A6");
+    if (dashA6) {
+      assertEq((dashA6.values as unknown[][])[0][0], 0, "C: Dashboard A6 = 0 com lista vazia");
     }
   }
 }
@@ -437,4 +439,14 @@ section("H) Fluxo de caixa após exclusão — saldo acumulado recalcula");
     assertCloseTo(d2after[4] as number, 400, "H: acumulado final = 400 (não 0) — 300 + 100");
   }
 }
+
+console.log("\n" + "═".repeat(60));
+console.log(`RESULTADO: ${passed} passaram, ${failed} falharam`);
+if (failures.length > 0) {
+  console.log("\nFALHAS:");
+  failures.forEach((f) => console.log(`  • ${f}`));
+}
+console.log("═".repeat(60));
+
+if (failed > 0) process.exit(1);
 

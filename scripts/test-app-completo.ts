@@ -288,18 +288,18 @@ if (desVR) {
   assertEq((desVR.values as unknown[][]).length, 3, "Despesas tem exatamente 3 linhas de dados");
 }
 
-// Dashboard B6 = 2500, D6 = 2100, F6 = 400
-const dashB6 = batch.valueRanges.find((vr) => vr.range === "Dashboard!B6");
+// Dashboard A6 = 2500, D6 = 2100, G6 = 400
+const dashA6 = batch.valueRanges.find((vr) => vr.range === "Dashboard!A6");
 const dashD6 = batch.valueRanges.find((vr) => vr.range === "Dashboard!D6");
-const dashF6 = batch.valueRanges.find((vr) => vr.range === "Dashboard!F6");
+const dashG6 = batch.valueRanges.find((vr) => vr.range === "Dashboard!G6");
 
-assert(dashB6 !== undefined, "valueRanges contém Dashboard!B6");
+assert(dashA6 !== undefined, "valueRanges contém Dashboard!A6");
 assert(dashD6 !== undefined, "valueRanges contém Dashboard!D6");
-assert(dashF6 !== undefined, "valueRanges contém Dashboard!F6");
+assert(dashG6 !== undefined, "valueRanges contém Dashboard!G6");
 
-if (dashB6) assertEq((dashB6.values as unknown[][])[0][0], 2500, "Dashboard B6 = 2500 (receitas exatas)");
+if (dashA6) assertEq((dashA6.values as unknown[][])[0][0], 2500, "Dashboard A6 = 2500 (receitas exatas)");
 if (dashD6) assertEq((dashD6.values as unknown[][])[0][0], 2100, "Dashboard D6 = 2100 (despesas exatas)");
-if (dashF6) assertEq((dashF6.values as unknown[][])[0][0], 400,  "Dashboard F6 = 400 (saldo exato)");
+if (dashG6) assertEq((dashG6.values as unknown[][])[0][0], 400,  "Dashboard G6 = 400 (saldo exato)");
 
 // Verificar que nenhum valor numérico tem erro de ponto flutuante (>2 casas decimais)
 function hasFloatError(v: unknown): boolean {

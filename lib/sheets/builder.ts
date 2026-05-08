@@ -670,15 +670,15 @@ export function buildSyncBatch(input: SyncInput) {
   for (const row of allRows) {
     const date = String(row.date).split("T")[0];
     const prev = byDate.get(date) ?? { income: 0, expense: 0 };
-    if (row.type === "income") prev.income += Number(row.amount) || 0;
-    else prev.expense += Number(row.amount) || 0;
+    if (row.type === "income") prev.income = roundMoney(prev.income + (Number(row.amount) || 0));
+    else prev.expense = roundMoney(prev.expense + (Number(row.amount) || 0));
     byDate.set(date, prev);
   }
 
   let saldoAcumulado = 0;
   const fluxo = [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, values]) => {
-    const resultado = values.income - values.expense;
-    saldoAcumulado += resultado;
+    const resultado = roundMoney(values.income - values.expense);
+    saldoAcumulado = roundMoney(saldoAcumulado + resultado);
     return [formatDate(date), values.income, values.expense, resultado, saldoAcumulado];
   });
 
@@ -691,27 +691,27 @@ export function buildSyncBatch(input: SyncInput) {
     const month = String(row.date).slice(0, 7);
     const prev = byMonth.get(month) ?? { income: 0, expense: 0, count: 0 };
     const value = Number(row.amount) || 0;
-    if (row.type === "income") prev.income += value;
-    else prev.expense += value;
+    if (row.type === "income") prev.income = roundMoney(prev.income + value);
+    else prev.expense = roundMoney(prev.expense + value);
     prev.count += 1;
     byMonth.set(month, prev);
   }
 
   let saldoMensalAcumulado = 0;
   const resumo = [...byMonth.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([month, values]) => {
-    const resultado = values.income - values.expense;
-    saldoMensalAcumulado += resultado;
+    const resultado = roundMoney(values.income - values.expense);
+    saldoMensalAcumulado = roundMoney(saldoMensalAcumulado + resultado);
     return [`${month}-01`, values.income, values.expense, resultado, saldoMensalAcumulado, values.income > 0 ? resultado / values.income : 0, values.count];
   });
 
-  const totalEntradas = incomes.reduce((sum, item) => sum + item.value, 0);
-  const totalSaidas = expenses.reduce((sum, item) => sum + item.value, 0);
-  const saldo = totalEntradas - totalSaidas;
+  const totalEntradas = roundMoney(incomes.reduce((sum, item) => sum + item.value, 0));
+  const totalSaidas = roundMoney(expenses.reduce((sum, item) => sum + item.value, 0));
+  const saldo = roundMoney(totalEntradas - totalSaidas);
   const totalLancamentos = allRows.length;
 
   const topCategoriasMap = new Map<string, number>();
   for (const expense of expenses) {
-    topCategoriasMap.set(expense.category, (topCategoriasMap.get(expense.category) || 0) + expense.value);
+    topCategoriasMap.set(expense.category, roundMoney((topCategoriasMap.get(expense.category) || 0) + expense.value));
   }
   const topCategorias = [...topCategoriasMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
   const topCategoriasRows = topCategorias.length
@@ -728,7 +728,7 @@ export function buildSyncBatch(input: SyncInput) {
   const lastExpense = orderedExpenses.length ? orderedExpenses[orderedExpenses.length - 1] : null;
   const bestIncome = incomes.length ? Math.max(...incomes.map((item) => item.value)) : 0;
   const bestExpense = expenses.length ? Math.max(...expenses.map((item) => item.value)) : 0;
-  const debtOpenTotal = debts.reduce((sum, item) => sum + (item.status === "quitada" ? 0 : item.totalValue), 0);
+  const debtOpenTotal = roundMoney(debts.reduce((sum, item) => sum + (item.status === "quitada" ? 0 : item.totalValue), 0));
   const quitadas = debts.filter((item) => item.status === "quitada").length;
   const bestMeta = goals
     .map((goal) => ({ name: goal.name, progress: goal.targetValue > 0 ? goal.currentValue / goal.targetValue : 0 }))
@@ -801,6 +801,10 @@ function formatMonth(date: unknown): string {
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
+}
+
+function roundMoney(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 function formatPercent(value: number) {
