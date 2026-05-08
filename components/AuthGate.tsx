@@ -231,10 +231,12 @@ export function AuthGate({ children }: PropsWithChildren) {
     setStage("ok");
   }
 
+  const isPublic = pathname === "/" || pathname === "/ebook" || pathname.startsWith("/obrigado");
+
   // Carrega Google Identity Services + revalida sessão
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (pathname === "/") return;
+    if (isPublic) return;
 
     const stored = loadAccess();
     setAccess(stored);
@@ -257,9 +259,9 @@ export function AuthGate({ children }: PropsWithChildren) {
     // Já logado: confia por enquanto, revalida em background
     setStage(stored.status === "ativo" ? "ok" : "not-member");
     loadGisScript();
-  }, [pathname, loadGisScript]);
+  }, [pathname, isPublic, loadGisScript]);
 
-  if (pathname === "/") return <>{children}</>;
+  if (isPublic) return <>{children}</>;
 
   function handleSignIn() {
     if (!ensureIdClient()) return;
