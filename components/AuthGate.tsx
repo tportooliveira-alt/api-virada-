@@ -162,10 +162,21 @@ export function AuthGate({ children }: PropsWithChildren) {
     }
 
     setSubmitting(true);
+    let finished = false;
+    const popupTimeout = window.setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      setSubmitting(false);
+      setError("O popup do Google foi bloqueado ou não respondeu. Libere popups para este site e tente novamente.");
+    }, 12000);
+
     const tokenClient = oauth2.initTokenClient({
       client_id: clientId,
       scope: "openid email profile",
       callback: (response) => {
+        if (finished) return;
+        finished = true;
+        window.clearTimeout(popupTimeout);
         if (response.error || !response.access_token) {
           setError("Não foi possível abrir o login Google neste navegador. Tente novamente ou abra em outro navegador.");
           setSubmitting(false);
@@ -279,6 +290,11 @@ export function AuthGate({ children }: PropsWithChildren) {
         setSubmitting(false);
       }
     }, 2200);
+
+    // Fail-safe: evita botão travado se navegador bloquear prompt e popup.
+    window.setTimeout(() => {
+      setSubmitting(false);
+    }, 14000);
   }
 
   // ─── UIs ──────────────────────────────────────────────────────────────────
