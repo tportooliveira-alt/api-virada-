@@ -19,6 +19,7 @@
  */
 
 import { PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -30,9 +31,14 @@ declare global {
             client_id: string;
             callback: (response: { credential: string }) => void;
             auto_select?: boolean;
+            use_fedcm_for_prompt?: boolean;
           }) => void;
           renderButton: (el: HTMLElement, cfg: object) => void;
-          prompt: () => void;
+          prompt: (momentListener?: (notification: {
+            isNotDisplayed: () => boolean;
+            isSkippedMoment: () => boolean;
+            isDismissedMoment: () => boolean;
+          }) => void) => void;
           cancel: () => void;
         };
       };
@@ -86,6 +92,7 @@ type Stage =
   | "ok";
 
 export function AuthGate({ children }: PropsWithChildren) {
+  const pathname = usePathname();
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
   const [stage, setStage] = useState<Stage>("loading");
@@ -138,6 +145,7 @@ export function AuthGate({ children }: PropsWithChildren) {
   // Carrega Google Identity Services + revalida sessão
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (pathname === "/") return;
 
     const stored = loadAccess();
     setAccess(stored);
@@ -160,7 +168,9 @@ export function AuthGate({ children }: PropsWithChildren) {
     // Já logado: confia por enquanto, revalida em background
     setStage(stored.status === "ativo" ? "ok" : "not-member");
     loadGisScript();
-  }, []);
+  }, [pathname]);
+
+  if (pathname === "/") return <>{children}</>;
 
   function loadGisScript() {
     if (gisLoaded.current) return;
@@ -192,11 +202,16 @@ export function AuthGate({ children }: PropsWithChildren) {
     setError("");
     window.google.accounts.id.initialize({
       client_id: clientId,
+      use_fedcm_for_prompt: false,
       callback: (response) => {
         void handleCredential(response.credential);
       },
     });
-    window.google.accounts.id.prompt();
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
+        setError("Não foi possível abrir o login Google neste navegador. Tente novamente ou abra em outro navegador.");
+      }
+    });
   }
 
   // ─── UIs ──────────────────────────────────────────────────────────────────

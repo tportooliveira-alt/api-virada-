@@ -4,8 +4,8 @@ import { ViradaProvider } from "@/providers/virada-provider";
 import { AuthGate } from "@/components/AuthGate";
 
 export const metadata: Metadata = {
-  title: "Virada App",
-  description: "App mobile de gestão financeira com fluxo de caixa e planilhas estruturadas.",
+  title: "Codigo da Virada",
+  description: "Metodo com ebook, app e planilha para organizar dinheiro, dividas, metas e renda extra.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

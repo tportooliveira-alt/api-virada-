@@ -7,17 +7,21 @@ type RGB = { red: number; green: number; blue: number };
 export const COLOR: Record<string, RGB> = {
   navy:       { red: 0.027, green: 0.067, blue: 0.122 }, // #07111F
   navySoft:   { red: 0.043, green: 0.063, blue: 0.125 }, // #0B1020
-  navyCard:   { red: 0.094, green: 0.137, blue: 0.220 }, // card escuro
+  navyMed:    { red: 0.059, green: 0.118, blue: 0.200 },
+  navyCard:   { red: 0.094, green: 0.157, blue: 0.267 },
   navyLine:   { red: 0.180, green: 0.220, blue: 0.310 },
   gold:       { red: 0.961, green: 0.773, blue: 0.259 }, // #F5C542
   goldSoft:   { red: 1.000, green: 0.953, blue: 0.835 },
+  goldLine:   { red: 0.800, green: 0.627, blue: 0.157 },
   green:      { red: 0.133, green: 0.773, blue: 0.369 }, // #22C55E
   greenSoft:  { red: 0.878, green: 0.965, blue: 0.910 },
   red:        { red: 0.937, green: 0.267, blue: 0.267 },
   redSoft:    { red: 0.996, green: 0.898, blue: 0.898 },
   white:      { red: 1, green: 1, blue: 1 },
-  gray100:    { red: 0.965, green: 0.969, blue: 0.976 },
-  gray200:    { red: 0.898, green: 0.910, blue: 0.929 },
+  offWhite:   { red: 0.973, green: 0.976, blue: 0.984 },
+  gray100:    { red: 0.949, green: 0.953, blue: 0.965 },
+  gray200:    { red: 0.882, green: 0.898, blue: 0.922 },
+  gray400:    { red: 0.580, green: 0.627, blue: 0.690 },
   gray500:    { red: 0.420, green: 0.475, blue: 0.541 },
   text:       { red: 0.118, green: 0.161, blue: 0.231 },
   textMuted:  { red: 0.420, green: 0.475, blue: 0.541 },
@@ -42,13 +46,13 @@ const border = (rgb = COLOR.gray200) => ({
 });
 
 export const STYLE: Record<string, CellFormat> = {
-  /* Banner principal — fundo navy, texto dourado grande */
   banner: {
     backgroundColor: COLOR.navy,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 8, right: 16, bottom: 8, left: 16 },
     textFormat: { fontFamily: FONT, fontSize: 22, bold: true, foregroundColor: COLOR.gold },
+    borders: { bottom: border(COLOR.goldLine) },
   },
   bannerSub: {
     backgroundColor: COLOR.navy,
@@ -57,35 +61,56 @@ export const STYLE: Record<string, CellFormat> = {
     padding: { top: 0, right: 16, bottom: 8, left: 16 },
     textFormat: { fontFamily: FONT, fontSize: 11, foregroundColor: COLOR.gray200 },
   },
-
-  /* Cabeçalho de tabela — navy escuro, texto branco */
+  topStripe: {
+    backgroundColor: COLOR.gold,
+    horizontalAlignment: "LEFT",
+  },
   tableHeader: {
     backgroundColor: COLOR.navy,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
     padding: { top: 6, right: 8, bottom: 6, left: 8 },
     textFormat: { fontFamily: FONT, fontSize: 10, bold: true, foregroundColor: COLOR.white },
-    borders: { bottom: border(COLOR.gold) },
+    borders: { top: border(COLOR.goldLine), bottom: border(COLOR.gold) },
+    wrapStrategy: "WRAP",
   },
-
-  /* Título de seção dentro da aba (ex.: "Gastos por categoria") */
+  subHeader: {
+    backgroundColor: COLOR.navyMed,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 8, right: 12, bottom: 8, left: 12 },
+    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.gold },
+  },
   sectionTitle: {
     backgroundColor: COLOR.white,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
-    padding: { top: 8, right: 8, bottom: 4, left: 8 },
+    padding: { top: 8, right: 12, bottom: 4, left: 12 },
     textFormat: { fontFamily: FONT, fontSize: 13, bold: true, foregroundColor: COLOR.navy },
   },
   sectionHint: {
     backgroundColor: COLOR.white,
     horizontalAlignment: "LEFT",
-    padding: { top: 0, right: 8, bottom: 8, left: 8 },
+    verticalAlignment: "MIDDLE",
+    padding: { top: 0, right: 12, bottom: 8, left: 12 },
     textFormat: { fontFamily: FONT, fontSize: 9, italic: true, foregroundColor: COLOR.textMuted },
+    wrapStrategy: "WRAP",
   },
-
-  /* KPI card — fundo navy claro, valor branco grande, label dourada */
+  sectionCard: {
+    backgroundColor: COLOR.offWhite,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 8, right: 12, bottom: 8, left: 12 },
+    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.text },
+    borders: {
+      top: border(COLOR.gray200),
+      bottom: border(COLOR.gray200),
+      left: border(COLOR.gray200),
+      right: border(COLOR.gray200),
+    },
+  },
   kpiLabel: {
-    backgroundColor: COLOR.navyCard,
+    backgroundColor: COLOR.navyMed,
     horizontalAlignment: "LEFT",
     verticalAlignment: "TOP",
     padding: { top: 10, right: 14, bottom: 0, left: 14 },
@@ -93,44 +118,43 @@ export const STYLE: Record<string, CellFormat> = {
     wrapStrategy: "CLIP",
   },
   kpiValue: {
-    backgroundColor: COLOR.navyCard,
+    backgroundColor: COLOR.navyMed,
     horizontalAlignment: "LEFT",
     verticalAlignment: "BOTTOM",
     padding: { top: 0, right: 14, bottom: 12, left: 14 },
     textFormat: { fontFamily: FONT, fontSize: 18, bold: true, foregroundColor: COLOR.white },
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
   },
-  kpiValueCount: {
-    backgroundColor: COLOR.navyCard,
-    horizontalAlignment: "LEFT",
-    verticalAlignment: "BOTTOM",
-    padding: { top: 0, right: 14, bottom: 12, left: 14 },
-    textFormat: { fontFamily: FONT, fontSize: 18, bold: true, foregroundColor: COLOR.white },
-    numberFormat: { type: "NUMBER", pattern: FORMAT.intCount },
-  },
   kpiValueGold: {
-    backgroundColor: COLOR.navyCard,
+    backgroundColor: COLOR.navyMed,
     horizontalAlignment: "LEFT",
     verticalAlignment: "BOTTOM",
     padding: { top: 0, right: 14, bottom: 12, left: 14 },
     textFormat: { fontFamily: FONT, fontSize: 18, bold: true, foregroundColor: COLOR.gold },
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
   },
-
-  /* Linha de dados (zebra) */
+  kpiValueCount: {
+    backgroundColor: COLOR.navyMed,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "BOTTOM",
+    padding: { top: 0, right: 14, bottom: 12, left: 14 },
+    textFormat: { fontFamily: FONT, fontSize: 18, bold: true, foregroundColor: COLOR.white },
+    numberFormat: { type: "NUMBER", pattern: FORMAT.intCount },
+  },
   rowEven: {
     backgroundColor: COLOR.white,
     horizontalAlignment: "LEFT",
-    padding: { top: 4, right: 8, bottom: 4, left: 8 },
+    verticalAlignment: "MIDDLE",
+    padding: { top: 5, right: 8, bottom: 5, left: 8 },
     textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.text },
   },
   rowOdd: {
     backgroundColor: COLOR.gray100,
     horizontalAlignment: "LEFT",
-    padding: { top: 4, right: 8, bottom: 4, left: 8 },
+    verticalAlignment: "MIDDLE",
+    padding: { top: 5, right: 8, bottom: 5, left: 8 },
     textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.text },
   },
-
   totalRow: {
     backgroundColor: COLOR.gold,
     horizontalAlignment: "RIGHT",
@@ -138,8 +162,52 @@ export const STYLE: Record<string, CellFormat> = {
     textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.navy },
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
   },
-
-  /* Aba "Como usar" */
+  totalLabel: {
+    backgroundColor: COLOR.gold,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 7, right: 10, bottom: 7, left: 10 },
+    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.navy },
+  },
+  totalMoney: {
+    backgroundColor: COLOR.goldSoft,
+    horizontalAlignment: "RIGHT",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 7, right: 10, bottom: 7, left: 10 },
+    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.navy },
+    numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
+  },
+  totalCount: {
+    backgroundColor: COLOR.goldSoft,
+    horizontalAlignment: "RIGHT",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 7, right: 10, bottom: 7, left: 10 },
+    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.navy },
+    numberFormat: { type: "NUMBER", pattern: FORMAT.intCount },
+  },
+  emptyState: {
+    backgroundColor: COLOR.offWhite,
+    horizontalAlignment: "CENTER",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 10, right: 12, bottom: 10, left: 12 },
+    textFormat: { fontFamily: FONT, fontSize: 10, italic: true, foregroundColor: COLOR.gray500 },
+    wrapStrategy: "WRAP",
+  },
+  noteLabel: {
+    backgroundColor: COLOR.navyCard,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 8, right: 12, bottom: 8, left: 12 },
+    textFormat: { fontFamily: FONT, fontSize: 10, bold: true, foregroundColor: COLOR.gold },
+  },
+  noteBody: {
+    backgroundColor: COLOR.navyCard,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 8, right: 12, bottom: 8, left: 12 },
+    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.white },
+    wrapStrategy: "WRAP",
+  },
   helpHero: {
     backgroundColor: COLOR.navy,
     horizontalAlignment: "LEFT",
@@ -206,6 +274,16 @@ export function setColumnWidth(sheetId: number, startCol: number, endCol: number
       range: { sheetId, dimension: "COLUMNS", startIndex: startCol, endIndex: endCol },
       properties: { pixelSize: pixels },
       fields: "pixelSize",
+    },
+  };
+}
+
+export function hideColumns(sheetId: number, startCol: number, endCol: number) {
+  return {
+    updateDimensionProperties: {
+      range: { sheetId, dimension: "COLUMNS", startIndex: startCol, endIndex: endCol },
+      properties: { hiddenByUser: true },
+      fields: "hiddenByUser",
     },
   };
 }

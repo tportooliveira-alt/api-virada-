@@ -76,10 +76,26 @@ const initialData: ViradaData = {
 };
 
 const accountKey = "virada-account-v1";
+const sheetMetaKey = "virada_sheet_meta";
 
 interface LocalAccount {
   name?: string;
   email?: string;
+}
+
+interface LocalSheetMeta {
+  spreadsheetUrl?: string;
+}
+
+function readSheetUrl() {
+  try {
+    const raw = localStorage.getItem(sheetMetaKey);
+    if (!raw) return null;
+    const meta = JSON.parse(raw) as LocalSheetMeta;
+    return meta.spreadsheetUrl ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function newId(prefix: string) {
@@ -93,6 +109,7 @@ const ViradaContext = createContext<ViradaContextValue | null>(null);
 export function ViradaProvider({ children }: PropsWithChildren) {
   const [data, setData] = useState<ViradaData>(initialData);
   const [profile, setProfile] = useState<ViradaContextValue["profile"]>(null);
+  const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const skipSave = useRef(false);
 
@@ -122,10 +139,28 @@ export function ViradaProvider({ children }: PropsWithChildren) {
           missionStatus: parsed.missionStatus ?? {},
         });
       }
+      setSheetUrl(readSheetUrl());
     } catch {
       // localStorage indisponível ou dados corrompidos — começa vazio
     }
     setIsReady(true);
+  }, []);
+
+  useEffect(() => {
+    function refreshSheetUrl() {
+      setSheetUrl(readSheetUrl());
+    }
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key === sheetMetaKey) refreshSheetUrl();
+    }
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("virada-sheet-meta-changed", refreshSheetUrl);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("virada-sheet-meta-changed", refreshSheetUrl);
+    };
   }, []);
 
   // Salvar no localStorage sempre que os dados mudarem
@@ -151,7 +186,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
 
     // ── Usuário fictício (sem login) ──────────────────────────────────────
     user: { id: "local", email: profile?.email ?? "local@virada.app", fullName: profile?.fullName ?? null },
-    sheet: { sheetUrl: null },
+    sheet: { sheetUrl },
 
     // ── Gastos ────────────────────────────────────────────────────────────
     addExpense: (payload) => {
@@ -266,7 +301,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
       skipSave.current = true;
       setData(initialData);
     },
-  }), [data, isReady, profile, update]);
+  }), [data, isReady, profile, sheetUrl, update]);
 
   return <ViradaContext.Provider value={value}>{children}</ViradaContext.Provider>;
 }

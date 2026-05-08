@@ -147,9 +147,11 @@ async function main() {
   check("banner é dourado", banner?.repeatCell?.cell?.userEnteredFormat?.textFormat?.foregroundColor?.red > 0.9);
   check("banner fundo navy", banner?.repeatCell?.cell?.userEnteredFormat?.backgroundColor?.red < 0.1);
 
-  // KPI cards — 4 merges 1x2 na linha 5-6
+  // KPI cards — 4 merges do dashboard na linha 6
   const kpiMerges = layoutReqs.filter((r: any) =>
-    r.mergeCells?.range?.startRowIndex === 5 && r.mergeCells?.range?.endRowIndex === 6,
+    r.mergeCells?.range?.startRowIndex === 5 &&
+    r.mergeCells?.range?.endRowIndex === 6 &&
+    [0, 3, 6, 9].includes(r.mergeCells?.range?.startColumnIndex),
   );
   check("4 KPI cards merged na linha 6", kpiMerges.length === 4, `recebeu ${kpiMerges.length}`);
 
@@ -193,9 +195,9 @@ async function main() {
   const condRules = layoutReqs.filter((r: any) => r.addConditionalFormatRule);
   check("formatações condicionais aplicadas (>=8)", condRules.length >= 8, `recebeu ${condRules.length}`);
 
-  // Banding (zebra) em 7 abas de dados
+  // Banding (zebra) em 7 abas de dados + 2 áreas do dashboard
   const bandings = layoutReqs.filter((r: any) => r.addBanding);
-  check("banding (zebra) em 7 abas", bandings.length === 7, `recebeu ${bandings.length}`);
+  check("banding (zebra) nas áreas esperadas", bandings.length === 9, `recebeu ${bandings.length}`);
 
   // Auto-filter em 7 abas
   const filters = layoutReqs.filter((r: any) => r.setBasicFilter);
@@ -241,7 +243,7 @@ async function main() {
 
   const batchClears = captured.filter((c) => c.method === "values.batchClear");
   const batchUpds = captured.filter((c) => c.method === "values.batchUpdate");
-  check("limpou abas (1 batchClear, 7 ranges)", batchClears.length === 1 && batchClears[0].arg.requestBody.ranges.length === 7);
+  check("limpou abas e blocos do dashboard", batchClears.length === 1 && batchClears[0].arg.requestBody.ranges.length === 9);
   check("populou tudo num batch", batchUpds.length === 1);
 
   const valueRanges: any[] = batchUpds[0]?.arg.requestBody.data ?? [];
@@ -263,10 +265,10 @@ async function main() {
   check("Resumo resultado = 1250", res?.values[0][3] === 1250);
 
   const ranges = valueRanges.map((v) => v.range);
-  check("Dashboard B6 (entradas) atualizado", ranges.includes("Dashboard!B6"));
+  check("Dashboard A6 (entradas) atualizado", ranges.includes("Dashboard!A6"));
   check("Dashboard D6 (saídas) atualizado", ranges.includes("Dashboard!D6"));
-  check("Dashboard F6 (saldo) atualizado", ranges.includes("Dashboard!F6"));
-  check("Dashboard categorias atualizadas", ranges.includes("Dashboard!A11:B20"));
+  check("Dashboard G6 (saldo) atualizado", ranges.includes("Dashboard!G6"));
+  check("Dashboard categorias atualizadas", ranges.includes("Dashboard!A12:B21"));
 
   // ─── Dívidas ───────────────────────────────────────────────────────────────
   console.log("\n[3] syncDebts — ordena e calcula valor em aberto");

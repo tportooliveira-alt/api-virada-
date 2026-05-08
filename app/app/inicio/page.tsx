@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Banknote, ReceiptText, Table, Wallet } from "lucide-react";
+import { ArrowRight, Banknote, ExternalLink, ReceiptText, Table, Wallet } from "lucide-react";
 import { DashboardCard } from "@/components/DashboardCard";
 import { QuickLaunchCard } from "@/components/QuickLaunchCard";
 import { ExpenseChart } from "@/components/ExpenseChart";
@@ -123,9 +123,20 @@ export default function InicioPage() {
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-white">Base completa</h2>
           </div>
-          <Link href="/app/evolucao" className="flex items-center gap-2 text-sm font-semibold text-emerald-300">
-            Abrir <ArrowRight className="h-4 w-4" />
-          </Link>
+          {data.sheet.sheetUrl ? (
+            <a
+              href={data.sheet.sheetUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 text-sm font-semibold text-emerald-300"
+            >
+              Abrir planilha <ExternalLink className="h-4 w-4" />
+            </a>
+          ) : (
+            <Link href="/app/evolucao" className="flex items-center gap-2 text-sm font-semibold text-emerald-300">
+              Conectar <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
         </div>
         <p className="mt-3 text-sm leading-6 text-virada-gray">
           {data.sheet.sheetUrl

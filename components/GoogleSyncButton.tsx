@@ -192,6 +192,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
         lastSync: new Date().toISOString(),
       };
       localStorage.setItem(SHEET_KEY, JSON.stringify(newMeta));
+      window.dispatchEvent(new Event("virada-sheet-meta-changed"));
       setMeta(newMeta);
       setStatus("ok");
     } catch (err) {
@@ -235,6 +236,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   function handleDisconnect() {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(SHEET_KEY);
+    window.dispatchEvent(new Event("virada-sheet-meta-changed"));
     setToken(null);
     setMeta(null);
     setStatus("idle");
