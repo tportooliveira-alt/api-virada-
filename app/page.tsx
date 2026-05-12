@@ -42,9 +42,7 @@ export default function HomePage() {
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <a
-              href="https://hotmart.com"
-              target="_blank"
-              rel="noreferrer"
+              href="/app/inicio"
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-virada-green px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-400"
             >
               Quero minha virada <ArrowRight className="h-4 w-4" />
