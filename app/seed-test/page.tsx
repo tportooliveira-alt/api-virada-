@@ -16,35 +16,38 @@ function daysAgo(n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Seed alinhado ao positioning declarado em product.yaml:
+// - Avatar: CLT 28-45 anos, renda R$ 3-5k, "sair do vermelho em 30 dias"
+// - Linguagem do dia-a-dia brasileiro
+// - Todos os gastos do mês corrente pra aparecer no dashboard (bug #5 do agent)
 const SEED_DATA = {
   expenses: [
-    { id: id("exp"), description: "Ração para o gado", value: 850, category: "Fornecedor", date: daysAgo(2), paymentMethod: "Pix", nature: "essencial", scope: "empresa", source: "app" },
-    { id: id("exp"), description: "Sal mineral", value: 350, category: "Fornecedor", date: daysAgo(5), paymentMethod: "Dinheiro", nature: "essencial", scope: "empresa", source: "app" },
-    { id: id("exp"), description: "Vacinação do rebanho", value: 1200, category: "Saúde", date: daysAgo(7), paymentMethod: "Pix", nature: "essencial", scope: "empresa", source: "app" },
-    { id: id("exp"), description: "Diesel da camionete", value: 280, category: "Transporte", date: daysAgo(3), paymentMethod: "Crédito", nature: "essencial", scope: "empresa", source: "app" },
-    { id: id("exp"), description: "Conta de luz da fazenda", value: 420, category: "Energia", date: daysAgo(10), paymentMethod: "Boleto", nature: "essencial", scope: "empresa", source: "app" },
-    { id: id("exp"), description: "Mercado mensal", value: 680, category: "Mercado", date: daysAgo(8), paymentMethod: "Débito", nature: "essencial", scope: "casa", source: "app" },
-    { id: id("exp"), description: "Pizza no domingo", value: 95, category: "Delivery", date: daysAgo(4), paymentMethod: "Pix", nature: "impulso", scope: "casa", source: "app" },
-    { id: id("exp"), description: "Cerveja no bar", value: 80, category: "Lazer", date: daysAgo(6), paymentMethod: "Dinheiro", nature: "impulso", scope: "casa", source: "app" },
-    { id: id("exp"), description: "Internet rural", value: 230, category: "Internet", date: daysAgo(15), paymentMethod: "Boleto", nature: "essencial", scope: "casa", source: "app" },
-    { id: id("exp"), description: "Manutenção do trator", value: 1850, category: "Compra", date: daysAgo(20), paymentMethod: "Pix", nature: "essencial", scope: "empresa", source: "app" },
+    { id: id("exp"), description: "Mercado da semana", value: 320, category: "Mercado", date: daysAgo(2), paymentMethod: "Débito", nature: "essencial", scope: "casa", source: "app" },
+    { id: id("exp"), description: "Mercado quinzenal", value: 410, category: "Mercado", date: daysAgo(15), paymentMethod: "Débito", nature: "essencial", scope: "casa", source: "app" },
+    { id: id("exp"), description: "Aluguel", value: 1200, category: "Aluguel", date: daysAgo(8), paymentMethod: "Boleto", nature: "essencial", scope: "casa", source: "app" },
+    { id: id("exp"), description: "Conta de luz", value: 145, category: "Energia", date: daysAgo(10), paymentMethod: "Boleto", nature: "essencial", scope: "casa", source: "app" },
+    { id: id("exp"), description: "Internet", value: 89, category: "Internet", date: daysAgo(12), paymentMethod: "Boleto", nature: "essencial", scope: "casa", source: "app" },
+    { id: id("exp"), description: "Uber pro trabalho", value: 28, category: "Transporte", date: daysAgo(1), paymentMethod: "Pix", nature: "essencial", scope: "casa", source: "app" },
+    { id: id("exp"), description: "Combustível", value: 180, category: "Transporte", date: daysAgo(5), paymentMethod: "Débito", nature: "essencial", scope: "casa", source: "app" },
+    { id: id("exp"), description: "iFood (final de semana)", value: 75, category: "Delivery", date: daysAgo(3), paymentMethod: "Pix", nature: "impulso", scope: "casa", source: "app" },
+    { id: id("exp"), description: "Cerveja com amigos", value: 60, category: "Lazer", date: daysAgo(6), paymentMethod: "Dinheiro", nature: "impulso", scope: "casa", source: "app" },
+    { id: id("exp"), description: "Spotify + Netflix", value: 42, category: "Lazer", date: daysAgo(14), paymentMethod: "Crédito", nature: "essencial", scope: "casa", source: "app" },
+    { id: id("exp"), description: "Remédio", value: 65, category: "Saúde", date: daysAgo(7), paymentMethod: "Débito", nature: "essencial", scope: "casa", source: "app" },
+    { id: id("exp"), description: "Padaria", value: 38, category: "Mercado", date: daysAgo(4), paymentMethod: "Pix", nature: "impulso", scope: "casa", source: "app" },
   ],
   incomes: [
-    { id: id("inc"), description: "Venda de 3 bezerros", value: 7800, category: "Venda", date: daysAgo(1), scope: "empresa", source: "app" },
-    { id: id("inc"), description: "Venda de leite (semanal)", value: 950, category: "Venda", date: daysAgo(7), scope: "empresa", source: "app" },
-    { id: id("inc"), description: "Venda de leite (semanal)", value: 920, category: "Venda", date: daysAgo(14), scope: "empresa", source: "app" },
-    { id: id("inc"), description: "Pagamento de serviço prestado", value: 1500, category: "Serviço", date: daysAgo(12), scope: "empresa", source: "app" },
-    { id: id("inc"), description: "Venda de boi gordo", value: 4200, category: "Venda", date: daysAgo(25), scope: "empresa", source: "app" },
+    { id: id("inc"), description: "Salário CLT", value: 3500, category: "Salário", date: daysAgo(5), scope: "casa", source: "app" },
+    { id: id("inc"), description: "Freela design", value: 480, category: "Freelance", date: daysAgo(11), scope: "casa", source: "app" },
   ],
   debts: [
-    { id: id("debt"), name: "Crédito rural - banco", totalValue: 25000, installmentValue: 2100, dueDate: daysAgo(-10), priority: "alta", status: "aberta" },
-    { id: id("debt"), name: "Cartão de crédito", totalValue: 1850, installmentValue: 1850, dueDate: daysAgo(-5), priority: "média", status: "aberta" },
-    { id: id("debt"), name: "Parcelamento do trator", totalValue: 8500, installmentValue: 850, dueDate: daysAgo(-15), priority: "média", status: "negociando" },
+    { id: id("debt"), name: "Cartão de crédito (rotativo)", totalValue: 2300, installmentValue: 230, dueDate: daysAgo(-7), priority: "alta", status: "aberta" },
+    { id: id("debt"), name: "Cheque especial", totalValue: 850, installmentValue: 850, dueDate: daysAgo(-2), priority: "alta", status: "aberta" },
+    { id: id("debt"), name: "Crediário Magazine", totalValue: 680, installmentValue: 170, dueDate: daysAgo(-12), priority: "média", status: "aberta" },
   ],
   goals: [
-    { id: id("goal"), name: "Comprar trator novo", targetValue: 50000, currentValue: 12500, type: "reserva" },
-    { id: id("goal"), name: "Reserva de emergência", targetValue: 10000, currentValue: 6800, type: "reserva" },
-    { id: id("goal"), name: "Quitar crédito rural", targetValue: 25000, currentValue: 5000, type: "dívida" },
+    { id: id("goal"), name: "Reserva de emergência (1 mês)", targetValue: 1000, currentValue: 250, type: "reserva" },
+    { id: id("goal"), name: "Quitar cheque especial", targetValue: 850, currentValue: 0, type: "dívida" },
+    { id: id("goal"), name: "Renda extra mensal (R$ 500)", targetValue: 500, currentValue: 480, type: "reserva" },
   ],
   missionStatus: {},
 };

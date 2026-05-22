@@ -20,9 +20,13 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
     title: "Planilha",
     subtitle: "A base completa do fluxo de caixa fica organizada aqui.",
   },
-  "/app/aprender": {
+  "/app/conta": {
     title: "Conta",
     subtitle: "Sincronização com Google Planilhas e configurações.",
+  },
+  "/app/aprendizado": {
+    title: "Aprender",
+    subtitle: "Lições rápidas e missão do dia. Avance no método em 30 dias.",
   },
   "/app/planilha-demo": {
     title: "Prévia da Planilha",

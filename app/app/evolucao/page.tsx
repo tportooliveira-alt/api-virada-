@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { FileSpreadsheet, Trash2, RotateCcw } from "lucide-react";
 import { GoogleSyncButton } from "@/components/GoogleSyncButton";
 import { useVirada } from "@/providers/virada-provider";
@@ -328,13 +328,28 @@ function TxRow({
   );
 }
 
+// ─── Helpers locais ───────────────────────────────────────────────────────────
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+const EVOLUCAO_SCOPE_KEY = "virada-evolucao-scope";
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function EvolucaoPage() {
   const data = useVirada();
   const [tab, setTab] = useState("dashboard");
-  const [monthFilter, setMonthFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState(currentMonthKey());
   const [typeFilter, setTypeFilter] = useState<"all" | "receita" | "gasto">("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+
+  // Persiste a preferência de escopo (mês atual vs todos)
+  useEffect(() => {
+    const saved = localStorage.getItem(EVOLUCAO_SCOPE_KEY);
+    if (saved === "all") setMonthFilter("all");
+    // Se não há saved, mantém o padrão (mês atual)
+  }, []);
 
   // Meses disponíveis nos dados
   const availableMonths = useMemo(() => {
@@ -839,7 +854,8 @@ export default function EvolucaoPage() {
     }
   }
 
-  const isFiltered = monthFilter !== "all" || typeFilter !== "all" || categoryFilter !== "all";
+  // isFiltered: só considera filtros adicionais (tipo/categoria), pois escopo é controlado pelo toggle
+  const isFiltered = typeFilter !== "all" || categoryFilter !== "all";
 
   return (
     <div className="space-y-4 pb-6">
@@ -876,14 +892,45 @@ export default function EvolucaoPage() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
             Filtros
           </p>
-          {isFiltered && (
-            <button
-              onClick={() => { setMonthFilter("all"); setTypeFilter("all"); setCategoryFilter("all"); }}
-              className="text-[10px] text-slate-500 hover:text-red-400 transition"
-            >
-              ✕ Limpar filtros
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Toggle de escopo rápido */}
+            <div className="flex overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.04]">
+              <button
+                onClick={() => {
+                  setMonthFilter(currentMonthKey());
+                  localStorage.setItem(EVOLUCAO_SCOPE_KEY, "currentMonth");
+                }}
+                className={`px-3 py-1 text-[10px] font-semibold transition ${
+                  monthFilter !== "all"
+                    ? "bg-emerald-500 text-white"
+                    : "text-virada-gray hover:text-white"
+                }`}
+              >
+                Mês atual
+              </button>
+              <button
+                onClick={() => {
+                  setMonthFilter("all");
+                  localStorage.setItem(EVOLUCAO_SCOPE_KEY, "all");
+                }}
+                className={`px-3 py-1 text-[10px] font-semibold transition ${
+                  monthFilter === "all"
+                    ? "bg-emerald-500 text-white"
+                    : "text-virada-gray hover:text-white"
+                }`}
+              >
+                Ver tudo
+              </button>
+            </div>
+            {isFiltered && (
+              <button
+                onClick={() => { setMonthFilter(currentMonthKey()); setTypeFilter("all"); setCategoryFilter("all"); localStorage.setItem(EVOLUCAO_SCOPE_KEY, "currentMonth"); }}
+                className="text-[10px] text-slate-500 hover:text-red-400 transition"
+              >
+                ✕ Limpar
+              </button>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {/* Mês */}
