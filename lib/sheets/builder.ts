@@ -184,6 +184,78 @@ export function buildLayoutRequests(ids: Record<string, number>): unknown[] {
   return requests;
 }
 
+/**
+ * Requests "idempotentes" — só re-aplicam formatação visual (cores, fontes,
+ * dimensões). NÃO inclui mergeCells, protectRange, banding, conditional
+ * format, basicFilter — esses falham quando já existem na planilha e fazem
+ * o batchUpdate ser parcialmente rejeitado.
+ *
+ * Use quando o usuário clicar "Atualizar visual" numa planilha já criada.
+ */
+export function buildReapplyRequests(ids: Record<string, number>): unknown[] {
+  const requests: unknown[] = [];
+  const dashboard = ids[TAB.dashboard];
+
+  // Dashboard — só formatos + dimensões
+  requests.push(setColumnWidth(dashboard, 0, 12, 132));
+  const widths = [132, 96, 96, 132, 96, 96, 132, 96, 96, 132, 96, 96];
+  widths.forEach((width, index) => requests.push(setColumnWidth(dashboard, index, index + 1, width)));
+  requests.push(setRowHeight(dashboard, 0, 1, 52));
+  requests.push(setRowHeight(dashboard, 1, 2, 24));
+  requests.push(setRowHeight(dashboard, 4, 5, 24));
+  requests.push(setRowHeight(dashboard, 5, 6, 56));
+
+  requests.push(repeatCell(dashboard, { startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 12 }, STYLE.banner));
+  requests.push(repeatCell(dashboard, { startRowIndex: 1, endRowIndex: 2, startColumnIndex: 0, endColumnIndex: 12 }, STYLE.bannerSub));
+
+  for (const startCol of [0, 3, 6, 9]) {
+    requests.push(repeatCell(dashboard, { startRowIndex: 4, endRowIndex: 5, startColumnIndex: startCol, endColumnIndex: startCol + 3 }, STYLE.kpiLabel));
+  }
+  requests.push(repeatCell(dashboard, { startRowIndex: 5, endRowIndex: 6, startColumnIndex: 0, endColumnIndex: 3 }, STYLE.kpiValue));
+  requests.push(repeatCell(dashboard, { startRowIndex: 5, endRowIndex: 6, startColumnIndex: 3, endColumnIndex: 6 }, STYLE.kpiValue));
+  requests.push(repeatCell(dashboard, { startRowIndex: 5, endRowIndex: 6, startColumnIndex: 6, endColumnIndex: 9 }, STYLE.kpiValueGold));
+  requests.push(repeatCell(dashboard, { startRowIndex: 5, endRowIndex: 6, startColumnIndex: 9, endColumnIndex: 12 }, STYLE.kpiValueCount));
+
+  requests.push(repeatCell(dashboard, { startRowIndex: 8, endRowIndex: 9, startColumnIndex: 0, endColumnIndex: 5 }, STYLE.sectionTitle));
+  requests.push(repeatCell(dashboard, { startRowIndex: 9, endRowIndex: 10, startColumnIndex: 0, endColumnIndex: 5 }, STYLE.sectionHint));
+  requests.push(repeatCell(dashboard, { startRowIndex: 8, endRowIndex: 9, startColumnIndex: 6, endColumnIndex: 12 }, STYLE.sectionTitle));
+  requests.push(repeatCell(dashboard, { startRowIndex: 9, endRowIndex: 10, startColumnIndex: 6, endColumnIndex: 12 }, STYLE.sectionHint));
+  requests.push(repeatCell(dashboard, { startRowIndex: 10, endRowIndex: 11, startColumnIndex: 0, endColumnIndex: 2 }, STYLE.tableHeader));
+  requests.push(repeatCell(dashboard, { startRowIndex: 10, endRowIndex: 11, startColumnIndex: 6, endColumnIndex: 10 }, STYLE.tableHeader));
+
+  requests.push(repeatCell(dashboard, { startRowIndex: 32, endRowIndex: 33, startColumnIndex: 0, endColumnIndex: 12 }, STYLE.sectionTitle));
+  requests.push(repeatCell(dashboard, { startRowIndex: 33, endRowIndex: 34, startColumnIndex: 0, endColumnIndex: 12 }, STYLE.sectionHint));
+
+  // Abas de dados — só cabeçalho e painel lateral
+  for (const key of ["lancamentos", "receitas", "despesas", "dividas", "metas", "fluxo", "resumo"] as const) {
+    const sheetId = ids[TAB[key]];
+    const headers = HEADERS[key] ?? [];
+    const mainCols = headers.length;
+    requests.push(repeatCell(sheetId, { startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: mainCols }, STYLE.tableHeader));
+    requests.push(repeatCell(sheetId, { startRowIndex: 0, endRowIndex: 1, startColumnIndex: 9, endColumnIndex: 12 }, STYLE.subHeader));
+    requests.push(repeatCell(sheetId, { startRowIndex: 1, endRowIndex: 2, startColumnIndex: 9, endColumnIndex: 12 }, STYLE.sectionHint));
+    requests.push(repeatCell(sheetId, { startRowIndex: 3, endRowIndex: 7, startColumnIndex: 9, endColumnIndex: 10 }, STYLE.noteLabel));
+    requests.push(repeatCell(sheetId, { startRowIndex: 3, endRowIndex: 7, startColumnIndex: 10, endColumnIndex: 12 }, STYLE.noteBody));
+    requests.push(repeatCell(sheetId, { startRowIndex: 9, endRowIndex: 10, startColumnIndex: 9, endColumnIndex: 12 }, STYLE.subHeader));
+    requests.push(repeatCell(sheetId, { startRowIndex: 10, endRowIndex: 14, startColumnIndex: 9, endColumnIndex: 12 }, STYLE.noteBody));
+  }
+
+  // Aba ajuda
+  const ajudaId = ids[TAB.ajuda];
+  requests.push(repeatCell(ajudaId, { startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 2 }, STYLE.helpHero));
+  for (let i = 0; i < 5; i++) {
+    const row = 2 + i * 2;
+    requests.push(repeatCell(ajudaId, { startRowIndex: row, endRowIndex: row + 2, startColumnIndex: 0, endColumnIndex: 1 }, STYLE.helpStepNum));
+    requests.push(repeatCell(ajudaId, { startRowIndex: row, endRowIndex: row + 1, startColumnIndex: 1, endColumnIndex: 2 }, STYLE.helpStepTitle));
+    requests.push(repeatCell(ajudaId, { startRowIndex: row + 1, endRowIndex: row + 2, startColumnIndex: 1, endColumnIndex: 2 }, STYLE.helpStepBody));
+  }
+
+  // Formatos numéricos (idempotentes)
+  applyNumberFormats(requests, ids);
+
+  return requests;
+}
+
 function buildDashboardLayout(requests: unknown[], sheetId: number) {
   requests.push(hideGridlines(sheetId));
 
@@ -344,17 +416,19 @@ function getColumnWidths(key: Exclude<keyof typeof TAB, "dashboard" | "ajuda">):
 }
 
 function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
-  // Valor monetário em colunas de dados: centralizado, bold, cor navy do tema —
-  // o valor é o "herói" da linha e precisa se destacar.
-  const moneyCol = (sheetId: number, col: number) =>
+  // Valor monetário em colunas de dados: centralizado, bold, cor escura do tema.
+  // startRow=1 (linha 2) cobre abas onde dados começam no topo. Use a variante
+  // `moneyColFrom` pro dashboard, que tem KPIs ocupando linhas 5-6 e tabelas
+  // começando só na linha 12.
+  const moneyCol = (sheetId: number, col: number, startRow = 1) =>
     repeatCell(
       sheetId,
-      { startRowIndex: 1, endRowIndex: MAX_DATA_ROWS + 1, startColumnIndex: col, endColumnIndex: col + 1 },
+      { startRowIndex: startRow, endRowIndex: MAX_DATA_ROWS + 1, startColumnIndex: col, endColumnIndex: col + 1 },
       {
         numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
         horizontalAlignment: "CENTER",
         verticalAlignment: "MIDDLE",
-        textFormat: { fontFamily: "Inter", fontSize: 11, bold: true, foregroundColor: COLOR.navy },
+        textFormat: { fontFamily: "Inter", fontSize: 11, bold: true, foregroundColor: COLOR.text },
       },
       "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)",
     );
@@ -378,7 +452,7 @@ function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
         numberFormat: { type: "DATE", pattern: FORMAT.monthYear },
         horizontalAlignment: "CENTER",
         verticalAlignment: "MIDDLE",
-        textFormat: { fontFamily: "Inter", fontSize: 10, bold: true, foregroundColor: COLOR.navy },
+        textFormat: { fontFamily: "Inter", fontSize: 10, bold: true, foregroundColor: COLOR.text },
       },
       "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)",
     );
@@ -390,18 +464,16 @@ function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
         numberFormat: { type: "PERCENT", pattern: FORMAT.percent },
         horizontalAlignment: "CENTER",
         verticalAlignment: "MIDDLE",
-        textFormat: { fontFamily: "Inter", fontSize: 11, bold: true, foregroundColor: COLOR.navy },
+        textFormat: { fontFamily: "Inter", fontSize: 11, bold: true, foregroundColor: COLOR.text },
       },
       "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)",
     );
 
-  requests.push(moneyCol(ids[TAB.dashboard], 0));
-  requests.push(moneyCol(ids[TAB.dashboard], 3));
-  requests.push(moneyCol(ids[TAB.dashboard], 6));
-  requests.push(moneyCol(ids[TAB.dashboard], 1));
-  requests.push(moneyCol(ids[TAB.dashboard], 7));
-  requests.push(moneyCol(ids[TAB.dashboard], 8));
-  requests.push(moneyCol(ids[TAB.dashboard], 9));
+  // Dashboard: pular linhas 1-11 (banner, KPIs, títulos de seção). Tabelas começam na linha 12 (index 11).
+  requests.push(moneyCol(ids[TAB.dashboard], 1, 11));
+  requests.push(moneyCol(ids[TAB.dashboard], 7, 11));
+  requests.push(moneyCol(ids[TAB.dashboard], 8, 11));
+  requests.push(moneyCol(ids[TAB.dashboard], 9, 11));
 
   requests.push(dateCol(ids[TAB.lancamentos], 0));
   requests.push(moneyCol(ids[TAB.lancamentos], 4));

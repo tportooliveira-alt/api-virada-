@@ -5,14 +5,15 @@
 
 type RGB = { red: number; green: number; blue: number };
 export const COLOR: Record<string, RGB> = {
-  navy:       { red: 0.027, green: 0.067, blue: 0.122 }, // #07111F
-  navySoft:   { red: 0.043, green: 0.063, blue: 0.125 }, // #0B1020
-  navyMed:    { red: 0.059, green: 0.118, blue: 0.200 },
-  navyCard:   { red: 0.094, green: 0.157, blue: 0.267 },
-  navyLine:   { red: 0.180, green: 0.220, blue: 0.310 },
-  gold:       { red: 0.961, green: 0.773, blue: 0.259 }, // #F5C542
-  goldSoft:   { red: 1.000, green: 0.953, blue: 0.835 },
-  goldLine:   { red: 0.800, green: 0.627, blue: 0.157 },
+  navy:       { red: 0.039, green: 0.039, blue: 0.047 }, // #0A0A0C — mesmo do app
+  navySoft:   { red: 0.063, green: 0.063, blue: 0.075 }, // #101013
+  navyMed:    { red: 0.094, green: 0.094, blue: 0.110 }, // #18181C
+  navyCard:   { red: 0.141, green: 0.141, blue: 0.165 }, // #24242A
+  navyLine:   { red: 0.231, green: 0.231, blue: 0.255 }, // #3B3B41
+  gold:       { red: 0.984, green: 0.749, blue: 0.141 }, // #FBBF24 — amber-400
+  goldBright: { red: 0.988, green: 0.827, blue: 0.302 }, // #FCD34D — amber-300 (alto contraste em dark)
+  goldSoft:   { red: 0.996, green: 0.957, blue: 0.835 }, // #FEF3D4
+  goldLine:   { red: 0.851, green: 0.541, blue: 0.122 }, // #D88A1F
   green:      { red: 0.133, green: 0.773, blue: 0.369 }, // #22C55E
   greenSoft:  { red: 0.878, green: 0.965, blue: 0.910 },
   red:        { red: 0.937, green: 0.267, blue: 0.267 },
@@ -50,16 +51,16 @@ export const STYLE: Record<string, CellFormat> = {
     backgroundColor: COLOR.navy,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
-    padding: { top: 8, right: 16, bottom: 8, left: 16 },
-    textFormat: { fontFamily: FONT, fontSize: 22, bold: true, foregroundColor: COLOR.gold },
+    padding: { top: 10, right: 16, bottom: 10, left: 16 },
+    textFormat: { fontFamily: FONT, fontSize: 22, bold: true, foregroundColor: COLOR.goldBright },
     borders: { bottom: border(COLOR.goldLine) },
   },
   bannerSub: {
     backgroundColor: COLOR.navy,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
-    padding: { top: 0, right: 16, bottom: 8, left: 16 },
-    textFormat: { fontFamily: FONT, fontSize: 11, foregroundColor: COLOR.gray200 },
+    padding: { top: 2, right: 16, bottom: 10, left: 16 },
+    textFormat: { fontFamily: FONT, fontSize: 11, foregroundColor: { red: 0.80, green: 0.80, blue: 0.82 } },
   },
   topStripe: {
     backgroundColor: COLOR.gold,
@@ -112,34 +113,38 @@ export const STYLE: Record<string, CellFormat> = {
   kpiLabel: {
     backgroundColor: COLOR.navyMed,
     horizontalAlignment: "CENTER",
-    verticalAlignment: "TOP",
-    padding: { top: 10, right: 12, bottom: 0, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 10, bold: true, foregroundColor: COLOR.gold },
+    verticalAlignment: "MIDDLE",
+    padding: { top: 10, right: 12, bottom: 4, left: 12 },
+    textFormat: { fontFamily: FONT, fontSize: 13, bold: true, foregroundColor: COLOR.goldBright },
+    borders: { top: border(COLOR.goldLine) },
     wrapStrategy: "CLIP",
   },
   kpiValue: {
     backgroundColor: COLOR.navyMed,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
-    padding: { top: 0, right: 12, bottom: 10, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 23, bold: true, foregroundColor: COLOR.white },
+    padding: { top: 4, right: 12, bottom: 12, left: 12 },
+    textFormat: { fontFamily: FONT, fontSize: 24, bold: true, foregroundColor: COLOR.white },
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
+    borders: { bottom: border(COLOR.navyLine) },
   },
   kpiValueGold: {
     backgroundColor: COLOR.navyMed,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
-    padding: { top: 0, right: 12, bottom: 10, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 23, bold: true, foregroundColor: COLOR.gold },
+    padding: { top: 4, right: 12, bottom: 12, left: 12 },
+    textFormat: { fontFamily: FONT, fontSize: 24, bold: true, foregroundColor: COLOR.goldBright },
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
+    borders: { bottom: border(COLOR.goldLine) },
   },
   kpiValueCount: {
     backgroundColor: COLOR.navyMed,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
-    padding: { top: 0, right: 12, bottom: 10, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 23, bold: true, foregroundColor: COLOR.white },
+    padding: { top: 4, right: 12, bottom: 12, left: 12 },
+    textFormat: { fontFamily: FONT, fontSize: 24, bold: true, foregroundColor: COLOR.white },
     numberFormat: { type: "NUMBER", pattern: FORMAT.intCount },
+    borders: { bottom: border(COLOR.navyLine) },
   },
   rowEven: {
     backgroundColor: COLOR.white,

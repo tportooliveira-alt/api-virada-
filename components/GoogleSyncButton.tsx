@@ -18,10 +18,11 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ExternalLink, RefreshCcw, Unlink } from "lucide-react";
+import { ExternalLink, Palette, RefreshCcw, Unlink } from "lucide-react";
 import {
   buildChartRequests,
   buildLayoutRequests,
+  buildReapplyRequests,
   buildSheetSpecs,
   buildStaticValues,
   buildSyncBatch,
@@ -113,6 +114,34 @@ async function createWorkbook(token: string, email: string): Promise<{ spreadshe
   };
 }
 
+async function fetchSheetIds(token: string, spreadsheetId: string): Promise<Record<string, number>> {
+  const data = (await googleFetch(
+    "GET",
+    `/spreadsheets/${spreadsheetId}?fields=sheets.properties(sheetId,title)`,
+    token,
+  )) as { sheets?: { properties?: { sheetId?: number; title?: string } }[] };
+  const ids: Record<string, number> = {};
+  for (const s of data.sheets ?? []) {
+    if (s.properties?.title && typeof s.properties.sheetId === "number") {
+      ids[s.properties.title] = s.properties.sheetId;
+    }
+  }
+  return ids;
+}
+
+async function reapplyLayout(token: string, spreadsheetId: string): Promise<void> {
+  const ids = await fetchSheetIds(token, spreadsheetId);
+  // Usa requests idempotentes (só formato — sem merge/protect/banding/filter
+  // que falham quando já existem na planilha).
+  await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, {
+    requests: buildReapplyRequests(ids),
+  });
+  await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchUpdate`, token, {
+    valueInputOption: "USER_ENTERED",
+    data: buildStaticValues(),
+  });
+}
+
 async function pushData(token: string, spreadsheetId: string, input: SyncInput): Promise<void> {
   const batch = buildSyncBatch(input);
   if (batch.clearRanges.length) {
@@ -174,6 +203,29 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     } catch { /* ignore */ }
   }, []);
 
+  const doReapplyLayout = useCallback(async (accessToken: string) => {
+    if (!meta?.spreadsheetId) return;
+    setSyncing(true);
+    setStatus("idle");
+    setErrMsg("");
+    try {
+      await reapplyLayout(accessToken, meta.spreadsheetId);
+      await pushData(accessToken, meta.spreadsheetId, { expenses, incomes, debts, goals });
+      const newMeta: SheetMeta = {
+        ...meta,
+        lastSync: new Date().toISOString(),
+      };
+      localStorage.setItem(SHEET_KEY, JSON.stringify(newMeta));
+      window.dispatchEvent(new Event("virada-sheet-meta-changed"));
+      setMeta(newMeta);
+      setStatus("ok");
+    } catch (err) {
+      setErrMsg(err instanceof Error ? err.message : "Erro desconhecido.");
+      setStatus("err");
+    }
+    setSyncing(false);
+  }, [meta, expenses, incomes, debts, goals]);
+
   const doSync = useCallback(async (accessToken: string) => {
     setSyncing(true);
     setStatus("idle");
@@ -226,12 +278,30 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newToken));
         setToken(newToken);
-        await doSync(newToken.access_token);
+        await runAction(pendingActionRef.current, newToken.access_token);
       },
     });
-  }, [gisLoaded, clientId, doSync]);
+  }, [gisLoaded, clientId, doSync, doReapplyLayout]);
+
+  const pendingActionRef = useRef<"sync" | "reapply">("sync");
+
+  function runAction(action: "sync" | "reapply", accessToken: string) {
+    if (action === "reapply") return doReapplyLayout(accessToken);
+    return doSync(accessToken);
+  }
+
+  function handleReapply() {
+    if (!meta?.spreadsheetId) return;
+    pendingActionRef.current = "reapply";
+    triggerAuthAndRun();
+  }
 
   function handleConnect() {
+    pendingActionRef.current = "sync";
+    triggerAuthAndRun();
+  }
+
+  function triggerAuthAndRun() {
     if (!tokenClientRef.current) {
       setStatus("err");
       setErrMsg("Login Google ainda não inicializou neste navegador. Aguarde 2 segundos e tente novamente.");
@@ -253,7 +323,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     }
 
     setSyncing(true);
-    if (token && token.expires_at > Date.now()) void doSync(token.access_token);
+    if (token && token.expires_at > Date.now()) void runAction(pendingActionRef.current, token.access_token);
     else {
       // Em alguns navegadores o popup OAuth pode ser bloqueado sem callback.
       // Este timeout evita botão travado em estado "criando".
@@ -322,6 +392,15 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
           >
             <RefreshCcw className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} />
             {syncing ? "Atualizando planilha…" : "Atualizar minha planilha"}
+          </button>
+          <button
+            onClick={handleReapply}
+            disabled={syncing}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/10 disabled:opacity-50"
+            title="Reaplica o layout (cores, fontes, formatos) na planilha existente"
+          >
+            <Palette className="h-4 w-4" />
+            Atualizar visual da planilha
           </button>
           <a
             href={meta.spreadsheetUrl}
