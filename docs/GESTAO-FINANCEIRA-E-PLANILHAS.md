@@ -1,8 +1,10 @@
 # Gestão Financeira e Planilhas
 
+> **Atualizado 2026-05-22** — reflete a arquitetura atual (9 abas premium + OAuth GIS).
+
 ## Decisão
 
-O app deve ser simples no celular e completo na base de dados.
+O app é simples no celular e a planilha por trás é completa, profissional e premium.
 
 O frontend mostra:
 
@@ -13,66 +15,71 @@ O frontend mostra:
 - últimos lançamentos
 - lançamento rápido
 
-A planilha por trás guarda a gestão completa.
+A planilha exportada pro Google Sheets guarda a gestão completa, com formatação visual de analista financeiro.
 
-## Abas Essenciais
+## As 9 abas da planilha
 
-- Usuários
-- Lançamentos
-- Vendas
-- Compras e custos
-- Fluxo de caixa
-- Resumo mensal
-- Categorias
-- Contas a pagar
-- Contas a receber
-- Metas
-- Dívidas
-- Log de sincronização
+1. **Dashboard** — banner navy/dourado + 4 KPI cards (Entradas/Saídas/Saldo/Lançamentos) + tabela top categorias + tabela mensal + 4 gráficos (pie/column/line/bar)
+2. **Lançamentos** — timeline geral (Data/Tipo/Descrição/Categoria/Valor/Pagamento/Natureza/Escopo/Origem)
+3. **Receitas** — só entradas
+4. **Despesas** — só saídas
+5. **Dívidas** — Nome/Vencimento/Prioridade/Status/Parcela/Total/Em aberto, com cores condicionais por status
+6. **Metas** — Meta/Tipo/Alvo/Atual/Faltando/Progresso, com gradient red→gold→green
+7. **Fluxo de Caixa** — Data/Entradas/Saídas/Resultado do dia/Saldo acumulado
+8. **Resumo Mensal** — Mês/Entradas/Saídas/Resultado/Saldo acumulado/Economia/Lançamentos
+9. **Como usar** — 5 passos numerados pra orientar o usuário
 
-## Regra de Produto
+Cada aba (exceto "Como usar") tem painel lateral com título, hint, 4 KPIs e notas explicativas.
 
-O usuário não deve precisar abrir planilha para usar o app no dia a dia.
+## Regra de produto
 
-A planilha serve para:
+O usuário não precisa abrir planilha para usar o app no dia a dia. A planilha serve para:
 
 - análise completa
 - conferência
 - exportação
-- sincronização com Google Planilhas
-- uso em Excel
+- compartilhamento por link
+- abertura em Excel (via download manual no Google Sheets)
 
-## Google Planilhas
+## Google Planilhas via OAuth (GIS) — fluxo padrão
 
-Será a sincronização principal porque funciona melhor no celular e permite acesso por link.
+Sincronização principal funciona com 1 clique e cria a planilha **no Drive do próprio usuário**:
 
-Regras técnicas:
+1. Usuário clica "Exportar minha planilha" em `/app/evolucao`
+2. Popup OAuth do Google → "Permitir"
+3. App cria a planilha no Drive do usuário e popula os dados
+4. Token (55min) salvo em `localStorage`. Refresh automático no próximo clique.
 
-- credencial só no servidor
-- frontend nunca recebe segredo
-- app escreve primeiro na base local
-- sincronização envia dados para as abas correspondentes
+Detalhes técnicos:
+
+- Não há credencial sensível no client além do **Client ID OAuth** (que é público por design via `NEXT_PUBLIC_GOOGLE_CLIENT_ID`)
+- App escreve primeiro na base local (offline-first), sincronização envia ao Google sob demanda
+- Scope `drive.file` é o mínimo necessário — o app só vê arquivos que ele mesmo criou
+- Se a planilha for apagada manualmente do Drive, o próximo sync detecta o 404 e cria uma nova automaticamente
+- Botão **"Recriar planilha (visual perfeito)"** apaga + recria para garantir layout sempre correto
+
+Ver `docs/configurar-google-sheets.md` para setup passo-a-passo do Client ID.
 
 ## Excel
 
-Excel entra como exportação por CSV.
+Excel entra apenas por **export manual**: no Google Sheets, o usuário usa "Arquivo → Fazer download → Microsoft Excel (.xlsx)".
 
-O usuário pode baixar qualquer aba em `/api/sheets/export?sheet=NOME_DA_ABA.csv`.
+Não há mais endpoint `/api/sheets/export?sheet=*.csv` — foi removido na refatoração que substituiu a planilha antiga de 15 abas planas pela versão premium de 9 abas + gráficos.
 
 ## WhatsApp
 
-WhatsApp fica como entrada futura.
-
-Modelo previsto:
+Entrada por WhatsApp segue como funcionalidade futura. Modelo previsto:
 
 - usuário manda mensagem
-- servidor interpreta
-- grava lançamento
-- planilha sincroniza depois
+- servidor interpreta via `lib/parse-financial-input.ts`
+- grava lançamento na base local
+- na próxima sincronização, vai pra planilha
 
-Exemplos:
+Exemplos planejados:
 
 - `Vendi 250 no Pix`
 - `Comprei 80 de mercadoria`
 - `Paguei 120 de fornecedor`
 - `Recebi 500 de cliente`
+
+Versão simples atualmente disponível: link `wa.me` que abre o WhatsApp do produtor com texto pré-preenchido — sem automação.

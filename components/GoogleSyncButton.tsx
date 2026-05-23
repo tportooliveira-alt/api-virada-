@@ -22,7 +22,6 @@ import { ExternalLink, Palette, RefreshCcw, Unlink } from "lucide-react";
 import {
   buildChartRequests,
   buildLayoutRequests,
-  buildReapplyRequests,
   buildSheetSpecs,
   buildStaticValues,
   buildSyncBatch,
@@ -114,32 +113,25 @@ async function createWorkbook(token: string, email: string): Promise<{ spreadshe
   };
 }
 
-async function fetchSheetIds(token: string, spreadsheetId: string): Promise<Record<string, number>> {
-  const data = (await googleFetch(
-    "GET",
-    `/spreadsheets/${spreadsheetId}?fields=sheets.properties(sheetId,title)`,
-    token,
-  )) as { sheets?: { properties?: { sheetId?: number; title?: string } }[] };
-  const ids: Record<string, number> = {};
-  for (const s of data.sheets ?? []) {
-    if (s.properties?.title && typeof s.properties.sheetId === "number") {
-      ids[s.properties.title] = s.properties.sheetId;
-    }
+/**
+ * Apaga a planilha do Drive do usuário. 404 não é erro (já estava apagada).
+ * Usa Drive API v3 — scope `drive.file` é suficiente pois só apaga arquivos
+ * criados por este app.
+ */
+async function deleteSpreadsheet(token: string, spreadsheetId: string): Promise<void> {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok && res.status !== 404) {
+    const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+    throw new Error(err.error?.message ?? `HTTP ${res.status}`);
   }
-  return ids;
 }
 
-async function reapplyLayout(token: string, spreadsheetId: string): Promise<void> {
-  const ids = await fetchSheetIds(token, spreadsheetId);
-  // Usa requests idempotentes (só formato — sem merge/protect/banding/filter
-  // que falham quando já existem na planilha).
-  await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, {
-    requests: buildReapplyRequests(ids),
-  });
-  await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchUpdate`, token, {
-    valueInputOption: "USER_ENTERED",
-    data: buildStaticValues(),
-  });
+function isNotFoundError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message.toLowerCase() : "";
+  return msg.includes("not found") || msg.includes("404") || msg.includes("requested entity was not found");
 }
 
 async function pushData(token: string, spreadsheetId: string, input: SyncInput): Promise<void> {
@@ -203,16 +195,33 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     } catch { /* ignore */ }
   }, []);
 
-  const doReapplyLayout = useCallback(async (accessToken: string) => {
-    if (!meta?.spreadsheetId) return;
+  /**
+   * Recriar planilha do zero — apaga a antiga no Drive e cria nova com
+   * paleta + layout sempre corretos. Resolve o problema de planilhas
+   * antigas que não atualizam estilos por causa de proteções/banding
+   * já aplicados (substituiu o caminho idempotente `reapplyLayout`).
+   */
+  const doRecreate = useCallback(async (accessToken: string) => {
     setSyncing(true);
     setStatus("idle");
     setErrMsg("");
     try {
-      await reapplyLayout(accessToken, meta.spreadsheetId);
-      await pushData(accessToken, meta.spreadsheetId, { expenses, incomes, debts, goals });
+      if (meta?.spreadsheetId) {
+        try {
+          await deleteSpreadsheet(accessToken, meta.spreadsheetId);
+        } catch (err) {
+          // 404 já tratado dentro de deleteSpreadsheet. Outros erros: log e segue.
+          if (!isNotFoundError(err)) {
+            console.warn("Falha ao apagar planilha antiga:", err);
+          }
+        }
+      }
+      localStorage.removeItem(SHEET_KEY);
+      const created = await createWorkbook(accessToken, userEmail);
+      await pushData(accessToken, created.spreadsheetId, { expenses, incomes, debts, goals });
       const newMeta: SheetMeta = {
-        ...meta,
+        spreadsheetId: created.spreadsheetId,
+        spreadsheetUrl: created.spreadsheetUrl,
         lastSync: new Date().toISOString(),
       };
       localStorage.setItem(SHEET_KEY, JSON.stringify(newMeta));
@@ -224,24 +233,42 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       setStatus("err");
     }
     setSyncing(false);
-  }, [meta, expenses, incomes, debts, goals]);
+  }, [meta, expenses, incomes, debts, goals, userEmail]);
 
   const doSync = useCallback(async (accessToken: string) => {
     setSyncing(true);
     setStatus("idle");
     setErrMsg("");
+
+    const createFresh = async () => {
+      const created = await createWorkbook(accessToken, userEmail);
+      await pushData(accessToken, created.spreadsheetId, { expenses, incomes, debts, goals });
+      return { spreadsheetId: created.spreadsheetId, spreadsheetUrl: created.spreadsheetUrl };
+    };
+
     try {
-      let sheetId = meta?.spreadsheetId;
-      let sheetUrl = meta?.spreadsheetUrl;
-      if (!sheetId) {
-        const created = await createWorkbook(accessToken, userEmail);
-        sheetId = created.spreadsheetId;
-        sheetUrl = created.spreadsheetUrl;
+      let target: { spreadsheetId: string; spreadsheetUrl: string };
+
+      if (!meta?.spreadsheetId) {
+        target = await createFresh();
+      } else {
+        try {
+          await pushData(accessToken, meta.spreadsheetId, { expenses, incomes, debts, goals });
+          target = {
+            spreadsheetId: meta.spreadsheetId,
+            spreadsheetUrl: meta.spreadsheetUrl ?? `https://docs.google.com/spreadsheets/d/${meta.spreadsheetId}`,
+          };
+        } catch (err) {
+          if (!isNotFoundError(err)) throw err;
+          // Planilha foi apagada do Drive manualmente — limpa meta e recria.
+          localStorage.removeItem(SHEET_KEY);
+          target = await createFresh();
+        }
       }
-      await pushData(accessToken, sheetId, { expenses, incomes, debts, goals });
+
       const newMeta: SheetMeta = {
-        spreadsheetId: sheetId,
-        spreadsheetUrl: sheetUrl ?? `https://docs.google.com/spreadsheets/d/${sheetId}`,
+        spreadsheetId: target.spreadsheetId,
+        spreadsheetUrl: target.spreadsheetUrl,
         lastSync: new Date().toISOString(),
       };
       localStorage.setItem(SHEET_KEY, JSON.stringify(newMeta));
@@ -281,18 +308,24 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
         await runAction(pendingActionRef.current, newToken.access_token);
       },
     });
-  }, [gisLoaded, clientId, doSync, doReapplyLayout]);
+  }, [gisLoaded, clientId, doSync, doRecreate]);
 
-  const pendingActionRef = useRef<"sync" | "reapply">("sync");
+  const pendingActionRef = useRef<"sync" | "recreate">("sync");
+  const [showRecreateConfirm, setShowRecreateConfirm] = useState(false);
 
-  function runAction(action: "sync" | "reapply", accessToken: string) {
-    if (action === "reapply") return doReapplyLayout(accessToken);
+  function runAction(action: "sync" | "recreate", accessToken: string) {
+    if (action === "recreate") return doRecreate(accessToken);
     return doSync(accessToken);
   }
 
-  function handleReapply() {
+  function handleRecreateRequest() {
     if (!meta?.spreadsheetId) return;
-    pendingActionRef.current = "reapply";
+    setShowRecreateConfirm(true);
+  }
+
+  function handleRecreateConfirm() {
+    setShowRecreateConfirm(false);
+    pendingActionRef.current = "recreate";
     triggerAuthAndRun();
   }
 
@@ -393,15 +426,37 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
             <RefreshCcw className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} />
             {syncing ? "Atualizando planilha…" : "Atualizar minha planilha"}
           </button>
-          <button
-            onClick={handleReapply}
-            disabled={syncing}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/10 disabled:opacity-50"
-            title="Reaplica o layout (cores, fontes, formatos) na planilha existente"
-          >
-            <Palette className="h-4 w-4" />
-            Atualizar visual da planilha
-          </button>
+          {!showRecreateConfirm ? (
+            <button
+              onClick={handleRecreateRequest}
+              disabled={syncing}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/10 disabled:opacity-50"
+              title="Apaga a planilha antiga e cria uma nova com paleta e layout sempre corretos"
+            >
+              <Palette className="h-4 w-4" />
+              Recriar planilha (visual perfeito)
+            </button>
+          ) : (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+              <p className="text-xs font-semibold text-amber-200">
+                Isto apaga sua planilha antiga no Google Drive e cria uma nova com paleta e layout corretos. Os dados são sempre reenviados a partir do app.
+              </p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={handleRecreateConfirm}
+                  className="flex-1 rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-amber-400"
+                >
+                  Sim, recriar
+                </button>
+                <button
+                  onClick={() => setShowRecreateConfirm(false)}
+                  className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
           <a
             href={meta.spreadsheetUrl}
             target="_blank"

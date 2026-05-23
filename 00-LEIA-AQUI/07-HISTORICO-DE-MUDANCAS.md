@@ -1,5 +1,16 @@
 # Histórico das mudanças desta sessão
 
+## Sessão 2026-05-22 noite (Claude Code) — Planilhas como forte do app
+
+- **Fix estrutural de contraste/layout**: botão "Atualizar visual da planilha" passou a **apagar a planilha antiga no Drive e criar uma nova** (Hipótese C). Resolve o problema de planilhas pré-fix que não atualizavam estilos por causa de proteções/banding já aplicados. Botão renomeado para **"Recriar planilha (visual perfeito)"** com confirmação inline antes de apagar (warning amber + botões "Sim, recriar" / "Cancelar").
+- **Auto-recuperação de 404**: se o usuário apagar a planilha manualmente do Drive, o próximo "Atualizar minha planilha" detecta o erro `Requested entity was not found` e cria uma nova automaticamente — meta local é limpo e refeito.
+- **Novas funções utilitárias** em `components/GoogleSyncButton.tsx`:
+  - `deleteSpreadsheet(token, id)` — DELETE no Drive API v3 (idempotente, 404 não é erro)
+  - `isNotFoundError(err)` — detector heurístico de 404 em mensagens da API
+  - `doRecreate(accessToken)` — fluxo apaga + recria + popula
+- **Docs alinhadas com realidade**: `docs/configurar-google-sheets.md` reescrito do zero para refletir o fluxo OAuth GIS (não mais service account no servidor por padrão); `docs/GESTAO-FINANCEIRA-E-PLANILHAS.md` atualizado de "15 abas" + endpoint CSV inexistente para "9 abas premium" + processo real.
+- **Validação**: `npm run typecheck` exit 0, `npx tsx scripts/test-sheets-build.ts` 69/69 asserts passou.
+
 ## Sessão de redesign — abril/maio 2026
 
 ### Planilha profissional (substituiu a antiga genérica)
