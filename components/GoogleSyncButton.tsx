@@ -429,8 +429,8 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
         <div className="space-y-2">
           <button
             onClick={handleConnect}
-            disabled={syncing}
-            className="flex w-full min-h-14 items-center justify-center gap-3 rounded-2xl bg-emerald-500 text-base font-extrabold text-slate-950 shadow-[0_0_30px_rgba(34,197,94,0.3)] transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50"
+            disabled={syncing || !gisLoaded}
+            className="flex w-full min-h-14 items-center justify-center gap-3 rounded-2xl bg-emerald-500 text-base font-extrabold text-slate-950 shadow-[0_0_30px_rgba(34,197,94,0.3)] transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCcw className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} />
             {syncing ? "Atualizando planilha…" : "Atualizar minha planilha"}
@@ -438,12 +438,12 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
           {!showRecreateConfirm ? (
             <button
               onClick={handleRecreateRequest}
-              disabled={syncing}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/10 disabled:opacity-50"
-              title="Apaga a planilha antiga e cria uma nova com paleta e layout sempre corretos"
+              disabled={syncing || !gisLoaded}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={gisLoaded ? "Apaga a planilha antiga e cria uma nova com paleta e layout sempre corretos" : "Aguarde o login Google carregar..."}
             >
               <Palette className="h-4 w-4" />
-              Recriar planilha (visual perfeito)
+              {gisLoaded ? "Recriar planilha (visual perfeito)" : "Aguardando login Google…"}
             </button>
           ) : (
             <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
