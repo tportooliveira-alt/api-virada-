@@ -502,15 +502,43 @@ function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
   requests.push(pctCol(ids[TAB.resumo], 5));
 }
 
+/**
+ * Coordenadas das celulas que recebem formatacao condicional. Centralizadas
+ * aqui pra que mudancas no layout (banner +1 linha, KPI shift, etc.) sejam
+ * refletidas em UM lugar so. Cada range esta amarrado a uma celula semantica
+ * descrita no comentario.
+ */
+const CONDITIONAL_RANGES = {
+  // Dashboard: celula G6 (SALDO ATUAL value) — verde se positivo, vermelho se negativo.
+  dashboardSaldo: { startRow: 5, endRow: 6, startCol: 6, endCol: 7 },
+  // Fluxo de Caixa: cols D-E (Resultado do dia + Saldo acumulado) em todas as linhas de dados.
+  fluxoResultado: { startRow: 1, endRow: MAX_DATA_ROWS + 1, startCol: 3, endCol: 5 },
+  // Resumo Mensal: cols D-E (Resultado + Saldo acumulado).
+  resumoResultado: { startRow: 1, endRow: MAX_DATA_ROWS + 1, startCol: 3, endCol: 5 },
+  // Metas: col F (Progresso) — gradiente red->gold->green conforme percentual.
+  metasProgresso: { startRow: 1, endRow: MAX_DATA_ROWS + 1, startCol: 5, endCol: 6 },
+  // Dividas: col D (Status) — cor de fundo por status (aberta/negociando/quitada).
+  dividasStatus: { startRow: 1, endRow: MAX_DATA_ROWS + 1, startCol: 3, endCol: 4 },
+} as const;
+
 function applyConditionals(requests: unknown[], ids: Record<string, number>) {
-  requests.push(...condFormatPositiveNegative(ids[TAB.dashboard], 5, 6, 6, 7));
-  requests.push(...condFormatPositiveNegative(ids[TAB.fluxo], 1, MAX_DATA_ROWS + 1, 3, 5));
-  requests.push(...condFormatPositiveNegative(ids[TAB.resumo], 1, MAX_DATA_ROWS + 1, 3, 5));
-  requests.push(condFormatGradient(ids[TAB.metas], 1, MAX_DATA_ROWS + 1, 5, 6));
+  const ds = CONDITIONAL_RANGES.dashboardSaldo;
+  requests.push(...condFormatPositiveNegative(ids[TAB.dashboard], ds.startRow, ds.endRow, ds.startCol, ds.endCol));
+
+  const fr = CONDITIONAL_RANGES.fluxoResultado;
+  requests.push(...condFormatPositiveNegative(ids[TAB.fluxo], fr.startRow, fr.endRow, fr.startCol, fr.endCol));
+
+  const rr = CONDITIONAL_RANGES.resumoResultado;
+  requests.push(...condFormatPositiveNegative(ids[TAB.resumo], rr.startRow, rr.endRow, rr.startCol, rr.endCol));
+
+  const mp = CONDITIONAL_RANGES.metasProgresso;
+  requests.push(condFormatGradient(ids[TAB.metas], mp.startRow, mp.endRow, mp.startCol, mp.endCol));
+
   const dividasSheet = ids[TAB.dividas];
-  requests.push(condFormatTextEquals(dividasSheet, 1, MAX_DATA_ROWS + 1, 3, 4, "aberta", COLOR.redSoft, COLOR.red, 0));
-  requests.push(condFormatTextEquals(dividasSheet, 1, MAX_DATA_ROWS + 1, 3, 4, "negociando", COLOR.goldSoft, { red: 0.55, green: 0.40, blue: 0.05 }, 1));
-  requests.push(condFormatTextEquals(dividasSheet, 1, MAX_DATA_ROWS + 1, 3, 4, "quitada", COLOR.greenSoft, { red: 0.07, green: 0.45, blue: 0.20 }, 2));
+  const dst = CONDITIONAL_RANGES.dividasStatus;
+  requests.push(condFormatTextEquals(dividasSheet, dst.startRow, dst.endRow, dst.startCol, dst.endCol, "aberta", COLOR.redSoft, COLOR.red, 0));
+  requests.push(condFormatTextEquals(dividasSheet, dst.startRow, dst.endRow, dst.startCol, dst.endCol, "negociando", COLOR.goldSoft, { red: 0.55, green: 0.40, blue: 0.05 }, 1));
+  requests.push(condFormatTextEquals(dividasSheet, dst.startRow, dst.endRow, dst.startCol, dst.endCol, "quitada", COLOR.greenSoft, { red: 0.07, green: 0.45, blue: 0.20 }, 2));
 }
 
 export function buildStaticValues() {

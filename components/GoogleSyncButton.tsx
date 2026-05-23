@@ -36,6 +36,11 @@ const SCOPES = [
 const STORAGE_KEY = "virada_google_token";
 const SHEET_KEY = "virada_sheet_meta";
 
+// Margem de seguranca para considerar o token "quase expirado". Cria/atualizar
+// planilha faz ate 4 chamadas HTTP — se o token tem menos de 5 minutos de vida,
+// pedimos um novo ANTES de iniciar pra evitar 401 no meio da operacao.
+const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+
 interface SheetMeta {
   spreadsheetId: string;
   spreadsheetUrl: string;
@@ -356,8 +361,12 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     }
 
     setSyncing(true);
-    if (token && token.expires_at > Date.now()) void runAction(pendingActionRef.current, token.access_token);
-    else {
+    // Token com menos de TOKEN_REFRESH_THRESHOLD_MS de vida e tratado como
+    // "quase expirado": preferimos pedir um novo agora a arriscar 401 no meio
+    // de createWorkbook (4 chamadas HTTP sequenciais).
+    if (token && token.expires_at > Date.now() + TOKEN_REFRESH_THRESHOLD_MS) {
+      void runAction(pendingActionRef.current, token.access_token);
+    } else {
       // Em alguns navegadores o popup OAuth pode ser bloqueado sem callback.
       // Este timeout evita botão travado em estado "criando".
       if (oauthPopupTimeoutRef.current !== null) {
