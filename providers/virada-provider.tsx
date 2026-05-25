@@ -196,7 +196,13 @@ export function ViradaProvider({ children }: PropsWithChildren) {
       }));
     },
     removeExpense: (id) => {
-      update((prev) => ({ ...prev, expenses: prev.expenses.filter((e) => e.id !== id) }));
+      // Cascata: apagar o gasto tambem remove seu contra-lancamento de estorno
+      // (income com linkedTo === id), evitando saldo "fantasma" no Resumo.
+      update((prev) => ({
+        ...prev,
+        expenses: prev.expenses.filter((e) => e.id !== id && e.linkedTo !== id),
+        incomes: prev.incomes.filter((i) => i.linkedTo !== id),
+      }));
     },
 
     // ── Receitas ──────────────────────────────────────────────────────────
@@ -207,7 +213,12 @@ export function ViradaProvider({ children }: PropsWithChildren) {
       }));
     },
     removeIncome: (id) => {
-      update((prev) => ({ ...prev, incomes: prev.incomes.filter((i) => i.id !== id) }));
+      // Cascata simetrica: apagar a receita tambem remove o estorno-expense vinculado.
+      update((prev) => ({
+        ...prev,
+        incomes: prev.incomes.filter((i) => i.id !== id && i.linkedTo !== id),
+        expenses: prev.expenses.filter((e) => e.linkedTo !== id),
+      }));
     },
 
     // ── Dívidas ───────────────────────────────────────────────────────────
@@ -253,6 +264,10 @@ export function ViradaProvider({ children }: PropsWithChildren) {
     },
 
     // ── Estorno ───────────────────────────────────────────────────────────
+    // Cria um contra-lançamento (income reverso pra gasto / expense reverso
+    // pra receita) com `linkedTo` apontando ao ID original. Isso permite que
+    // `removeExpense`/`removeIncome` cascateiem o delete e evitem saldo
+    // fantasma. Não apaga o original — preserva trilha de auditoria.
     estornar: (tx) => {
       if (tx.type === "expense") {
         update((prev) => ({
@@ -266,6 +281,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
               date: tx.date,
               scope: (tx.scope as Income["scope"]) ?? "casa",
               source: "app",
+              linkedTo: tx.id,
             },
             ...prev.incomes,
           ],
@@ -284,6 +300,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
               date: tx.date,
               scope: (tx.scope as Expense["scope"]) ?? "casa",
               source: "app",
+              linkedTo: tx.id,
             },
             ...prev.expenses,
           ],

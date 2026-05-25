@@ -52,6 +52,10 @@ export interface Expense {
   nature: ExpenseNature;
   scope?: TransactionScope;
   source?: TransactionSource;
+  // Quando este lançamento é um contra-lançamento de estorno, aponta para
+  // o ID do lançamento original (do outro tipo). Permite cascatear o delete
+  // automaticamente quando o original é apagado.
+  linkedTo?: string;
 }
 
 export interface Income {
@@ -62,6 +66,8 @@ export interface Income {
   date: string;
   scope?: TransactionScope;
   source?: TransactionSource;
+  // Mesma semântica do Expense.linkedTo — preenchido em contra-lançamento de estorno.
+  linkedTo?: string;
 }
 
 export interface Debt {
