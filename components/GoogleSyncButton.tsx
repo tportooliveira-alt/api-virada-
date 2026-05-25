@@ -172,6 +172,11 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   const [status, setStatus] = useState<"idle" | "ok" | "err">("idle");
   const [errMsg, setErrMsg] = useState("");
   const [gisLoaded, setGisLoaded] = useState(false);
+  // tokenClientReady e distinto de gisLoaded: o script pode estar carregado
+  // (gisLoaded=true) mas o window.google.accounts.oauth2.initTokenClient
+  // pode ainda nao estar disponivel (race no parsing). So habilitamos o botao
+  // quando o tokenClient e DE FATO inicializado.
+  const [tokenClientReady, setTokenClientReady] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !clientId) return;
@@ -288,31 +293,45 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   }, [meta, expenses, incomes, debts, goals, userEmail]);
 
   useEffect(() => {
-    const init = getInitTokenClient();
-    if (!gisLoaded || !init || !clientId) return;
-    tokenClientRef.current = init({
-      client_id: clientId,
-      scope: SCOPES,
-      callback: async (resp) => {
-        if (oauthPopupTimeoutRef.current !== null) {
-          window.clearTimeout(oauthPopupTimeoutRef.current);
-          oauthPopupTimeoutRef.current = null;
-        }
-        if (resp.error || !resp.access_token) {
-          setErrMsg(resp.error ?? "Erro ao conectar com Google.");
-          setStatus("err");
-          setSyncing(false);
-          return;
-        }
-        const newToken: Token = {
-          access_token: resp.access_token,
-          expires_at: Date.now() + 55 * 60 * 1000,
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newToken));
-        setToken(newToken);
-        await runAction(pendingActionRef.current, newToken.access_token);
-      },
-    });
+    // Se gisLoaded esta true mas initTokenClient ainda nao foi exposto no window,
+    // tentamos novamente em curtos intervalos ate ter o ref pronto.
+    let tries = 0;
+    const maxTries = 50; // 5 segundos
+    const interval = window.setInterval(() => {
+      const init = getInitTokenClient();
+      if (!gisLoaded || !clientId) return;
+      if (!init) {
+        tries += 1;
+        if (tries >= maxTries) window.clearInterval(interval);
+        return;
+      }
+      window.clearInterval(interval);
+      tokenClientRef.current = init({
+        client_id: clientId,
+        scope: SCOPES,
+        callback: async (resp) => {
+          if (oauthPopupTimeoutRef.current !== null) {
+            window.clearTimeout(oauthPopupTimeoutRef.current);
+            oauthPopupTimeoutRef.current = null;
+          }
+          if (resp.error || !resp.access_token) {
+            setErrMsg(resp.error ?? "Erro ao conectar com Google.");
+            setStatus("err");
+            setSyncing(false);
+            return;
+          }
+          const newToken: Token = {
+            access_token: resp.access_token,
+            expires_at: Date.now() + 55 * 60 * 1000,
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(newToken));
+          setToken(newToken);
+          await runAction(pendingActionRef.current, newToken.access_token);
+        },
+      });
+      setTokenClientReady(true);
+    }, 100);
+    return () => window.clearInterval(interval);
   }, [gisLoaded, clientId, doSync, doRecreate]);
 
   const pendingActionRef = useRef<"sync" | "recreate">("sync");
@@ -408,7 +427,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       {!meta ? (
         <button
           onClick={handleConnect}
-          disabled={syncing || !gisLoaded}
+          disabled={syncing || !tokenClientReady}
           className="flex w-full min-h-16 items-center justify-center gap-3 rounded-2xl bg-emerald-500 text-lg font-extrabold text-slate-950 shadow-[0_0_40px_rgba(34,197,94,0.4)] transition hover:bg-emerald-400 hover:shadow-[0_0_60px_rgba(34,197,94,0.6)] active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
         >
           {syncing ? (
@@ -429,7 +448,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
         <div className="space-y-2">
           <button
             onClick={handleConnect}
-            disabled={syncing || !gisLoaded}
+            disabled={syncing || !tokenClientReady}
             className="flex w-full min-h-14 items-center justify-center gap-3 rounded-2xl bg-emerald-500 text-base font-extrabold text-slate-950 shadow-[0_0_30px_rgba(34,197,94,0.3)] transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCcw className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} />
@@ -438,12 +457,12 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
           {!showRecreateConfirm ? (
             <button
               onClick={handleRecreateRequest}
-              disabled={syncing || !gisLoaded}
+              disabled={syncing || !tokenClientReady}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
-              title={gisLoaded ? "Apaga a planilha antiga e cria uma nova com paleta e layout sempre corretos" : "Aguarde o login Google carregar..."}
+              title={tokenClientReady ? "Apaga a planilha antiga e cria uma nova com paleta e layout sempre corretos" : "Aguarde o login Google carregar..."}
             >
               <Palette className="h-4 w-4" />
-              {gisLoaded ? "Recriar planilha (visual perfeito)" : "Aguardando login Google…"}
+              {tokenClientReady ? "Recriar planilha (visual perfeito)" : "Aguardando login Google…"}
             </button>
           ) : (
             <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
