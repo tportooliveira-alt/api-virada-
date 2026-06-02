@@ -1,19 +1,15 @@
 /**
- * GET /api/admin/members — lista todos os membros (somente ADMIN_EMAILS).
- * Auth: header `x-admin-email` deve estar em process.env.ADMIN_EMAILS (csv).
+ * GET /api/admin/members — lista todos os membros (somente admin).
+ * Auth: cookie de sessão admin assinado, emitido pelo /api/access/check após
+ * validar o token Google e conferir ADMIN_EMAILS. Header de texto não é aceito.
  */
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { listMembers } from "@/lib/access/members";
+import { ADMIN_COOKIE, verifyAdminSession } from "@/lib/access/admin-session";
 
-function isAdmin(email: string | null): boolean {
-  if (!email) return false;
-  const list = (process.env.ADMIN_EMAILS || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
-  return list.includes(email.trim().toLowerCase());
-}
-
-export async function GET(request: Request) {
-  const headerEmail = request.headers.get("x-admin-email");
-  if (!isAdmin(headerEmail)) {
+export async function GET() {
+  if (!verifyAdminSession(cookies().get(ADMIN_COOKIE)?.value)) {
     return NextResponse.json({ message: "nao autorizado" }, { status: 401 });
   }
   const members = listMembers();

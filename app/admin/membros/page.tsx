@@ -4,9 +4,10 @@
  * /admin/membros — painel administrativo.
  *
  * Quem pode entrar: emails listados em ADMIN_EMAILS (env do servidor).
- * O acesso ao app já passa pelo AuthGate; aqui a página lê o email do
- * localStorage (chave virada_access_v2) e usa como header `x-admin-email`
- * nas chamadas de API. Se a env do servidor reconhecer, libera.
+ * Autorização real é server-side via cookie de sessão admin assinado, emitido
+ * pelo /api/access/check quando o login Google é de um email admin. Esta página
+ * só lê o email do localStorage (virada_access_v2) para exibição; o cookie
+ * (httpOnly) vai automático nas chamadas same-origin.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -70,11 +71,9 @@ export default function AdminMembrosPage() {
     setLoading(true);
     setAuthError(null);
     try {
-      const res = await fetch("/api/admin/members", {
-        headers: { "x-admin-email": adminEmail },
-      });
+      const res = await fetch("/api/admin/members");
       if (res.status === 401) {
-        setAuthError("Seu email não está em ADMIN_EMAILS. Configure no .env do servidor.");
+        setAuthError("Acesso admin negado ou sessão expirada. Entre de novo no app com uma conta Google que esteja em ADMIN_EMAILS (e confirme ADMIN_EMAILS + ADMIN_SESSION_SECRET no servidor).");
         setMembers([]);
         setSummary(null);
         return;
@@ -115,10 +114,7 @@ export default function AdminMembrosPage() {
     try {
       const res = await fetch("/api/admin/members/manual", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-email": adminEmail,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: formEmail,
           name: formName || undefined,
@@ -149,10 +145,7 @@ export default function AdminMembrosPage() {
     try {
       const res = await fetch("/api/admin/members/status", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-email": adminEmail,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, status }),
       });
       const data = await res.json();

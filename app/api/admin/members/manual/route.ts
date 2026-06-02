@@ -5,16 +5,12 @@
  * POST { email, name?, platform?, product? }
  */
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { upsertMember } from "@/lib/access/members";
-
-function isAdmin(email: string | null): boolean {
-  if (!email) return false;
-  const list = (process.env.ADMIN_EMAILS || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
-  return list.includes(email.trim().toLowerCase());
-}
+import { ADMIN_COOKIE, verifyAdminSession } from "@/lib/access/admin-session";
 
 export async function POST(request: Request) {
-  if (!isAdmin(request.headers.get("x-admin-email"))) {
+  if (!verifyAdminSession(cookies().get(ADMIN_COOKIE)?.value)) {
     return NextResponse.json({ message: "nao autorizado" }, { status: 401 });
   }
   let body: { email?: string; name?: string; platform?: string; product?: string };
