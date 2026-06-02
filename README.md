@@ -1,98 +1,66 @@
-# Virada App
+# Virada App (`api-virada-`)
 
-App mobile-first de gestão financeira simples, com tela enxuta no celular e planilhas estruturadas como base completa por trás.
+> **Atenção ao nome:** apesar de `api-virada-`, **isto não é uma API** — é o **Virada App**
+> completo (Next.js 14 PWA + material do infoproduto + automação de lançamento).
 
-## Direção Atual
+App de controle financeiro **mobile-first** vendido como infoproduto. Cliente compra
+numa plataforma (Hotmart/Eduzz/Kiwify/Monetizze/Cakto/Perfectpay) → webhook libera o
+acesso automaticamente → dados ficam no celular dele (offline-first) → ele exporta uma
+planilha premium pro Google Planilhas dele.
 
-O app não é mais focado só em gastos. Ele registra o fluxo financeiro completo:
+## 📍 Comece por aqui (índice mestre)
 
-- vendas
-- recebimentos
-- entradas de dinheiro
-- compras
-- custos
-- gastos de casa
-- gastos da empresa
-- dívidas
-- metas
-- fluxo de caixa
-- resumo mensal
+| Quero... | Vá para |
+|---|---|
+| **Estado real do código + erros encontrados** | [`RELATORIO-ANALISE.md`](RELATORIO-ANALISE.md) |
+| Entender o produto/negócio passo a passo | [`00-LEIA-AQUI/`](00-LEIA-AQUI/) (10 docs numerados) |
+| Documentação técnica | [`docs/`](docs/README.md) |
 
-No frontend aparecem só os dados principais: caixa, entradas, gastos, resultado e últimos lançamentos.
+## 🗂️ Mapa das pastas (cada uma tem seu README)
 
-## Base de Dados
+| Pasta | O que tem |
+|---|---|
+| [`app/`](app/README.md) | Rotas Next.js — páginas (UI) e endpoints (API) |
+| [`lib/`](lib/README.md) | Lógica de negócio: acesso (`access/`), planilha (`sheets/`), parsing, IA, tipos |
+| [`components/`](components/README.md) | Componentes React (26) — `AuthGate`, `GoogleSyncButton`, dashboard, etc. |
+| [`providers/`](providers/README.md) | Estado global (IndexedDB) via `ViradaProvider` |
+| [`content/`](content/README.md) | **Materiais do produto** (ebook + 4 bônus, em Markdown) |
+| [`public/`](public/README.md) | Estáticos: PDFs vendáveis, assets, ícones, criativos, páginas HTML |
+| [`marketing/`](marketing/README.md) | Copy, roteiros, calendário, sequências de e-mail |
+| [`artifacts/`](artifacts/README.md) | Pacote pronto de lançamento (Hotmart) |
+| [`scripts/`](scripts/README.md) | Testes (TS válidos / JS obsoletos) + automação Python |
+| [`supabase/`](supabase/README.md) | Migração Postgres (⚠️ arquitetura divergente — ver RELATORIO #2) |
+| [`video-production/`](video-production/README.md) | Pipeline de produção de vídeo |
+| [`docs/`](docs/README.md) | Notas técnicas e de produto |
 
-A base operacional fica em planilhas CSV locais dentro de:
+## 🧱 Stack
+Next.js 14 (App Router) · React 18 · TypeScript · Tailwind 3 · better-sqlite3 (acesso) ·
+IndexedDB/`idb` (finanças no cliente) · googleapis · Google Identity Services.
 
-```bash
-data/planilhas
-```
-
-As abas são:
-
-- `usuarios.csv`
-- `lancamentos.csv`
-- `vendas.csv`
-- `compras_custos.csv`
-- `fluxo_caixa.csv`
-- `resumo_mensal.csv`
-- `categorias.csv`
-- `contas_a_pagar.csv`
-- `contas_a_receber.csv`
-- `metas.csv`
-- `dividas.csv`
-- `missoes_concluidas.csv`
-- `pontos.csv`
-- `medalhas.csv`
-- `sync_log.csv`
-
-Esses arquivos ficam fora do Git por segurança.
-
-## Sincronização
-
-Arquitetura preparada para:
-
-- Google Planilhas como sincronização principal
-- Excel/CSV como exportação simples
-- WhatsApp como entrada futura de lançamentos
-
-Credenciais do Google devem ficar somente no servidor. Nada sensível deve ir para o frontend.
-
-## Rotas Principais
-
-- `/login`
-- `/cadastro`
-- `/app/inicio`
-- `/app/lancar`
-- `/app/evolucao` como Planilha
-- `/app/aprender` como Conta
-
-## Como Rodar
-
+## ▶️ Como rodar
 ```bash
 npm install
-npm run dev
+npm run dev      # http://localhost:3000  (redireciona pra /app/inicio)
 ```
 
-Abra:
-
+## ✅ Validação
 ```bash
-http://localhost:3000/app/inicio
+npm run typecheck   # tsc --noEmit
+npm run lint        # next lint
+npm run build       # next build
+# testes (todos passando — 265 asserts):
+npx tsx scripts/test-sheets-build.ts
+npx tsx scripts/test-webhooks.ts
+npx tsx scripts/test-deletions.ts
+npx tsx scripts/test-estorno.ts
+npx tsx scripts/test-app-completo.ts
 ```
+> Não rode `scripts/test_finance.js` / `test_performance.js` — estão obsoletos (RELATORIO #4).
 
-## Validação
+## ⚙️ Configuração (`.env.local`)
+Ver template em `.env.example`. Mínimo: `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, tokens das
+plataformas (`HOTMART_TOKEN`...), e `ADMIN_EMAILS`. Detalhes em `00-LEIA-AQUI/03-O-QUE-FALTA-PRA-VENDER.md`.
 
-```bash
-npm run typecheck
-npm run lint
-npm run build
-npm test
-```
-
-## Próximos Passos Técnicos
-
-1. Conectar Google Sheets API no servidor.
-2. Criar credenciais seguras para sincronização.
-3. Adicionar importação de uma planilha existente.
-4. Adicionar entrada via WhatsApp API.
-5. Criar relatórios por período, casa e empresa.
+## ⚠️ Antes de lançar
+Ler [`RELATORIO-ANALISE.md`](RELATORIO-ANALISE.md) — há **1 falha de segurança crítica**
+(painel admin) e **1 conflito de arquitetura/deploy** (SQLite × serverless) a resolver.
