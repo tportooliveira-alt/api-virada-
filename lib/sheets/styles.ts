@@ -1,32 +1,35 @@
 /**
- * Paleta e estilos da planilha — espelha o app (navy + dourado + verde).
+ * Paleta e estilos da planilha — PALETA C "Verde suave & Creme".
+ * Dinheiro clássico e calmo: verde #5F9E6E sobre creme, valores em alto
+ * contraste (grafite escuro / verde / vermelho terroso) para SALTAREM.
  * Cores em RGB float (0-1) como exigido pela Google Sheets API.
  */
 
 type RGB = { red: number; green: number; blue: number };
 export const COLOR: Record<string, RGB> = {
-  // Paleta C — a oficial do projeto (mesma dos 6 apps em apps/*/index.html).
-  navy:       { red: 0.039, green: 0.039, blue: 0.047 }, // #0A0A0C — bg do projeto
-  navySoft:   { red: 0.086, green: 0.086, blue: 0.102 }, // #16161A — surface
-  navyMed:    { red: 0.122, green: 0.122, blue: 0.141 }, // #1F1F24 — surface-2
-  navyCard:   { red: 0.165, green: 0.165, blue: 0.188 }, // #2A2A30 — line/card
-  navyLine:   { red: 0.227, green: 0.227, blue: 0.259 }, // #3A3A42
-  gold:       { red: 0.941, green: 0.659, blue: 0.188 }, // #F0A830 — dourado do projeto
-  goldBright: { red: 0.969, green: 0.745, blue: 0.369 }, // #F7BE5E — dourado claro (contraste em dark)
-  goldSoft:   { red: 0.992, green: 0.929, blue: 0.804 }, // #FDEDCD
-  goldLine:   { red: 0.831, green: 0.541, blue: 0.122 }, // #D48A1F
-  green:      { red: 0.114, green: 0.620, blue: 0.459 }, // #1D9E75 — VERDE DINHEIRO (paleta C)
-  greenSoft:  { red: 0.835, green: 0.945, blue: 0.910 }, // #D5F1E8
-  red:        { red: 0.839, green: 0.337, blue: 0.337 }, // #D65656 — vermelho do projeto
-  redSoft:    { red: 0.973, green: 0.886, blue: 0.886 }, // #F8E2E2
+  // Fundos claros (creme) — base calma, deixa os valores em evidência.
+  cream:      { red: 0.965, green: 0.945, blue: 0.898 }, // #F6F1E5 — fundo principal
+  creamCard:  { red: 1.000, green: 1.000, blue: 1.000 }, // #FFFFFF — card de destaque (valor salta)
+  creamAlt:   { red: 0.937, green: 0.910, blue: 0.839 }, // #EFE8D6 — zebra / painel
+  line:       { red: 0.871, green: 0.835, blue: 0.749 }, // #DED5BF — bordas suaves
+
+  // Verdes — acento "dinheiro" calmo.
+  green:      { red: 0.373, green: 0.620, blue: 0.431 }, // #5F9E6E — verde suave (positivo/acento)
+  greenDeep:  { red: 0.180, green: 0.325, blue: 0.224 }, // #2E5339 — verde escuro (banner/headers)
+  greenSoft:  { red: 0.867, green: 0.922, blue: 0.882 }, // #DDEBE1 — chip positivo
+
+  // Texto/valores — verde-grafite escuro: máximo contraste no creme.
+  ink:        { red: 0.118, green: 0.165, blue: 0.125 }, // #1E2A20
+  inkMuted:   { red: 0.416, green: 0.431, blue: 0.388 }, // #6A6E63
+  text:       { red: 0.118, green: 0.165, blue: 0.125 }, // = ink (compat builder)
+  textMuted:  { red: 0.416, green: 0.431, blue: 0.388 }, // = inkMuted
+
+  // Semânticos.
+  red:        { red: 0.690, green: 0.278, blue: 0.227 }, // #B0473A — negativo (vermelho terroso, calmo)
+  redSoft:    { red: 0.945, green: 0.851, blue: 0.827 }, // #F1D9D3
+  gold:       { red: 0.725, green: 0.545, blue: 0.180 }, // #B98B2E — bronze sóbrio (acento mínimo)
+  goldSoft:   { red: 0.937, green: 0.890, blue: 0.780 }, // #EFE3C7
   white:      { red: 1, green: 1, blue: 1 },
-  offWhite:   { red: 0.973, green: 0.976, blue: 0.984 },
-  gray100:    { red: 0.949, green: 0.953, blue: 0.965 },
-  gray200:    { red: 0.882, green: 0.898, blue: 0.922 },
-  gray400:    { red: 0.580, green: 0.627, blue: 0.690 },
-  gray500:    { red: 0.420, green: 0.475, blue: 0.541 },
-  text:       { red: 0.118, green: 0.161, blue: 0.231 },
-  textMuted:  { red: 0.420, green: 0.475, blue: 0.541 },
 };
 
 export const FONT = "Inter";
@@ -42,211 +45,213 @@ export const FORMAT = {
 
 type CellFormat = Record<string, unknown>;
 
-const border = (rgb = COLOR.gray200) => ({
+const border = (rgb = COLOR.line) => ({
   style: "SOLID",
   color: rgb,
 });
 
 export const STYLE: Record<string, CellFormat> = {
   banner: {
-    backgroundColor: COLOR.navy,
+    backgroundColor: COLOR.greenDeep,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 10, right: 16, bottom: 10, left: 16 },
-    textFormat: { fontFamily: FONT, fontSize: 22, bold: true, foregroundColor: COLOR.goldBright },
-    borders: { bottom: border(COLOR.goldLine) },
+    textFormat: { fontFamily: FONT, fontSize: 22, bold: true, foregroundColor: COLOR.cream },
+    borders: { bottom: border(COLOR.gold) },
   },
   bannerSub: {
-    backgroundColor: COLOR.navy,
+    backgroundColor: COLOR.greenDeep,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 2, right: 16, bottom: 10, left: 16 },
-    textFormat: { fontFamily: FONT, fontSize: 11, foregroundColor: { red: 0.80, green: 0.80, blue: 0.82 } },
+    textFormat: { fontFamily: FONT, fontSize: 11, foregroundColor: { red: 0.82, green: 0.88, blue: 0.84 } },
   },
   topStripe: {
-    backgroundColor: COLOR.gold,
+    backgroundColor: COLOR.green,
     horizontalAlignment: "LEFT",
   },
   tableHeader: {
-    backgroundColor: COLOR.navy,
+    backgroundColor: COLOR.greenDeep,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
     padding: { top: 6, right: 8, bottom: 6, left: 8 },
-    textFormat: { fontFamily: FONT, fontSize: 10, bold: true, foregroundColor: COLOR.white },
-    borders: { top: border(COLOR.goldLine), bottom: border(COLOR.gold) },
+    textFormat: { fontFamily: FONT, fontSize: 10, bold: true, foregroundColor: COLOR.cream },
+    borders: { bottom: border(COLOR.green) },
     wrapStrategy: "WRAP",
   },
   subHeader: {
-    backgroundColor: COLOR.navyMed,
+    backgroundColor: COLOR.green,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 8, right: 12, bottom: 8, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.gold },
+    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.white },
   },
   sectionTitle: {
-    backgroundColor: COLOR.white,
+    backgroundColor: COLOR.cream,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 8, right: 12, bottom: 4, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 13, bold: true, foregroundColor: COLOR.navy },
+    textFormat: { fontFamily: FONT, fontSize: 13, bold: true, foregroundColor: COLOR.greenDeep },
   },
   sectionHint: {
-    backgroundColor: COLOR.white,
+    backgroundColor: COLOR.cream,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 0, right: 12, bottom: 8, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 9, italic: true, foregroundColor: COLOR.textMuted },
+    textFormat: { fontFamily: FONT, fontSize: 9, italic: true, foregroundColor: COLOR.inkMuted },
     wrapStrategy: "WRAP",
   },
   sectionCard: {
-    backgroundColor: COLOR.offWhite,
+    backgroundColor: COLOR.creamCard,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 8, right: 12, bottom: 8, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.text },
+    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.ink },
     borders: {
-      top: border(COLOR.gray200),
-      bottom: border(COLOR.gray200),
-      left: border(COLOR.gray200),
-      right: border(COLOR.gray200),
+      top: border(COLOR.line),
+      bottom: border(COLOR.line),
+      left: border(COLOR.line),
+      right: border(COLOR.line),
     },
   },
+  // KPI: label discreto + VALOR grande escuro sobre card BRANCO = salta.
   kpiLabel: {
-    backgroundColor: COLOR.navyMed,
+    backgroundColor: COLOR.creamCard,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
     padding: { top: 10, right: 12, bottom: 4, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 13, bold: true, foregroundColor: COLOR.goldBright },
-    borders: { top: border(COLOR.goldLine) },
+    textFormat: { fontFamily: FONT, fontSize: 12, bold: true, foregroundColor: COLOR.green },
+    borders: { top: border(COLOR.green) },
     wrapStrategy: "CLIP",
   },
   kpiValue: {
-    backgroundColor: COLOR.navyMed,
+    backgroundColor: COLOR.creamCard,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
     padding: { top: 4, right: 12, bottom: 12, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 24, bold: true, foregroundColor: COLOR.white },
+    textFormat: { fontFamily: FONT, fontSize: 24, bold: true, foregroundColor: COLOR.ink },
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
-    borders: { bottom: border(COLOR.navyLine) },
+    borders: { bottom: border(COLOR.line) },
   },
   kpiValueGold: {
-    backgroundColor: COLOR.navyMed,
+    backgroundColor: COLOR.creamCard,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
     padding: { top: 4, right: 12, bottom: 12, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 24, bold: true, foregroundColor: COLOR.goldBright },
+    textFormat: { fontFamily: FONT, fontSize: 24, bold: true, foregroundColor: COLOR.green },
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
-    borders: { bottom: border(COLOR.goldLine) },
+    borders: { bottom: border(COLOR.green) },
   },
   kpiValueCount: {
-    backgroundColor: COLOR.navyMed,
+    backgroundColor: COLOR.creamCard,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
     padding: { top: 4, right: 12, bottom: 12, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 24, bold: true, foregroundColor: COLOR.white },
+    textFormat: { fontFamily: FONT, fontSize: 24, bold: true, foregroundColor: COLOR.ink },
     numberFormat: { type: "NUMBER", pattern: FORMAT.intCount },
-    borders: { bottom: border(COLOR.navyLine) },
+    borders: { bottom: border(COLOR.line) },
   },
   rowEven: {
-    backgroundColor: COLOR.white,
+    backgroundColor: COLOR.creamCard,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 5, right: 8, bottom: 5, left: 8 },
-    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.text },
+    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.ink },
   },
   rowOdd: {
-    backgroundColor: COLOR.gray100,
+    backgroundColor: COLOR.cream,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 5, right: 8, bottom: 5, left: 8 },
-    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.text },
+    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.ink },
   },
   dataCellBorder: {
     borders: {
-      top: border(COLOR.gray200),
-      bottom: border(COLOR.gray200),
-      left: border(COLOR.gray200),
-      right: border(COLOR.gray200),
+      top: border(COLOR.line),
+      bottom: border(COLOR.line),
+      left: border(COLOR.line),
+      right: border(COLOR.line),
     },
   },
+  // Totais: faixa verde com número branco — fecha a tabela com destaque.
   totalRow: {
-    backgroundColor: COLOR.gold,
+    backgroundColor: COLOR.green,
     horizontalAlignment: "RIGHT",
     padding: { top: 6, right: 8, bottom: 6, left: 8 },
-    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.navy },
+    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.white },
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
   },
   totalLabel: {
-    backgroundColor: COLOR.gold,
+    backgroundColor: COLOR.green,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 7, right: 10, bottom: 7, left: 10 },
-    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.navy },
+    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.white },
   },
   totalMoney: {
-    backgroundColor: COLOR.goldSoft,
+    backgroundColor: COLOR.greenSoft,
     horizontalAlignment: "RIGHT",
     verticalAlignment: "MIDDLE",
     padding: { top: 7, right: 10, bottom: 7, left: 10 },
-    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.navy },
+    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.greenDeep },
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
   },
   totalCount: {
-    backgroundColor: COLOR.goldSoft,
+    backgroundColor: COLOR.greenSoft,
     horizontalAlignment: "RIGHT",
     verticalAlignment: "MIDDLE",
     padding: { top: 7, right: 10, bottom: 7, left: 10 },
-    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.navy },
+    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.greenDeep },
     numberFormat: { type: "NUMBER", pattern: FORMAT.intCount },
   },
   emptyState: {
-    backgroundColor: COLOR.offWhite,
+    backgroundColor: COLOR.cream,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
     padding: { top: 10, right: 12, bottom: 10, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 10, italic: true, foregroundColor: COLOR.gray500 },
+    textFormat: { fontFamily: FONT, fontSize: 10, italic: true, foregroundColor: COLOR.inkMuted },
     wrapStrategy: "WRAP",
   },
   noteLabel: {
-    backgroundColor: COLOR.navyCard,
+    backgroundColor: COLOR.creamAlt,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 8, right: 12, bottom: 8, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 10, bold: true, foregroundColor: COLOR.gold },
+    textFormat: { fontFamily: FONT, fontSize: 10, bold: true, foregroundColor: COLOR.greenDeep },
   },
   noteBody: {
-    backgroundColor: COLOR.navyCard,
+    backgroundColor: COLOR.creamAlt,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 8, right: 12, bottom: 8, left: 12 },
-    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.white },
+    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.ink },
     wrapStrategy: "WRAP",
   },
   helpHero: {
-    backgroundColor: COLOR.navy,
+    backgroundColor: COLOR.greenDeep,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 14, right: 18, bottom: 14, left: 18 },
-    textFormat: { fontFamily: FONT, fontSize: 18, bold: true, foregroundColor: COLOR.gold },
+    textFormat: { fontFamily: FONT, fontSize: 18, bold: true, foregroundColor: COLOR.cream },
     wrapStrategy: "WRAP",
   },
   helpStepNum: {
-    backgroundColor: COLOR.gold,
+    backgroundColor: COLOR.green,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
-    textFormat: { fontFamily: FONT, fontSize: 14, bold: true, foregroundColor: COLOR.navy },
+    textFormat: { fontFamily: FONT, fontSize: 14, bold: true, foregroundColor: COLOR.white },
   },
   helpStepTitle: {
-    backgroundColor: COLOR.white,
+    backgroundColor: COLOR.creamCard,
     horizontalAlignment: "LEFT",
     padding: { top: 8, right: 14, bottom: 0, left: 14 },
-    textFormat: { fontFamily: FONT, fontSize: 12, bold: true, foregroundColor: COLOR.navy },
+    textFormat: { fontFamily: FONT, fontSize: 12, bold: true, foregroundColor: COLOR.greenDeep },
   },
   helpStepBody: {
-    backgroundColor: COLOR.white,
+    backgroundColor: COLOR.creamCard,
     horizontalAlignment: "LEFT",
     padding: { top: 0, right: 14, bottom: 10, left: 14 },
-    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.text },
+    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.ink },
     wrapStrategy: "WRAP",
   },
 };
@@ -454,7 +459,7 @@ export function condFormatTextEquals(
   };
 }
 
-/** Banding (linhas zebra) automático */
+/** Banding (linhas zebra) automático — creme alternado, header verde escuro */
 export function addBanding(
   sheetId: number,
   startRow: number,
@@ -467,12 +472,12 @@ export function addBanding(
       bandedRange: {
         range: { sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startCol, endColumnIndex: endCol },
         rowProperties: {
-          headerColor: COLOR.navy,
-          headerColorStyle: { rgbColor: COLOR.navy },
-          firstBandColor: COLOR.white,
-          firstBandColorStyle: { rgbColor: COLOR.white },
-          secondBandColor: COLOR.gray100,
-          secondBandColorStyle: { rgbColor: COLOR.gray100 },
+          headerColor: COLOR.greenDeep,
+          headerColorStyle: { rgbColor: COLOR.greenDeep },
+          firstBandColor: COLOR.creamCard,
+          firstBandColorStyle: { rgbColor: COLOR.creamCard },
+          secondBandColor: COLOR.cream,
+          secondBandColorStyle: { rgbColor: COLOR.cream },
         },
       },
     },

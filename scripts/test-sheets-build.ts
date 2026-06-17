@@ -144,8 +144,9 @@ async function main() {
     r.repeatCell?.cell?.userEnteredFormat?.textFormat?.bold === true,
   );
   check("banner tem fonte 22 bold", !!banner);
-  check("banner é dourado", banner?.repeatCell?.cell?.userEnteredFormat?.textFormat?.foregroundColor?.red > 0.9);
-  check("banner fundo navy", banner?.repeatCell?.cell?.userEnteredFormat?.backgroundColor?.red < 0.1);
+  check("banner texto claro (creme)", banner?.repeatCell?.cell?.userEnteredFormat?.textFormat?.foregroundColor?.red > 0.9);
+  const bbg = banner?.repeatCell?.cell?.userEnteredFormat?.backgroundColor;
+  check("banner fundo verde escuro (paleta C)", bbg?.green > bbg?.red && bbg?.red < 0.3);
 
   // KPI cards — 4 merges do dashboard na linha 6
   const kpiMerges = layoutReqs.filter((r: any) =>

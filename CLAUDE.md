@@ -65,6 +65,15 @@ npx tsx scripts/test-app-completo.ts
 - Aplicado via tokens/fontes globais → **todas as 13 telas herdaram de uma vez**.
 - Falta: refinos de craft (espaçamento/hierarquia por tela) se quiser ir além.
 
+## 🎨 Paleta C — "Verde suave & Creme" (planilha · NÃO PERDER)
+
+Paleta oficial escolhida pra a **planilha** (clara, "dinheiro clássico e calmo", DESTACA valores — nada de cor escondida). Aplicada em `lib/sheets/styles.ts`:
+- **Creme:** `#F6F1E5` fundo · `#FFFFFF` card de KPI (valor salta) · `#EFE8D6` zebra/painel · `#DED5BF` bordas
+- **Verde:** `#5F9E6E` acento/positivo · `#2E5339` escuro (banner/headers) · `#DDEBE1` chip
+- **Texto/valores:** `#1E2A20` verde-grafite (alto contraste) · `#6A6E63` secundário
+- **Vermelho terroso:** `#B0473A` (negativo calmo) · **Bronze:** `#B98B2E` (acento mínimo)
+- Regra de ouro: valor sempre em alto contraste (escuro/verde/vermelho sobre creme claro).
+
 ## Skills do arsenal a usar aqui
 - **Arquitetura/método:** `/superpowers` (brainstorming → writing-plans → TDD → verification).
 - **Design (fase 2):** `/open-design` → `frontend-design` (anti-AI-slop) + a paleta C.
