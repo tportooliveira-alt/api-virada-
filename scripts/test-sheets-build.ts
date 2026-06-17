@@ -207,7 +207,7 @@ async function main() {
   const hideGrid = layoutReqs.filter((r: any) =>
     r.updateSheetProperties?.properties?.gridProperties?.hideGridlines === true,
   );
-  check("gridlines escondidas em Dashboard + Como usar", hideGrid.length === 2);
+  check("gridlines escondidas em todas as abas (cara de app)", hideGrid.length === 9, `recebeu ${hideGrid.length}`);
 
   // Cabeçalhos das tabelas
   const valData = values.flatMap((v) => v.arg.requestBody.data ?? []);
@@ -220,7 +220,7 @@ async function main() {
 
   // Banner do Dashboard
   const dashBanner = valData.find((v: any) => v.range === "Dashboard!A1");
-  check("banner Dashboard", dashBanner?.values[0]?.[0]?.includes("CÓDIGO DA VIRADA"));
+  check("banner Dashboard", /código da virada/i.test(dashBanner?.values[0]?.[0] ?? ""));
 
   // KPIs do Dashboard como FÓRMULAS (escritas na criação, recalculam sozinhas)
   const dashA6 = valData.find((v: any) => v.range === "Dashboard!A6");

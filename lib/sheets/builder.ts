@@ -270,8 +270,8 @@ function buildDashboardLayout(requests: unknown[], sheetId: number) {
   requests.push(repeatCell(sheetId, { startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 12 }, STYLE.banner));
   requests.push(repeatCell(sheetId, { startRowIndex: 1, endRowIndex: 2, startColumnIndex: 0, endColumnIndex: 12 }, STYLE.bannerSub));
 
-  requests.push(setRowHeight(sheetId, 4, 5, 20));
-  requests.push(setRowHeight(sheetId, 5, 6, 50));
+  requests.push(setRowHeight(sheetId, 4, 5, 30));
+  requests.push(setRowHeight(sheetId, 5, 6, 56));
   for (const startCol of [0, 3, 6, 9]) {
     requests.push(mergeCells(sheetId, 4, 5, startCol, startCol + 3));
     requests.push(mergeCells(sheetId, 5, 6, startCol, startCol + 3));
@@ -313,6 +313,7 @@ function buildDataSheetLayout(
   const headers = HEADERS[key] ?? [];
   const mainCols = headers.length;
 
+  requests.push(hideGridlines(sheetId)); // sem grade — cara de app, não de planilha crua
   requests.push(setRowHeight(sheetId, 0, 1, 38));
   requests.push(repeatCell(sheetId, { startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: mainCols }, STYLE.tableHeader));
   requests.push(freezeRows(sheetId, 1));
@@ -551,8 +552,8 @@ export function buildStaticValues() {
   data.push({
     range: `${TAB.dashboard}!A1`,
     values: [
-      ["CÓDIGO DA VIRADA • MARCA OFICIAL — BASE FINANCEIRA ESTRUTURADA"],
-      ["Código da Virada: dashboard oficial da marca. Sincronize pelo app para preencher dados reais com fidelidade visual."],
+      ["Código da Virada"],
+      ["Seu painel financeiro — atualizado pelo app"],
     ],
   });
   data.push({

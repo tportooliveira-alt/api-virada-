@@ -5,19 +5,20 @@
 
 type RGB = { red: number; green: number; blue: number };
 export const COLOR: Record<string, RGB> = {
-  navy:       { red: 0.039, green: 0.039, blue: 0.047 }, // #0A0A0C — mesmo do app
-  navySoft:   { red: 0.063, green: 0.063, blue: 0.075 }, // #101013
-  navyMed:    { red: 0.094, green: 0.094, blue: 0.110 }, // #18181C
-  navyCard:   { red: 0.141, green: 0.141, blue: 0.165 }, // #24242A
-  navyLine:   { red: 0.231, green: 0.231, blue: 0.255 }, // #3B3B41
-  gold:       { red: 0.984, green: 0.749, blue: 0.141 }, // #FBBF24 — amber-400
-  goldBright: { red: 0.988, green: 0.827, blue: 0.302 }, // #FCD34D — amber-300 (alto contraste em dark)
-  goldSoft:   { red: 0.996, green: 0.957, blue: 0.835 }, // #FEF3D4
-  goldLine:   { red: 0.851, green: 0.541, blue: 0.122 }, // #D88A1F
-  green:      { red: 0.133, green: 0.773, blue: 0.369 }, // #22C55E
-  greenSoft:  { red: 0.878, green: 0.965, blue: 0.910 },
-  red:        { red: 0.937, green: 0.267, blue: 0.267 },
-  redSoft:    { red: 0.996, green: 0.898, blue: 0.898 },
+  // Paleta C — a oficial do projeto (mesma dos 6 apps em apps/*/index.html).
+  navy:       { red: 0.039, green: 0.039, blue: 0.047 }, // #0A0A0C — bg do projeto
+  navySoft:   { red: 0.086, green: 0.086, blue: 0.102 }, // #16161A — surface
+  navyMed:    { red: 0.122, green: 0.122, blue: 0.141 }, // #1F1F24 — surface-2
+  navyCard:   { red: 0.165, green: 0.165, blue: 0.188 }, // #2A2A30 — line/card
+  navyLine:   { red: 0.227, green: 0.227, blue: 0.259 }, // #3A3A42
+  gold:       { red: 0.941, green: 0.659, blue: 0.188 }, // #F0A830 — dourado do projeto
+  goldBright: { red: 0.969, green: 0.745, blue: 0.369 }, // #F7BE5E — dourado claro (contraste em dark)
+  goldSoft:   { red: 0.992, green: 0.929, blue: 0.804 }, // #FDEDCD
+  goldLine:   { red: 0.831, green: 0.541, blue: 0.122 }, // #D48A1F
+  green:      { red: 0.114, green: 0.620, blue: 0.459 }, // #1D9E75 — VERDE DINHEIRO (paleta C)
+  greenSoft:  { red: 0.835, green: 0.945, blue: 0.910 }, // #D5F1E8
+  red:        { red: 0.839, green: 0.337, blue: 0.337 }, // #D65656 — vermelho do projeto
+  redSoft:    { red: 0.973, green: 0.886, blue: 0.886 }, // #F8E2E2
   white:      { red: 1, green: 1, blue: 1 },
   offWhite:   { red: 0.973, green: 0.976, blue: 0.984 },
   gray100:    { red: 0.949, green: 0.953, blue: 0.965 },
