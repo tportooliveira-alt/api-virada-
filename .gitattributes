@@ -1,0 +1,15 @@
+# Binários — nunca aplicar conversão de fim de linha (CRLF↔LF corromperia).
+# Protege os ebooks, capas e mídia no clone/checkout (autocrlf=true no Windows).
+*.pdf   binary
+*.epub  binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.gif   binary
+*.mp4   binary
+*.zip   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.ico   binary
