@@ -1,4 +1,4 @@
-import { buildSyncBatch, type SyncInput } from "../lib/sheets/builder";
+import { buildSyncBatch, buildStaticValues, type SyncInput } from "../lib/sheets/builder";
 
 function dateByIndex(i: number) {
   const day = (i % 28) + 1;
@@ -74,8 +74,12 @@ function main() {
   must(fluxo.length > 0, "Fluxo vazio");
   must(resumo.length > 0, "Resumo vazio");
 
-  const dashboardLanc = ranges.get("Dashboard!J6")?.[0]?.[0];
-  must(Number(dashboardLanc) === TOTAL_LANCAMENTOS, `Dashboard J6 esperado ${TOTAL_LANCAMENTOS}, veio ${String(dashboardLanc)}`);
+  // O Dashboard agora conta lançamentos por FÓRMULA fixa (=CONT.VALORES), criada
+  // em buildStaticValues — não vem mais do sync. Os 360 lançamentos (verificados
+  // acima) é o dado real que a fórmula soma na planilha.
+  const staticRanges = new Map(buildStaticValues().map((r) => [r.range, r.values]));
+  const dashJ6 = (staticRanges.get("Dashboard!A6")?.[0] as unknown[])?.[9];
+  must(typeof dashJ6 === "string" && dashJ6.includes("CONT.VALORES"), `Dashboard J6 deveria ser fórmula CONT.VALORES, veio ${String(dashJ6)}`);
 
   console.log("STRESS OK");
   console.log(`Lançamentos: ${lancamentos.length}`);

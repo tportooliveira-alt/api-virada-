@@ -14,12 +14,18 @@ body {
 }
 
 body {
-  @apply bg-virada-bg text-virada-white antialiased;
+  @apply bg-virada-bg text-virada-white font-sans antialiased;
   background-image:
-    linear-gradient(140deg, rgba(34, 197, 94, 0.08), transparent 26%),
-    linear-gradient(220deg, rgba(245, 197, 66, 0.06), transparent 24%),
-    linear-gradient(180deg, #07111f 0%, #0a1220 48%, #0b1020 100%);
+    linear-gradient(140deg, rgba(52, 211, 153, 0.08), transparent 28%),
+    linear-gradient(220deg, rgba(240, 168, 48, 0.06), transparent 24%),
+    linear-gradient(180deg, #0a0a0c 0%, #0b0c0f 50%, #0c0d10 100%);
   overflow-x: hidden;
+}
+
+/* Títulos editoriais — herdam a serif da landing (Instrument Serif) */
+h1, h2, h3 {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
 }
 
 button,

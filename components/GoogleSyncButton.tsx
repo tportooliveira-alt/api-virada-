@@ -292,6 +292,28 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     setSyncing(false);
   }, [meta, expenses, incomes, debts, goals, userEmail]);
 
+  // Auto-sync ("planilha plugada"): depois que a planilha existe e o usuario ja
+  // autenticou uma vez, qualquer mudanca nos dados sincroniza sozinha apos 4s sem
+  // novas mudancas (debounce). A 1a vez continua manual (criar planilha + login pelo botao).
+  // O baseline evita loop: so sincroniza quando os DADOS mudam de fato (nao quando meta muda).
+  const autoSyncBaselineRef = useRef<string | null>(null);
+  useEffect(() => {
+    const snapshot = JSON.stringify({ expenses, incomes, debts, goals });
+    if (autoSyncBaselineRef.current === null) {
+      autoSyncBaselineRef.current = snapshot; // 1a render: marca baseline, nao sincroniza o que ja estava
+      return;
+    }
+    if (!meta?.spreadsheetId) return;                       // precisa de planilha ja criada
+    if (!token || token.expires_at <= Date.now()) return;   // precisa de token valido
+    if (syncing) return;
+    if (snapshot === autoSyncBaselineRef.current) return;   // nada mudou desde o ultimo sync
+    const timer = window.setTimeout(() => {
+      autoSyncBaselineRef.current = snapshot;
+      void doSync(token.access_token);
+    }, 4000);
+    return () => window.clearTimeout(timer);
+  }, [expenses, incomes, debts, goals, meta, token, syncing, doSync]);
+
   useEffect(() => {
     // Se gisLoaded esta true mas initTokenClient ainda nao foi exposto no window,
     // tentamos novamente em curtos intervalos ate ter o ref pronto.

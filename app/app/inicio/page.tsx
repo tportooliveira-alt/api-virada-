@@ -199,7 +199,7 @@ export default function InicioPage() {
         <p className="mt-3 text-sm leading-6 text-virada-gray">
           {data.sheet.sheetUrl
             ? "Sua planilha está conectada. Use a tela Planilha para abrir ou puxar todos os dados."
-            : "Os dados completos já estão organizados em abas CSV locais: lançamentos, metas, dívidas, pontos e logs."}
+            : "Os dados completos já ficam organizados no seu aparelho: lançamentos, metas, dívidas, pontos e logs."}
         </p>
       </section>
 

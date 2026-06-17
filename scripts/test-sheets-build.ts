@@ -222,6 +222,15 @@ async function main() {
   const dashBanner = valData.find((v: any) => v.range === "Dashboard!A1");
   check("banner Dashboard", dashBanner?.values[0]?.[0]?.includes("CÓDIGO DA VIRADA"));
 
+  // KPIs do Dashboard como FÓRMULAS (escritas na criação, recalculam sozinhas)
+  const dashA6 = valData.find((v: any) => v.range === "Dashboard!A6");
+  check("Dashboard entradas = fórmula =SOMA(Receitas)", typeof dashA6?.values?.[0]?.[0] === "string" && dashA6.values[0][0].includes("SOMA('Receitas'"));
+  check("Dashboard saídas = fórmula =SOMA(Despesas)", typeof dashA6?.values?.[0]?.[3] === "string" && dashA6.values[0][3].includes("SOMA('Despesas'"));
+  check("Dashboard saldo = fórmula =A6-D6", dashA6?.values?.[0]?.[6] === "=A6-D6");
+  check("Dashboard nº lançamentos = fórmula CONT.VALORES", typeof dashA6?.values?.[0]?.[9] === "string" && dashA6.values[0][9].includes("CONT.VALORES('Lançamentos'"));
+  const dashCat = valData.find((v: any) => v.range === "Dashboard!A12:B21");
+  check("Dashboard total por categoria = fórmula SOMASE", typeof dashCat?.values?.[0]?.[1] === "string" && dashCat.values[0][1].includes("SOMASE('Despesas'"));
+
   // Aba Como usar com 5 passos
   const helpHeader = valData.find((v: any) => v.range === "Como usar!A1");
   check("aba Como usar tem hero", !!helpHeader);
@@ -262,13 +271,14 @@ async function main() {
   check("Resumo com 1 mês", res?.values.length === 1);
   check("Resumo entrada total = 3500", res?.values[0][1] === 3500);
   check("Resumo saída total = 2250", res?.values[0][2] === 2250);
-  check("Resumo resultado = 1250", res?.values[0][3] === 1250);
+  check("Resumo resultado = fórmula =B2-C2", res?.values[0][3] === "=B2-C2");
+  check("Resumo economia = fórmula =SE(...)", res?.values[0][5] === "=SE(B2>0;D2/B2;0)");
 
   const ranges = valueRanges.map((v) => v.range);
-  check("Dashboard A6 (entradas) atualizado", ranges.includes("Dashboard!A6"));
-  check("Dashboard D6 (saídas) atualizado", ranges.includes("Dashboard!D6"));
-  check("Dashboard G6 (saldo) atualizado", ranges.includes("Dashboard!G6"));
-  check("Dashboard categorias atualizadas", ranges.includes("Dashboard!A12:B21"));
+  // KPIs viraram fórmulas fixas — o sync NÃO os sobrescreve mais (senão viravam valor morto).
+  check("Dashboard KPIs NÃO sobrescritos no sync (são fórmula)", !ranges.includes("Dashboard!A6") && !ranges.includes("Dashboard!G6"));
+  // Sync escreve só os NOMES das categorias (coluna A); o total (B) é fórmula.
+  check("Dashboard nomes de categoria atualizados (A12:A21)", ranges.includes("Dashboard!A12:A21"));
 
   // ─── Dívidas ───────────────────────────────────────────────────────────────
   console.log("\n[3] syncDebts — ordena e calcula valor em aberto");
@@ -284,8 +294,10 @@ async function main() {
   const divRows = divRange?.values;
   check("Dívidas: 4 linhas", divRows?.length === 4);
   check("ordenado por prioridade (alta primeiro)", divRows?.[0][2] === "alta");
-  check("quitada com 'em aberto' = 0", divRows?.find((r: any) => r[3] === "quitada")?.[6] === 0);
-  check("aberta com 'em aberto' = totalValue", divRows?.find((r: any) => r[0] === "Cartão Nubank")?.[6] === 1800);
+  const divQuitada = divRows?.find((r: any) => r[3] === "quitada");
+  const divNubank = divRows?.find((r: any) => r[0] === "Cartão Nubank");
+  check("'em aberto' = fórmula =SE(...quitada...)", typeof divQuitada?.[6] === "string" && divQuitada[6].startsWith("=SE(") && divQuitada[6].includes('"quitada"'));
+  check("'em aberto' fórmula referencia a própria linha", typeof divNubank?.[6] === "string" && /^=SE\(D\d+="quitada";0;F\d+\)$/.test(divNubank[6]));
 
   // ─── Metas ─────────────────────────────────────────────────────────────────
   console.log("\n[4] syncGoals — calcula faltando e progresso");
@@ -298,9 +310,9 @@ async function main() {
   const metasRange = (metasBatch?.arg.requestBody.data ?? []).find((d: any) => d.range?.startsWith("Metas"));
   const metasRows = metasRange?.values;
   check("Metas: 2 linhas", metasRows?.length === 2);
-  check("faltando calculado", metasRows?.[0][4] === 9000);
-  check("progresso em decimal (0-1)", Math.abs(metasRows?.[0][5] - 0.25) < 0.001);
-  check("meta cumprida = 1.0", metasRows?.[1][5] === 1);
+  check("faltando = fórmula =MÁXIMO(C2-D2;0)", metasRows?.[0][4] === "=MÁXIMO(C2-D2;0)");
+  check("progresso = fórmula =SE(C2>0;D2/C2;0)", metasRows?.[0][5] === "=SE(C2>0;D2/C2;0)");
+  check("2ª meta progresso = fórmula da linha 3", metasRows?.[1][5] === "=SE(C3>0;D3/C3;0)");
 
   // ─── Resultado ─────────────────────────────────────────────────────────────
   console.log(`\nTotal: ${passed} passou, ${failed} falhou`);

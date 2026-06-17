@@ -564,9 +564,16 @@ export function buildStaticValues() {
       "LANÇAMENTOS", "", "",
     ]],
   });
+  // KPIs do Dashboard como FÓRMULAS fixas (escritas 1x na criação). Recalculam
+  // sozinhas conforme as abas de dados são sincronizadas — o sync NÃO sobrescreve.
   data.push({
     range: `${TAB.dashboard}!A6`,
-    values: [[0, "", "", 0, "", "", 0, "", "", 0, "", ""]],
+    values: [[
+      "=SOMA('Receitas'!D2:D1000)", "", "",
+      "=SOMA('Despesas'!D2:D1000)", "", "",
+      "=A6-D6", "", "",
+      "=CONT.VALORES('Lançamentos'!A2:A1000)", "", "",
+    ]],
   });
   data.push({
     range: `${TAB.dashboard}!A9`,
@@ -584,7 +591,15 @@ export function buildStaticValues() {
   });
   data.push({ range: `${TAB.dashboard}!A11`, values: [["Categoria", "Total"]] });
   data.push({ range: `${TAB.dashboard}!G11`, values: [["Mês", "Entradas", "Saídas", "Resultado"]] });
-  data.push({ range: `${TAB.dashboard}!A12:B21`, values: padRows(10, ["Sem dados", 0]) });
+  // Coluna "Total" (B12:B21) como FÓRMULA: soma na aba Despesas a categoria que
+  // o sync escrever em A. A vem do app; B recalcula. (vazio enquanto A vazio.)
+  data.push({
+    range: `${TAB.dashboard}!A12:B21`,
+    values: Array.from({ length: 10 }, (_, i) => {
+      const n = i + 12;
+      return ["", `=SE(A${n}="";"";SOMASE('Despesas'!C:C;A${n};'Despesas'!D:D))`];
+    }),
+  });
   data.push({ range: `${TAB.dashboard}!G12:J21`, values: padRows(10, ["Sem mês", 0, 0, 0]) });
   data.push({
     range: `${TAB.dashboard}!A33`,
@@ -754,16 +769,20 @@ export function buildSyncBatch(input: SyncInput) {
 
   const dividas = [...debts]
     .sort(priorityOrder)
-    .map((debt) => [debt.name, formatDate(debt.dueDate), debt.priority, debt.status, debt.installmentValue, debt.totalValue, debt.status === "quitada" ? 0 : debt.totalValue]);
+    .map((debt, i) => {
+      const r = i + 2; // linha real na planilha (dados começam em A2)
+      // "Em aberto" como FÓRMULA: zera se quitada, senão espelha o valor total.
+      return [debt.name, formatDate(debt.dueDate), debt.priority, debt.status, debt.installmentValue, debt.totalValue, `=SE(D${r}="quitada";0;F${r})`];
+    });
 
   const dividasSheetRows = dividas.length
     ? dividas
     : [["Sem dívidas em aberto", "", "baixa", "quitada", 0, 0, 0]];
 
-  const metas = goals.map((goal) => {
-    const faltando = Math.max(goal.targetValue - goal.currentValue, 0);
-    const progresso = goal.targetValue > 0 ? goal.currentValue / goal.targetValue : 0;
-    return [goal.name, goal.type, goal.targetValue, goal.currentValue, faltando, progresso];
+  const metas = goals.map((goal, i) => {
+    const r = i + 2;
+    // "Faltando" e "Progresso" como FÓRMULAS — recalculam se editar alvo/atual.
+    return [goal.name, goal.type, goal.targetValue, goal.currentValue, `=MÁXIMO(C${r}-D${r};0)`, `=SE(C${r}>0;D${r}/C${r};0)`];
   });
 
   const byDate = new Map<string, { income: number; expense: number }>();
@@ -782,9 +801,14 @@ export function buildSyncBatch(input: SyncInput) {
     return [formatDate(date), values.income, values.expense, resultado, saldoAcumulado];
   });
 
-  const fluxoSheetRows = fluxo.length
+  const fluxoSheetRows = (fluxo.length
     ? fluxo
-    : [[formatDate(new Date().toISOString().slice(0, 10)), 0, 0, 0, 0]];
+    : [[formatDate(new Date().toISOString().slice(0, 10)), 0, 0, 0, 0]]
+  ).map((r, i) => {
+    const n = i + 2;
+    // Resultado do dia (entradas − saídas) e saldo acumulado como FÓRMULAS.
+    return [r[0], r[1], r[2], `=B${n}-C${n}`, `=SOMA($B$2:B${n})-SOMA($C$2:C${n})`];
+  });
 
   const byMonth = new Map<string, { income: number; expense: number; count: number }>();
   for (const row of allRows) {
@@ -804,19 +828,24 @@ export function buildSyncBatch(input: SyncInput) {
     return [`${month}-01`, values.income, values.expense, resultado, saldoMensalAcumulado, values.income > 0 ? resultado / values.income : 0, values.count];
   });
 
-  const totalEntradas = roundMoney(incomes.reduce((sum, item) => sum + item.value, 0));
-  const totalSaidas = roundMoney(expenses.reduce((sum, item) => sum + item.value, 0));
-  const saldo = roundMoney(totalEntradas - totalSaidas);
-  const totalLancamentos = allRows.length;
+  // Versão do Resumo Mensal com FÓRMULAS (resultado, saldo acumulado e economia
+  // recalculam na planilha). O array `resumo` acima fica com valores p/ os cálculos
+  // internos de melhor/pior mês e economia média.
+  const resumoSheetRows = resumo.map((r, i) => {
+    const n = i + 2;
+    return [r[0], r[1], r[2], `=B${n}-C${n}`, `=SOMA($B$2:B${n})-SOMA($C$2:C${n})`, `=SE(B${n}>0;D${n}/B${n};0)`, r[6]];
+  });
 
   const topCategoriasMap = new Map<string, number>();
   for (const expense of expenses) {
     topCategoriasMap.set(expense.category, roundMoney((topCategoriasMap.get(expense.category) || 0) + expense.value));
   }
   const topCategorias = [...topCategoriasMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
-  const topCategoriasRows = topCategorias.length
-    ? padRows(10, ["", ""], topCategorias.map(([categoria, total]) => [categoria, total]))
-    : [["Sem dados", 0], ...padRows(9, ["", ""])];
+  // Só os NOMES das categorias (coluna A). O total (coluna B) é fórmula SOMASE fixa
+  // posta na criação — recalcula a partir do nome escrito aqui.
+  const topCategoriasNames = topCategorias.length
+    ? padRows(10, [""], topCategorias.map(([categoria]) => [categoria]))
+    : padRows(10, [""], [["Sem dados"]]);
 
   const resumoDashboardRows = resumo.length
     ? padRows(10, ["", "", "", ""], resumo.slice(-10).map((row) => [formatMonth(row[0]), row[1], row[2], row[3]]))
@@ -826,17 +855,9 @@ export function buildSyncBatch(input: SyncInput) {
   const orderedExpenses = [...expenses].sort((a, b) => String(a.date).localeCompare(String(b.date)));
   const lastIncome = orderedIncomes.length ? orderedIncomes[orderedIncomes.length - 1] : null;
   const lastExpense = orderedExpenses.length ? orderedExpenses[orderedExpenses.length - 1] : null;
-  const bestIncome = incomes.length ? Math.max(...incomes.map((item) => item.value)) : 0;
-  const bestExpense = expenses.length ? Math.max(...expenses.map((item) => item.value)) : 0;
-  const debtOpenTotal = roundMoney(debts.reduce((sum, item) => sum + (item.status === "quitada" ? 0 : item.totalValue), 0));
-  const quitadas = debts.filter((item) => item.status === "quitada").length;
   const bestMeta = goals
     .map((goal) => ({ name: goal.name, progress: goal.targetValue > 0 ? goal.currentValue / goal.targetValue : 0 }))
     .sort((a, b) => b.progress - a.progress)[0];
-  const bestDay = fluxo.length ? Math.max(...fluxo.map((row) => Number(row[3]) || 0)) : 0;
-  const worstDay = fluxo.length ? Math.min(...fluxo.map((row) => Number(row[3]) || 0)) : 0;
-  const finalBalance = fluxo.length ? Number(fluxo[fluxo.length - 1][4]) || 0 : 0;
-  const avgSavings = resumo.length ? resumo.reduce((sum, row) => sum + (Number(row[5]) || 0), 0) / resumo.length : 0;
   const bestMonth = resumo.length ? resumo.reduce((best, row) => (Number(row[3]) > Number(best[3]) ? row : best), resumo[0]) : null;
   const worstMonth = resumo.length ? resumo.reduce((best, row) => (Number(row[3]) < Number(best[3]) ? row : best), resumo[0]) : null;
 
@@ -849,7 +870,7 @@ export function buildSyncBatch(input: SyncInput) {
       `${TAB.metas}!A2:${MAIN_RANGE_END.metas}${MAX_DATA_ROWS}`,
       `${TAB.fluxo}!A2:${MAIN_RANGE_END.fluxo}${MAX_DATA_ROWS}`,
       `${TAB.resumo}!A2:${MAIN_RANGE_END.resumo}${MAX_DATA_ROWS}`,
-      `${TAB.dashboard}!A12:B21`,
+      `${TAB.dashboard}!A12:A21`,
       `${TAB.dashboard}!G12:J21`,
     ],
     valueRanges: [
@@ -859,21 +880,20 @@ export function buildSyncBatch(input: SyncInput) {
       { range: `${TAB.dividas}!A2`, values: dividasSheetRows },
       ...(metas.length ? [{ range: `${TAB.metas}!A2`, values: metas }] : []),
       { range: `${TAB.fluxo}!A2`, values: fluxoSheetRows },
-      ...(resumo.length ? [{ range: `${TAB.resumo}!A2`, values: resumo }] : []),
+      ...(resumoSheetRows.length ? [{ range: `${TAB.resumo}!A2`, values: resumoSheetRows }] : []),
       { range: `${TAB.dashboard}!A2`, values: [[`Atualizado em ${new Date().toLocaleString("pt-BR")}`]] },
-      { range: `${TAB.dashboard}!A6`, values: [[totalEntradas]] },
-      { range: `${TAB.dashboard}!D6`, values: [[totalSaidas]] },
-      { range: `${TAB.dashboard}!G6`, values: [[saldo]] },
-      { range: `${TAB.dashboard}!J6`, values: [[totalLancamentos]] },
-      { range: `${TAB.dashboard}!A12:B21`, values: topCategoriasRows },
+      { range: `${TAB.dashboard}!A12:A21`, values: topCategoriasNames },
       { range: `${TAB.dashboard}!G12:J21`, values: resumoDashboardRows },
-      { range: `${TAB.lancamentos}!K4:K7`, values: [[String(totalLancamentos)], [formatMoney(totalEntradas)], [formatMoney(totalSaidas)], [formatPeriodText(allRows)]] },
-      { range: `${TAB.receitas}!K4:K7`, values: [[String(incomes.length)], [formatMoney(totalEntradas)], [formatMoney(bestIncome)], [lastIncome ? formatDate(lastIncome.date) : "Sem entradas"]] },
-      { range: `${TAB.despesas}!K4:K7`, values: [[String(expenses.length)], [formatMoney(totalSaidas)], [formatMoney(bestExpense)], [lastExpense ? formatDate(lastExpense.date) : "Sem saídas"]] },
-      { range: `${TAB.dividas}!K4:K7`, values: [[String(debts.length)], [formatMoney(debtOpenTotal)], [String(quitadas)], [highestPriority(debts)]] },
-      { range: `${TAB.metas}!K4:K7`, values: [[String(goals.length)], [formatMoney(goals.reduce((sum, item) => sum + item.targetValue, 0))], [formatMoney(goals.reduce((sum, item) => sum + item.currentValue, 0))], [bestMeta ? `${bestMeta.name} (${formatPercent(bestMeta.progress)})` : "Sem metas"]] },
-      { range: `${TAB.fluxo}!K4:K7`, values: [[String(fluxo.length)], [formatMoney(bestDay)], [formatMoney(worstDay)], [formatMoney(finalBalance)]] },
-      { range: `${TAB.resumo}!K4:K7`, values: [[String(resumo.length)], [bestMonth ? `${formatMonth(bestMonth[0])} (${formatMoney(Number(bestMonth[3]) || 0)})` : "Sem meses"], [worstMonth ? `${formatMonth(worstMonth[0])} (${formatMoney(Number(worstMonth[3]) || 0)})` : "Sem meses"], [formatPercent(avgSavings)]] },
+      // Painéis "Leitura rápida" (K4:K7) — FÓRMULAS que recalculam ao editar a aba.
+      // Moeda via TEXTO(...) p/ manter "R$" sem depender de formato de célula.
+      // Mantidos como texto só os campos compostos (datas/nomes de mês/prioridade).
+      { range: `${TAB.lancamentos}!K4:K7`, values: [["=CONT.VALORES(A2:A1000)"], [`=TEXTO(SOMASE(B2:B1000;"Entrada";E2:E1000);"R$ #.##0,00")`], [`=TEXTO(SOMASE(B2:B1000;"Saída";E2:E1000);"R$ #.##0,00")`], [formatPeriodText(allRows)]] },
+      { range: `${TAB.receitas}!K4:K7`, values: [["=CONT.VALORES(A2:A1000)"], [`=TEXTO(SOMA(D2:D1000);"R$ #.##0,00")`], [`=TEXTO(MÁXIMO(D2:D1000);"R$ #.##0,00")`], [lastIncome ? formatDate(lastIncome.date) : "Sem entradas"]] },
+      { range: `${TAB.despesas}!K4:K7`, values: [["=CONT.VALORES(A2:A1000)"], [`=TEXTO(SOMA(D2:D1000);"R$ #.##0,00")`], [`=TEXTO(MÁXIMO(D2:D1000);"R$ #.##0,00")`], [lastExpense ? formatDate(lastExpense.date) : "Sem saídas"]] },
+      { range: `${TAB.dividas}!K4:K7`, values: [["=CONT.VALORES(A2:A1000)"], [`=TEXTO(SOMA(G2:G1000);"R$ #.##0,00")`], [`=CONT.SE(D2:D1000;"quitada")`], [highestPriority(debts)]] },
+      { range: `${TAB.metas}!K4:K7`, values: [["=CONT.VALORES(A2:A1000)"], [`=TEXTO(SOMA(C2:C1000);"R$ #.##0,00")`], [`=TEXTO(SOMA(D2:D1000);"R$ #.##0,00")`], [bestMeta ? `${bestMeta.name} (${formatPercent(bestMeta.progress)})` : "Sem metas"]] },
+      { range: `${TAB.fluxo}!K4:K7`, values: [["=CONT.VALORES(A2:A1000)"], [`=TEXTO(MÁXIMO(D2:D1000);"R$ #.##0,00")`], [`=TEXTO(MÍNIMO(D2:D1000);"R$ #.##0,00")`], [`=TEXTO(SOMA(B2:B1000)-SOMA(C2:C1000);"R$ #.##0,00")`]] },
+      { range: `${TAB.resumo}!K4:K7`, values: [["=CONT.VALORES(A2:A1000)"], [bestMonth ? `${formatMonth(bestMonth[0])} (${formatMoney(Number(bestMonth[3]) || 0)})` : "Sem meses"], [worstMonth ? `${formatMonth(worstMonth[0])} (${formatMoney(Number(worstMonth[3]) || 0)})` : "Sem meses"], [`=TEXTO(SEERRO(MÉDIA(F2:F1000);0);"0,0%")`]] },
     ],
   };
 }
