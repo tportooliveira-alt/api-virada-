@@ -1,24 +1,23 @@
 "use client";
 
 /**
- * GoogleSyncButton — exporta planilha profissional pra conta Google do usuário.
+ * GoogleSyncButton — o miolo do cartão "Planilha Google" da tela Conta.
  *
  * Fluxo (1 clique):
- *  1. Usuário clica "Exportar minha planilha"
+ *  1. Usuário clica "Conectar Google Planilhas"
  *  2. Popup OAuth do Google → "Permitir"
- *  3. App cria/atualiza planilha NO DRIVE DO USUÁRIO com:
- *     • Banner navy/dourado igual ao app
- *     • 4 KPI cards + 4 gráficos
- *     • Formatos BRL, datas, percentuais, zebra, condicionais
- *     • Tudo travado read-only
- *  4. Botão "Abrir no Google Planilhas" aparece — pronto.
+ *  3. App cria/atualiza a planilha NO DRIVE DO USUÁRIO (layout, formatos,
+ *     fórmulas pt-BR, gráficos — ver lib/sheets/builder.ts)
+ *  4. Cartão vira "Virada Financeira · Atualizada há …" com Abrir / Atualizar agora.
  *
  * Sem service account, sem .env do server, sem upload manual. Token vive
  * no localStorage por 55 min (re-auth silencioso depois).
+ * Erros pro usuário são sempre humanos; o detalhe técnico vai pro console.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ExternalLink, RefreshCcw, Unlink } from "lucide-react";
+import { ExternalLink, RefreshCcw } from "lucide-react";
+import { timeAgo } from "@/lib/utils";
 import {
   buildChartRequests,
   buildLayoutRequests,
@@ -197,7 +196,8 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       setMeta(newMeta);
       setStatus("ok");
     } catch (err) {
-      setErrMsg(err instanceof Error ? err.message : "Erro desconhecido.");
+      console.error("[GoogleSync] falha ao sincronizar:", err);
+      setErrMsg("Não deu para atualizar a planilha agora. Tente de novo em alguns segundos.");
       setStatus("err");
     }
     setSyncing(false);
@@ -215,7 +215,8 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
           oauthPopupTimeoutRef.current = null;
         }
         if (resp.error || !resp.access_token) {
-          setErrMsg(resp.error ?? "Erro ao conectar com Google.");
+          console.error("[GoogleSync] OAuth:", resp.error);
+          setErrMsg("Não deu para entrar com o Google agora. Tente de novo em alguns segundos.");
           setStatus("err");
           setSyncing(false);
           return;
@@ -234,7 +235,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   function handleConnect() {
     if (!tokenClientRef.current) {
       setStatus("err");
-      setErrMsg("Login Google ainda não inicializou neste navegador. Aguarde 2 segundos e tente novamente.");
+      setErrMsg("O login do Google ainda está carregando. Aguarde alguns segundos e tente de novo.");
 
       // Tenta reanexar o script GIS caso tenha carregado parcialmente.
       const existing = document.getElementById("gis-script");
@@ -264,7 +265,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
         oauthPopupTimeoutRef.current = null;
         setSyncing(false);
         setStatus("err");
-        setErrMsg("Não consegui abrir o popup do Google. Libere popups para este site e tente novamente.");
+        setErrMsg("Não consegui abrir a janela do Google. Libere popups para este site e tente de novo.");
       }, 12000);
 
       tokenClientRef.current.requestAccessToken();
@@ -282,88 +283,90 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
 
   if (!clientId) {
     return (
-      <div className="rounded-2xl border border-[#DDAF2B]/25 bg-[#FFF8E8] p-4 text-sm text-[#76520C]">
-        <p className="font-bold">Exportação para Google Planilhas indisponível</p>
-        <p className="mt-1 text-xs text-[#647875]">
-          Configure <code className="rounded bg-ink-100 px-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> no .env.local
+      <div className="rounded-xl border border-amber-300 bg-white px-4 py-3">
+        <p className="text-sm font-bold text-amber-800">Google Planilhas indisponível neste ambiente</p>
+        <p className="mt-1 text-xs text-ink-500">
+          Falta configurar <code className="rounded bg-ink-100 px-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> no .env.local.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <>
       {!meta ? (
-        <button
-          onClick={handleConnect}
-          disabled={syncing || !gisLoaded}
-          className="flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#0EA978] px-5 text-base font-extrabold text-[#F6FAF8] shadow-[0_10px_26px_rgba(14,169,120,0.2)] transition hover:-translate-y-0.5 hover:bg-[#087F5B] active:translate-y-0 disabled:opacity-50 disabled:shadow-none"
-        >
-          {syncing ? (
-            <><RefreshCcw className="h-6 w-6 animate-spin" /> Criando sua planilha…</>
-          ) : (
-            <>
-              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-              </svg>
-              Exportar minha planilha
-            </>
-          )}
-        </button>
-      ) : (
-        <div className="space-y-2">
+        <>
+          <h3 className="text-lg font-bold text-ink-900">Conectar sua planilha</h3>
+          <p className="text-sm leading-[1.5] text-ink-600">
+            Seus lançamentos, dívidas e metas vão para uma planilha completa no seu Google Drive. Só este app acessa, e só o
+            que ele criou.
+          </p>
           <button
+            type="button"
             onClick={handleConnect}
-            disabled={syncing}
-            className="flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#0EA978] px-5 text-base font-extrabold text-[#F6FAF8] shadow-[0_10px_26px_rgba(14,169,120,0.2)] transition hover:-translate-y-0.5 hover:bg-[#087F5B] active:translate-y-0 disabled:opacity-50"
+            disabled={syncing || !gisLoaded}
+            className="flex min-h-[52px] w-full items-center justify-center gap-3 rounded-xl bg-green-500 text-[15px] font-bold text-green-900 transition-colors duration-150 hover:bg-green-400 disabled:opacity-60"
           >
-            <RefreshCcw className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Atualizando planilha…" : "Atualizar minha planilha"}
+            {syncing ? (
+              <>
+                <RefreshCcw className="h-5 w-5 animate-spin" /> Criando sua planilha…
+              </>
+            ) : (
+              <>
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                </svg>
+                Conectar Google Planilhas
+              </>
+            )}
           </button>
-          <a
-            href={meta.spreadsheetUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#0EA978]/25 bg-[#EBF8F3] py-3 text-sm font-bold text-[#08785A] transition hover:bg-[#DDF3EA]"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Abrir no Google Planilhas
-          </a>
-        </div>
-      )}
-
-      {status === "ok" && (
-        <p className="rounded-xl border border-[#0EA978]/25 bg-[#EBF8F3] px-4 py-2.5 text-sm font-bold text-[#08785A]">
-          Planilha atualizada.
-          {meta?.lastSync && (
-            <span className="ml-2 text-xs font-normal opacity-70">
-              {new Date(meta.lastSync).toLocaleString("pt-BR")}
+        </>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-2.5">
+            <h3 className="text-lg font-bold text-ink-900">Virada Financeira</h3>
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">
+              <i className="h-[7px] w-[7px] rounded-full bg-green-500" />
+              {syncing ? "Atualizando…" : `Atualizada ${timeAgo(meta.lastSync)}`}
             </span>
-          )}
-        </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <a
+              href={meta.spreadsheetUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] border border-amber-300 bg-white text-sm font-bold text-amber-800 transition-colors duration-150 hover:bg-amber-100"
+            >
+              Abrir planilha <ExternalLink className="h-4 w-4" />
+            </a>
+            <button
+              type="button"
+              onClick={handleConnect}
+              disabled={syncing}
+              className="flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] bg-green-500 text-sm font-bold text-green-900 transition-colors duration-150 hover:bg-green-400 disabled:opacity-60"
+            >
+              {syncing && <RefreshCcw className="h-4 w-4 animate-spin" />}
+              {syncing ? "Atualizando…" : "Atualizar agora"}
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={handleDisconnect}
+            className="self-start py-1 text-[13px] font-semibold text-amber-800 underline transition-colors duration-150 hover:text-amber-700"
+          >
+            Desconectar planilha
+          </button>
+        </>
       )}
 
       {status === "err" && (
-        <div className="rounded-xl border border-[#E6674F]/25 bg-[#FFF0EC] px-4 py-3 text-sm text-[#B63F2D]">
-          <p className="font-semibold">Não consegui exportar:</p>
-          <p className="mt-0.5 text-xs opacity-80">{errMsg}</p>
-        </div>
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+          {errMsg}
+        </p>
       )}
-
-      <div className="flex items-center justify-between gap-3 text-xs text-[#647875]">
-        <span>A planilha fica na sua conta Google. Só este app acessa.</span>
-        {meta && (
-          <button
-            onClick={handleDisconnect}
-            className="flex shrink-0 items-center gap-1 text-[#647875] transition hover:text-[#B63F2D]"
-          >
-            <Unlink className="h-3 w-3" /> Desconectar
-          </button>
-        )}
-      </div>
-    </div>
+    </>
   );
 }

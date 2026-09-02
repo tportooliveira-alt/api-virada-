@@ -22,11 +22,7 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   },
   "/app/conta": {
     title: "Conta",
-    subtitle: "Google Planilhas, instalação no celular e seus dados.",
-  },
-  "/app/aprender": {
-    title: "Conta",
-    subtitle: "Google Planilhas, instalação no celular e seus dados.",
+    subtitle: "Sua conta, sua planilha e onde ficam seus dados.",
   },
   "/app/planilha-demo": {
     title: "Prévia da planilha",

@@ -8,7 +8,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Segmented } from "@/components/ui/Segmented";
 import { Sheet, SheetAction } from "@/components/ui/Sheet";
 import type { Debt, DebtPriority, DebtStatus, Goal } from "@/lib/types";
-import { formatCurrency, formatDate, toInputDate } from "@/lib/utils";
+import { formatCurrency, formatDate, timeAgo, toInputDate } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
 
 // ── Período e abas ────────────────────────────────────────────────────────────
@@ -57,16 +57,6 @@ function monthLabel(ym: string) {
   const [year, month] = ym.split("-").map(Number);
   const label = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(year, month - 1, 1));
   return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function timeAgo(iso: string) {
-  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (minutes < 1) return "agora";
-  if (minutes < 60) return `há ${minutes} min`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `há ${hours} h`;
-  const days = Math.round(hours / 24);
-  return `há ${days} dia${days > 1 ? "s" : ""}`;
 }
 
 function scopeLabel(scope?: string) {
