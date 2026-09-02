@@ -70,6 +70,15 @@ export const HEADERS: Partial<Record<TabKey, string[]>> = {
   resumo: ["Mês", "Entradas", "Saídas", "Resultado", "Saldo acumulado", "Economia", "Lançamentos"],
 };
 
+/**
+ * Versão do LAYOUT da planilha (visual: cores, fontes, alturas, gráficos,
+ * fórmulas dos blocos fixos). Toda vez que o layout mudar, suba esta data —
+ * o app compara com a versão gravada na planilha do usuário e, se estiver
+ * atrasada, reaplica o visual sozinho no próximo "Atualizar agora".
+ * Só valores mudam sem bump.
+ */
+export const LAYOUT_VERSION = "2026-09-02.1";
+
 // Cores das barras de participação do Dashboard — mesma sequência da legenda
 // da pizza no design (Planilha Virada - Redesign).
 const SPARK_COLORS = ["#22C55E", "#F5C542", "#3B82F6", "#EF4444", "#A855F7", "#F97316", "#06B6D4", "#EC4899", "#84CC16", "#14B8A6"];

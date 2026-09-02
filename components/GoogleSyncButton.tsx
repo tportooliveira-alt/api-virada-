@@ -19,6 +19,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, RefreshCcw } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 import {
+  LAYOUT_VERSION,
+  TAB,
+  TAB_ORDER,
   buildChartRequests,
   buildLayoutRequests,
   buildSheetSpecs,
@@ -39,6 +42,8 @@ interface SheetMeta {
   spreadsheetId: string;
   spreadsheetUrl: string;
   lastSync: string;
+  /** Layout aplicado nessa planilha. Ausente = planilha anterior ao versionamento. */
+  layoutVersion?: string;
 }
 
 interface Token {
@@ -73,7 +78,85 @@ async function googleFetch(method: string, endpoint: string, token: string, body
 
 interface CreateResp {
   spreadsheetId: string;
-  sheets?: { properties?: { title?: string; sheetId?: number } }[];
+  sheets?: {
+    properties?: { title?: string; sheetId?: number };
+    charts?: { chartId?: number }[];
+    bandedRanges?: { bandedRangeId?: number }[];
+    protectedRanges?: { protectedRangeId?: number }[];
+    conditionalFormats?: unknown[];
+  }[];
+}
+
+/**
+ * Reaplica o visual numa planilha que já existe — é o que faz a planilha do
+ * usuário "se ajeitar sozinha" quando o layout do app muda, sem precisar
+ * desconectar e conectar de novo. Idempotente: recria as abas que faltarem e
+ * apaga os gráficos antigos antes de inserir os novos (senão duplicariam).
+ */
+async function upgradeLayout(token: string, spreadsheetId: string): Promise<void> {
+  const info = (await googleFetch(
+    "GET",
+    `/spreadsheets/${spreadsheetId}?fields=sheets.properties(sheetId,title),sheets.charts(chartId),sheets.bandedRanges(bandedRangeId),sheets.protectedRanges(protectedRangeId),sheets.conditionalFormats`,
+    token,
+  )) as CreateResp;
+
+  const readIds = (resp: CreateResp) => {
+    const map: Record<string, number> = {};
+    for (const sheet of resp.sheets ?? []) {
+      const { title, sheetId } = sheet.properties ?? {};
+      if (title && typeof sheetId === "number") map[title] = sheetId;
+    }
+    return map;
+  };
+
+  let ids = readIds(info);
+
+  // planilha de uma versão antiga pode não ter todas as abas de hoje
+  const faltando = TAB_ORDER.filter((key) => ids[TAB[key]] === undefined);
+  if (faltando.length) {
+    await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, {
+      requests: faltando.map((key) => ({ addSheet: { properties: { title: TAB[key] } } })),
+    });
+    ids = readIds(
+      (await googleFetch("GET", `/spreadsheets/${spreadsheetId}?fields=sheets.properties(sheetId,title)`, token)) as CreateResp,
+    );
+  }
+
+  // o layout re-adiciona gráficos, zebra, proteções e regras de cor — sem limpar
+  // os antigos, cada atualização duplicaria tudo (e "addBanding" daria erro de
+  // sobreposição). Os DADOS do usuário não são tocados aqui.
+  const limpeza: unknown[] = [];
+  for (const sheet of info.sheets ?? []) {
+    const sheetId = sheet.properties?.sheetId;
+    for (const chart of sheet.charts ?? []) {
+      if (typeof chart.chartId === "number") limpeza.push({ deleteEmbeddedObject: { objectId: chart.chartId } });
+    }
+    for (const banda of sheet.bandedRanges ?? []) {
+      if (typeof banda.bandedRangeId === "number") limpeza.push({ deleteBanding: { bandedRangeId: banda.bandedRangeId } });
+    }
+    for (const protegido of sheet.protectedRanges ?? []) {
+      if (typeof protegido.protectedRangeId === "number") {
+        limpeza.push({ deleteProtectedRange: { protectedRangeId: protegido.protectedRangeId } });
+      }
+    }
+    // regras condicionais se deletam por índice — de trás para frente
+    if (typeof sheetId === "number") {
+      for (let i = (sheet.conditionalFormats ?? []).length - 1; i >= 0; i--) {
+        limpeza.push({ deleteConditionalFormatRule: { sheetId, index: i } });
+      }
+    }
+  }
+
+  await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, {
+    requests: [...limpeza, ...buildLayoutRequests(ids)],
+  });
+  await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchUpdate`, token, {
+    valueInputOption: "USER_ENTERED",
+    data: buildStaticValues(),
+  });
+  await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, {
+    requests: buildChartRequests(ids),
+  });
 }
 
 async function createWorkbook(token: string, email: string): Promise<{ spreadsheetId: string; spreadsheetUrl: string; ids: Record<string, number> }> {
@@ -141,6 +224,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   const oauthPopupTimeoutRef = useRef<number | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [meta, setMeta] = useState<SheetMeta | null>(null);
+  const [upgrading, setUpgrading] = useState(false);
   const [token, setToken] = useState<Token | null>(null);
   const [status, setStatus] = useState<"idle" | "ok" | "err">("idle");
   const [errMsg, setErrMsg] = useState("");
@@ -184,12 +268,18 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
         const created = await createWorkbook(accessToken, userEmail);
         sheetId = created.spreadsheetId;
         sheetUrl = created.spreadsheetUrl;
+      } else if (meta?.layoutVersion !== LAYOUT_VERSION) {
+        // planilha antiga: traz o visual novo antes de mandar os dados
+        setUpgrading(true);
+        await upgradeLayout(accessToken, sheetId);
+        setUpgrading(false);
       }
       await pushData(accessToken, sheetId, { expenses, incomes, debts, goals });
       const newMeta: SheetMeta = {
         spreadsheetId: sheetId,
         spreadsheetUrl: sheetUrl ?? `https://docs.google.com/spreadsheets/d/${sheetId}`,
         lastSync: new Date().toISOString(),
+        layoutVersion: LAYOUT_VERSION,
       };
       localStorage.setItem(SHEET_KEY, JSON.stringify(newMeta));
       window.dispatchEvent(new Event("virada-sheet-meta-changed"));
@@ -197,6 +287,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       setStatus("ok");
     } catch (err) {
       console.error("[GoogleSync] falha ao sincronizar:", err);
+      setUpgrading(false);
       setErrMsg("Não deu para atualizar a planilha agora. Tente de novo em alguns segundos.");
       setStatus("err");
     }
@@ -330,7 +421,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
             <h3 className="text-lg font-bold text-ink-900">Virada Financeira</h3>
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">
               <i className="h-[7px] w-[7px] rounded-full bg-green-500" />
-              {syncing ? "Atualizando…" : `Atualizada ${timeAgo(meta.lastSync)}`}
+              {upgrading ? "Aplicando o visual novo…" : syncing ? "Atualizando…" : `Atualizada ${timeAgo(meta.lastSync)}`}
             </span>
           </div>
           <div className="grid grid-cols-2 gap-2">
