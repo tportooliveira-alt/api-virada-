@@ -1,6 +1,9 @@
 /**
- * Paleta e estilos da planilha.
+ * Paleta e estilos da planilha — v2 (alinhada ao redesign do app).
  * Cores em RGB float (0-1), formato exigido pela Google Sheets API.
+ *
+ * Substitui lib/sheets/styles.ts. Todas as chaves antigas de COLOR e STYLE
+ * foram mantidas, então builder.ts continua compilando sem alteração.
  */
 
 type RGB = { red: number; green: number; blue: number };
@@ -12,48 +15,71 @@ const rgb = (red: number, green: number, blue: number): RGB => ({
   blue: blue / 255,
 });
 
+// Tokens do app (v2)
+const ink = rgb(15, 23, 42);        // #0F172A — fundo do hero / títulos
+const green = rgb(34, 197, 94);     // #22C55E — marca
+const greenDeep = rgb(21, 128, 61); // #15803D — texto positivo
+const greenSoft = rgb(220, 252, 231);
+const greenLine = rgb(134, 239, 172);
+const amber = rgb(245, 197, 66);    // #F5C542 — acento
+const amberDeep = rgb(180, 83, 9);
+const amberSoft = rgb(255, 251, 235);
+const amberLine = rgb(252, 211, 77);
+const red = rgb(239, 68, 68);
+const redSoft = rgb(254, 242, 242);
+const blue = rgb(29, 78, 216);
+const blueSoft = rgb(239, 246, 255);
+const slate50 = rgb(248, 250, 252);
+const slate100 = rgb(241, 245, 249);
+const slate200 = rgb(229, 233, 240);
+const slate300 = rgb(203, 213, 225);
+const slate400 = rgb(148, 163, 184);
+const slate500 = rgb(100, 116, 139);
+const slate600 = rgb(71, 85, 105);
+const slate700 = rgb(51, 65, 85);
+const white = rgb(255, 255, 255);
+
 export const COLOR: Record<string, RGB> = {
-  navy: rgb(20, 44, 67),
-  navySoft: rgb(232, 240, 248),
-  navyMed: rgb(229, 242, 255),
-  navyCard: rgb(242, 247, 252),
-  navyLine: rgb(170, 194, 218),
+  // novos nomes
+  ink, green, greenDeep, greenSoft, greenLine,
+  amber, amberDeep, amberSoft, amberLine,
+  red, redSoft, blue, blueSoft,
+  slate50, slate100, slate200, slate300, slate400, slate500, slate600, slate700, white,
 
-  brand: rgb(0, 153, 102),
-  brandDeep: rgb(0, 115, 78),
-  brandSoft: rgb(224, 250, 241),
-  brandLine: rgb(134, 223, 190),
-
-  sky: rgb(0, 135, 190),
-  skySoft: rgb(225, 246, 255),
-  violet: rgb(111, 86, 213),
-  violetSoft: rgb(239, 235, 255),
-
-  gold: rgb(250, 184, 31),
-  goldSoft: rgb(255, 246, 214),
-  goldLine: rgb(231, 164, 0),
-
-  green: rgb(34, 197, 94),
-  greenSoft: rgb(220, 252, 231),
-  red: rgb(239, 68, 68),
-  redSoft: rgb(254, 226, 226),
-  orange: rgb(249, 115, 22),
-  orangeSoft: rgb(255, 237, 213),
-
-  white: rgb(255, 255, 255),
-  offWhite: rgb(250, 252, 249),
-  paper: rgb(246, 250, 245),
-  gray50: rgb(249, 250, 251),
-  gray100: rgb(243, 246, 242),
-  gray200: rgb(224, 232, 221),
-  gray300: rgb(203, 213, 199),
-  gray400: rgb(148, 163, 143),
-  gray500: rgb(100, 116, 96),
-  text: rgb(28, 41, 36),
-  textMuted: rgb(88, 105, 94),
+  // aliases legados (mantêm o builder.ts funcionando)
+  navy: ink,
+  navySoft: slate100,
+  navyMed: slate50,
+  navyCard: slate50,
+  navyLine: slate200,
+  brand: green,
+  brandDeep: greenDeep,
+  brandSoft: greenSoft,
+  brandLine: greenLine,
+  sky: blue,
+  skySoft: blueSoft,
+  violet: slate700,
+  violetSoft: slate100,
+  gold: amber,
+  goldSoft: amberSoft,
+  goldLine: amberLine,
+  orange: amberDeep,
+  orangeSoft: amberSoft,
+  offWhite: white,
+  paper: slate50,
+  gray50: slate50,
+  gray100: slate100,
+  gray200: slate200,
+  gray300: slate300,
+  gray400: slate400,
+  gray500: slate500,
+  text: ink,
+  textMuted: slate500,
 };
 
-export const FONT = "Inter";
+// Onest está no catálogo do Google Fonts (disponível em "Mais fontes" no Sheets).
+// Se preferir uma fonte nativa do Sheets, troque por "Roboto".
+export const FONT = "Onest";
 
 export const FORMAT = {
   brl: '"R$ "#,##0.00;[Color3]"-R$ "#,##0.00',
@@ -64,8 +90,8 @@ export const FORMAT = {
   percent: "0.0%",
 } as const;
 
-const border = (color = COLOR.gray200, style = "SOLID") => ({ style, color });
-const allBorders = (color = COLOR.gray200) => ({
+const border = (color = slate200, style = "SOLID") => ({ style, color });
+const allBorders = (color = slate200) => ({
   top: border(color),
   bottom: border(color),
   left: border(color),
@@ -74,207 +100,231 @@ const allBorders = (color = COLOR.gray200) => ({
 
 const text = (
   fontSize: number,
-  foregroundColor = COLOR.text,
+  foregroundColor = ink,
   bold = false,
   extra: Record<string, unknown> = {},
 ) => ({ fontFamily: FONT, fontSize, foregroundColor, bold, ...extra });
 
 export const STYLE: Record<string, CellFormat> = {
+  // Cabeçalho escuro (mesmo hero do app)
   banner: {
-    backgroundColor: COLOR.brand,
+    backgroundColor: ink,
     horizontalAlignment: "LEFT",
-    verticalAlignment: "MIDDLE",
-    padding: { top: 8, right: 16, bottom: 8, left: 16 },
-    textFormat: text(22, COLOR.white, true),
-    borders: { bottom: border(COLOR.goldLine, "SOLID_THICK") },
+    verticalAlignment: "BOTTOM",
+    padding: { top: 10, right: 18, bottom: 2, left: 18 },
+    textFormat: text(18, white, true),
   },
   bannerSub: {
-    backgroundColor: COLOR.brandSoft,
+    backgroundColor: ink,
     horizontalAlignment: "LEFT",
-    verticalAlignment: "MIDDLE",
-    padding: { top: 0, right: 16, bottom: 8, left: 16 },
-    textFormat: text(11, COLOR.textMuted),
-    borders: { bottom: border(COLOR.brandLine) },
+    verticalAlignment: "TOP",
+    padding: { top: 0, right: 18, bottom: 8, left: 18 },
+    textFormat: text(9, slate400),
+    borders: { bottom: border(green, "SOLID_MEDIUM") },
   },
-  topStripe: {
-    backgroundColor: COLOR.gold,
-    horizontalAlignment: "LEFT",
-  },
+  topStripe: { backgroundColor: green, horizontalAlignment: "LEFT" },
+
+  // Tabelas: cabeçalho claro, texto discreto em caixa alta
   tableHeader: {
-    backgroundColor: COLOR.brandDeep,
+    backgroundColor: slate100,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
     padding: { top: 7, right: 8, bottom: 7, left: 8 },
-    textFormat: text(10, COLOR.white, true),
-    borders: { top: border(COLOR.goldLine), bottom: border(COLOR.goldLine, "SOLID_THICK") },
+    textFormat: text(9, slate600, true),
+    borders: { bottom: border(slate300) },
     wrapStrategy: "WRAP",
   },
   subHeader: {
-    backgroundColor: COLOR.sky,
+    backgroundColor: ink,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 8, right: 12, bottom: 8, left: 12 },
-    textFormat: text(11, COLOR.white, true),
+    textFormat: text(10, white, true),
   },
   sectionTitle: {
-    backgroundColor: COLOR.white,
+    backgroundColor: white,
     horizontalAlignment: "LEFT",
-    verticalAlignment: "MIDDLE",
-    padding: { top: 8, right: 12, bottom: 4, left: 12 },
-    textFormat: text(13, COLOR.brandDeep, true),
-    borders: { bottom: border(COLOR.brandLine) },
+    verticalAlignment: "BOTTOM",
+    padding: { top: 8, right: 12, bottom: 2, left: 12 },
+    textFormat: text(12, ink, true),
   },
   sectionHint: {
-    backgroundColor: COLOR.white,
+    backgroundColor: white,
     horizontalAlignment: "LEFT",
-    verticalAlignment: "MIDDLE",
+    verticalAlignment: "TOP",
     padding: { top: 0, right: 12, bottom: 8, left: 12 },
-    textFormat: text(9, COLOR.textMuted, false, { italic: true }),
+    textFormat: text(9, slate500),
+    borders: { bottom: border(slate200) },
     wrapStrategy: "WRAP",
   },
   sectionCard: {
-    backgroundColor: COLOR.paper,
+    backgroundColor: slate50,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 8, right: 12, bottom: 8, left: 12 },
     textFormat: text(10),
-    borders: allBorders(COLOR.gray200),
+    borders: allBorders(slate200),
   },
+
+  // KPIs: cartão branco com borda fina, rótulo pequeno e número grande
   kpiLabel: {
-    backgroundColor: COLOR.brandSoft,
-    horizontalAlignment: "CENTER",
-    verticalAlignment: "TOP",
-    padding: { top: 10, right: 12, bottom: 0, left: 12 },
-    textFormat: text(10, COLOR.brandDeep, true),
-    borders: { top: border(COLOR.brandLine), left: border(COLOR.brandLine), right: border(COLOR.brandLine) },
+    backgroundColor: white,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "BOTTOM",
+    padding: { top: 10, right: 14, bottom: 0, left: 14 },
+    textFormat: text(9, slate500, true),
+    borders: { top: border(slate200), left: border(slate200), right: border(slate200) },
     wrapStrategy: "CLIP",
   },
   kpiValue: {
-    backgroundColor: COLOR.white,
-    horizontalAlignment: "CENTER",
-    verticalAlignment: "MIDDLE",
-    padding: { top: 0, right: 12, bottom: 10, left: 12 },
-    textFormat: text(23, COLOR.brandDeep, true),
-    borders: { bottom: border(COLOR.brandLine), left: border(COLOR.brandLine), right: border(COLOR.brandLine) },
+    backgroundColor: white,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "TOP",
+    padding: { top: 0, right: 14, bottom: 10, left: 14 },
+    textFormat: text(22, ink, true),
+    borders: { bottom: border(slate200), left: border(slate200), right: border(slate200) },
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
   },
+  // usado no SALDO ATUAL (o condicional positivo/negativo continua por cima)
   kpiValueGold: {
-    backgroundColor: COLOR.goldSoft,
-    horizontalAlignment: "CENTER",
-    verticalAlignment: "MIDDLE",
-    padding: { top: 0, right: 12, bottom: 10, left: 12 },
-    textFormat: text(23, COLOR.navy, true),
-    borders: { bottom: border(COLOR.goldLine), left: border(COLOR.goldLine), right: border(COLOR.goldLine) },
+    backgroundColor: greenSoft,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "TOP",
+    padding: { top: 0, right: 14, bottom: 10, left: 14 },
+    textFormat: text(22, greenDeep, true),
+    borders: { bottom: border(greenLine), left: border(greenLine), right: border(greenLine) },
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
   },
   kpiValueCount: {
-    backgroundColor: COLOR.skySoft,
-    horizontalAlignment: "CENTER",
-    verticalAlignment: "MIDDLE",
-    padding: { top: 0, right: 12, bottom: 10, left: 12 },
-    textFormat: text(23, COLOR.sky, true),
-    borders: { bottom: border(COLOR.navyLine), left: border(COLOR.navyLine), right: border(COLOR.navyLine) },
+    backgroundColor: white,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "TOP",
+    padding: { top: 0, right: 14, bottom: 10, left: 14 },
+    textFormat: text(22, slate700, true),
+    borders: { bottom: border(slate200), left: border(slate200), right: border(slate200) },
     numberFormat: { type: "NUMBER", pattern: FORMAT.intCount },
   },
+
+  // Dashboard: células com SPARKLINE ao lado das tabelas
+  sparkCell: {
+    backgroundColor: white,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 6, right: 10, bottom: 6, left: 10 },
+    borders: { top: border(white), bottom: border(white) },
+  },
+  sparkHeader: {
+    backgroundColor: white,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 0, right: 10, bottom: 0, left: 10 },
+    textFormat: text(9, slate400),
+  },
   rowEven: {
-    backgroundColor: COLOR.white,
+    backgroundColor: white,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 5, right: 8, bottom: 5, left: 8 },
     textFormat: text(10),
   },
   rowOdd: {
-    backgroundColor: COLOR.gray100,
+    backgroundColor: slate50,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 5, right: 8, bottom: 5, left: 8 },
     textFormat: text(10),
   },
-  dataCellBorder: {
-    borders: allBorders(COLOR.gray200),
-  },
+  dataCellBorder: { borders: allBorders(slate200) },
+
   totalRow: {
-    backgroundColor: COLOR.gold,
+    backgroundColor: amberSoft,
     horizontalAlignment: "RIGHT",
     padding: { top: 6, right: 8, bottom: 6, left: 8 },
-    textFormat: text(11, COLOR.navy, true),
+    textFormat: text(11, ink, true),
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
   },
   totalLabel: {
-    backgroundColor: COLOR.brandDeep,
+    backgroundColor: ink,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 7, right: 10, bottom: 7, left: 10 },
-    textFormat: text(11, COLOR.white, true),
+    textFormat: text(11, white, true),
   },
   totalMoney: {
-    backgroundColor: COLOR.brandSoft,
+    backgroundColor: greenSoft,
     horizontalAlignment: "RIGHT",
     verticalAlignment: "MIDDLE",
     padding: { top: 7, right: 10, bottom: 7, left: 10 },
-    textFormat: text(11, COLOR.brandDeep, true),
+    textFormat: text(11, greenDeep, true),
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
   },
   totalCount: {
-    backgroundColor: COLOR.skySoft,
+    backgroundColor: slate100,
     horizontalAlignment: "RIGHT",
     verticalAlignment: "MIDDLE",
     padding: { top: 7, right: 10, bottom: 7, left: 10 },
-    textFormat: text(11, COLOR.sky, true),
+    textFormat: text(11, slate700, true),
     numberFormat: { type: "NUMBER", pattern: FORMAT.intCount },
   },
   emptyState: {
-    backgroundColor: COLOR.gray50,
+    backgroundColor: slate50,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
     padding: { top: 10, right: 12, bottom: 10, left: 12 },
-    textFormat: text(10, COLOR.gray500, false, { italic: true }),
+    textFormat: text(10, slate500),
     wrapStrategy: "WRAP",
   },
+
+  // Painel lateral (Leitura rápida / Como ler esta aba)
   noteLabel: {
-    backgroundColor: COLOR.violetSoft,
+    backgroundColor: slate50,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 8, right: 12, bottom: 8, left: 12 },
-    textFormat: text(10, COLOR.violet, true),
-    borders: { left: border(COLOR.violet), top: border(COLOR.violetSoft), bottom: border(COLOR.violetSoft) },
+    textFormat: text(9, slate600, true),
+    borders: { left: border(green, "SOLID_MEDIUM"), top: border(slate200), bottom: border(slate200) },
   },
   noteBody: {
-    backgroundColor: COLOR.white,
+    backgroundColor: white,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 8, right: 12, bottom: 8, left: 12 },
-    textFormat: text(10, COLOR.text),
-    borders: { right: border(COLOR.violetSoft), top: border(COLOR.violetSoft), bottom: border(COLOR.violetSoft) },
+    textFormat: text(10, ink, true),
+    borders: { right: border(slate200), top: border(slate200), bottom: border(slate200) },
     wrapStrategy: "WRAP",
   },
+
+  // Aba "Como usar"
   helpHero: {
-    backgroundColor: COLOR.brand,
+    backgroundColor: ink,
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 14, right: 18, bottom: 14, left: 18 },
-    textFormat: text(18, COLOR.white, true),
+    textFormat: text(18, white, true),
+    borders: { bottom: border(green, "SOLID_MEDIUM") },
     wrapStrategy: "WRAP",
   },
   helpStepNum: {
-    backgroundColor: COLOR.gold,
+    backgroundColor: green,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
-    textFormat: text(14, COLOR.navy, true),
+    textFormat: text(14, ink, true),
   },
   helpStepTitle: {
-    backgroundColor: COLOR.white,
+    backgroundColor: white,
     horizontalAlignment: "LEFT",
+    verticalAlignment: "BOTTOM",
     padding: { top: 8, right: 14, bottom: 0, left: 14 },
-    textFormat: text(12, COLOR.brandDeep, true),
-    borders: { top: border(COLOR.gray200), right: border(COLOR.gray200) },
+    textFormat: text(12, ink, true),
+    borders: { top: border(slate200), right: border(slate200) },
   },
   helpStepBody: {
-    backgroundColor: COLOR.white,
+    backgroundColor: white,
     horizontalAlignment: "LEFT",
+    verticalAlignment: "TOP",
     padding: { top: 0, right: 14, bottom: 10, left: 14 },
-    textFormat: text(10, COLOR.text),
-    borders: { bottom: border(COLOR.gray200), right: border(COLOR.gray200) },
+    textFormat: text(10, slate600),
+    borders: { bottom: border(slate200), right: border(slate200) },
     wrapStrategy: "WRAP",
   },
 };
@@ -285,13 +335,7 @@ export function repeatCell(
   format: CellFormat,
   fields = "userEnteredFormat",
 ) {
-  return {
-    repeatCell: {
-      range: { sheetId, ...range },
-      cell: { userEnteredFormat: format },
-      fields,
-    },
-  };
+  return { repeatCell: { range: { sheetId, ...range }, cell: { userEnteredFormat: format }, fields } };
 }
 
 export function mergeCells(sheetId: number, startRow: number, endRow: number, startCol: number, endCol: number) {
@@ -378,12 +422,7 @@ export function protectSheetExcept(
 export function protectSheet(sheetId: number, description: string) {
   return {
     addProtectedRange: {
-      protectedRange: {
-        range: { sheetId },
-        description,
-        warningOnly: false,
-        requestingUserCanEdit: true,
-      },
+      protectedRange: { range: { sheetId }, description, warningOnly: false, requestingUserCanEdit: true },
     },
   };
 }
@@ -395,14 +434,15 @@ export function condFormatPositiveNegative(
   startCol: number,
   endCol: number,
 ) {
+  const ranges = [{ sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startCol, endColumnIndex: endCol }];
   return [
     {
       addConditionalFormatRule: {
         rule: {
-          ranges: [{ sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startCol, endColumnIndex: endCol }],
+          ranges,
           booleanRule: {
             condition: { type: "NUMBER_LESS", values: [{ userEnteredValue: "0" }] },
-            format: { backgroundColor: COLOR.redSoft, textFormat: { foregroundColor: COLOR.red, bold: true } },
+            format: { backgroundColor: redSoft, textFormat: { foregroundColor: red, bold: true } },
           },
         },
         index: 0,
@@ -411,10 +451,10 @@ export function condFormatPositiveNegative(
     {
       addConditionalFormatRule: {
         rule: {
-          ranges: [{ sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startCol, endColumnIndex: endCol }],
+          ranges,
           booleanRule: {
             condition: { type: "NUMBER_GREATER", values: [{ userEnteredValue: "0" }] },
-            format: { backgroundColor: COLOR.greenSoft, textFormat: { foregroundColor: COLOR.brandDeep, bold: true } },
+            format: { backgroundColor: greenSoft, textFormat: { foregroundColor: greenDeep, bold: true } },
           },
         },
         index: 1,
@@ -435,9 +475,9 @@ export function condFormatGradient(
       rule: {
         ranges: [{ sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startCol, endColumnIndex: endCol }],
         gradientRule: {
-          minpoint: { color: COLOR.redSoft, type: "MIN" },
-          midpoint: { color: COLOR.goldSoft, type: "PERCENT", value: "50" },
-          maxpoint: { color: COLOR.greenSoft, type: "MAX" },
+          minpoint: { color: redSoft, type: "MIN" },
+          midpoint: { color: amberSoft, type: "PERCENT", value: "50" },
+          maxpoint: { color: greenSoft, type: "MAX" },
         },
       },
       index: 0,
@@ -476,12 +516,12 @@ export function addBanding(sheetId: number, startRow: number, endRow: number, st
       bandedRange: {
         range: { sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startCol, endColumnIndex: endCol },
         rowProperties: {
-          headerColor: COLOR.brandDeep,
-          headerColorStyle: { rgbColor: COLOR.brandDeep },
-          firstBandColor: COLOR.white,
-          firstBandColorStyle: { rgbColor: COLOR.white },
-          secondBandColor: COLOR.gray100,
-          secondBandColorStyle: { rgbColor: COLOR.gray100 },
+          headerColor: slate100,
+          headerColorStyle: { rgbColor: slate100 },
+          firstBandColor: white,
+          firstBandColorStyle: { rgbColor: white },
+          secondBandColor: slate50,
+          secondBandColorStyle: { rgbColor: slate50 },
         },
       },
     },

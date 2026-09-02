@@ -1,10 +1,11 @@
 /**
- * Construtor isomorfico da planilha. Gera apenas JSON/values puros,
- * sem chamar a API do Google, para funcionar no servidor e no cliente.
+ * Construtor isomorfico da planilha — v2 (layout alinhado ao redesign do app).
+ * Substitui lib/sheets/builder.ts. Depende do styles.ts v2 (STYLE.sparkCell / sparkHeader, COLOR.greenDeep, slate*).
  */
 
 import {
   COLOR,
+  FONT,
   FORMAT,
   STYLE,
   addBanding,
@@ -220,6 +221,20 @@ function buildDashboardLayout(requests: unknown[], sheetId: number) {
   requests.push(repeatCell(sheetId, range(5, 6, 6, 9), STYLE.kpiValueGold));
   requests.push(repeatCell(sheetId, range(5, 6, 9, 12), STYLE.kpiValueCount));
 
+  // v2: linhas separadoras finas (3–4, 7–8, 22)
+  requests.push(setRowHeight(sheetId, 2, 4, 12));
+  requests.push(setRowHeight(sheetId, 6, 8, 12));
+  requests.push(setRowHeight(sheetId, 21, 22, 12));
+  // v2: colunas C:E e K:L viram barras de participação (SPARKLINE) ao lado das tabelas
+  for (let r = 11; r < 21; r++) {
+    requests.push(mergeCells(sheetId, r, r + 1, 2, 5));
+    requests.push(mergeCells(sheetId, r, r + 1, 10, 12));
+    requests.push(repeatCell(sheetId, range(r, r + 1, 2, 5), STYLE.sparkCell));
+    requests.push(repeatCell(sheetId, range(r, r + 1, 10, 12), STYLE.sparkCell));
+  }
+  requests.push(repeatCell(sheetId, range(10, 11, 2, 5), STYLE.sparkHeader));
+  requests.push(repeatCell(sheetId, range(10, 11, 10, 12), STYLE.sparkHeader));
+
   addDashboardSummaryBlock(requests, sheetId, 8, 0, 5);
   addDashboardSummaryBlock(requests, sheetId, 8, 6, 12);
   requests.push(repeatCell(sheetId, range(10, 11, 0, 2), STYLE.tableHeader));
@@ -324,28 +339,28 @@ function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
-    textFormat: { fontFamily: "Inter", fontSize: 11, bold: true, foregroundColor: COLOR.brandDeep },
+    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.brandDeep },
   }, "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)");
 
   const dateCol = (sheetId: number, col: number) => repeatCell(sheetId, dataCol(col), {
     numberFormat: { type: "DATE", pattern: FORMAT.date },
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
-    textFormat: { fontFamily: "Inter", fontSize: 10, foregroundColor: COLOR.text },
+    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.text },
   }, "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)");
 
   const monthCol = (sheetId: number, col: number) => repeatCell(sheetId, dataCol(col), {
     numberFormat: { type: "DATE", pattern: FORMAT.monthYear },
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
-    textFormat: { fontFamily: "Inter", fontSize: 10, bold: true, foregroundColor: COLOR.brandDeep },
+    textFormat: { fontFamily: FONT, fontSize: 10, bold: true, foregroundColor: COLOR.brandDeep },
   }, "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)");
 
   const pctCol = (sheetId: number, col: number) => repeatCell(sheetId, dataCol(col), {
     numberFormat: { type: "PERCENT", pattern: FORMAT.percent },
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
-    textFormat: { fontFamily: "Inter", fontSize: 11, bold: true, foregroundColor: COLOR.brandDeep },
+    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.brandDeep },
   }, "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)");
 
   const dashboardNumber = (
@@ -389,6 +404,8 @@ function applyConditionals(requests: unknown[], ids: Record<string, number>) {
   requests.push(condFormatTextEquals(ids[TAB.dividas], 1, MAX_DATA_ROWS + 1, 3, 4, "aberta", COLOR.redSoft, COLOR.red, 0));
   requests.push(condFormatTextEquals(ids[TAB.dividas], 1, MAX_DATA_ROWS + 1, 3, 4, "negociando", COLOR.goldSoft, COLOR.orange, 1));
   requests.push(condFormatTextEquals(ids[TAB.dividas], 1, MAX_DATA_ROWS + 1, 3, 4, "quitada", COLOR.greenSoft, COLOR.brandDeep, 2));
+  requests.push(condFormatTextEquals(ids[TAB.lancamentos], 1, MAX_DATA_ROWS + 1, 1, 2, "Entrada", COLOR.greenSoft, COLOR.greenDeep, 0));
+  requests.push(condFormatTextEquals(ids[TAB.lancamentos], 1, MAX_DATA_ROWS + 1, 1, 2, "Saída", COLOR.slate100, COLOR.slate700, 1));
 }
 
 export function buildStaticValues() {
@@ -407,6 +424,10 @@ export function buildStaticValues() {
     { range: `${TAB.dashboard}!A12:B21`, values: padRows(10, ["Sem dados", 0]) },
     { range: `${TAB.dashboard}!G12:J21`, values: padRows(10, ["Sem mês", 0, 0, 0]) },
     { range: `${TAB.dashboard}!A33`, values: [["Dívidas em aberto e pressão de caixa"], ["Gráfico de barras para visualizar rapidamente onde está o maior peso financeiro."]] },
+    { range: `${TAB.dashboard}!C11`, values: [["participação"]] },
+    { range: `${TAB.dashboard}!K11`, values: [["resultado do mês"]] },
+    { range: `${TAB.dashboard}!C12:C21`, values: Array.from({ length: 10 }, (_, i) => [sparkBar(`B${12 + i}`, "$B$12:$B$21")]) },
+    { range: `${TAB.dashboard}!K12:K21`, values: Array.from({ length: 10 }, (_, i) => [sparkBar(`J${12 + i}`, "$J$12:$J$21")]) },
   );
 
   DATA_TABS.forEach((key) => {
@@ -443,10 +464,10 @@ export function buildChartRequests(ids: Record<string, number>): unknown[] {
   const dividas = ids[TAB.dividas];
 
   return [
-    pieChart(dashboard, 22, 0, 520, 220),
-    monthlyChart(dashboard, 22, 6, 520, 220),
-    lineChart(dashboard, fluxo, 35, 0, 520, 220),
-    debtChart(dashboard, dividas, 35, 6, 520, 220),
+    pieChart(dashboard, 22, 0, 552, 220),
+    monthlyChart(dashboard, 22, 6, 648, 220),
+    lineChart(dashboard, fluxo, 35, 0, 552, 220),
+    debtChart(dashboard, dividas, 35, 6, 648, 220),
   ];
 }
 
@@ -665,7 +686,7 @@ function pieChart(dashboard: number, rowIndex: number, columnIndex: number, widt
       chart: {
         spec: {
           title: "",
-          fontName: "Inter",
+          fontName: FONT,
           backgroundColorStyle: { rgbColor: COLOR.white },
           pieChart: {
             legendPosition: "RIGHT_LEGEND",
@@ -689,7 +710,7 @@ function monthlyChart(dashboard: number, rowIndex: number, columnIndex: number, 
 
 function lineChart(dashboard: number, fluxo: number, rowIndex: number, columnIndex: number, widthPixels: number, heightPixels: number) {
   return basicChart(dashboard, fluxo, rowIndex, columnIndex, widthPixels, heightPixels, "LINE", "NO_LEGEND", source(fluxo, 0, MAX_DATA_ROWS + 1, 0, 1), [
-    { range: source(fluxo, 0, MAX_DATA_ROWS + 1, 4, 5), color: COLOR.sky },
+    { range: source(fluxo, 0, MAX_DATA_ROWS + 1, 4, 5), color: COLOR.green },
   ]);
 }
 
@@ -716,7 +737,7 @@ function basicChart(
       chart: {
         spec: {
           title: "",
-          fontName: "Inter",
+          fontName: FONT,
           backgroundColorStyle: { rgbColor: COLOR.white },
           basicChart: {
             chartType,
@@ -746,6 +767,11 @@ function dataCol(col: number) {
 
 function source(sheetId: number, startRowIndex: number, endRowIndex: number, startColumnIndex: number, endColumnIndex: number) {
   return { sheetId, startRowIndex, endRowIndex, startColumnIndex, endColumnIndex };
+}
+
+// Barra horizontal proporcional ao máximo da coluna. Sintaxe pt_BR (locale definido em createSpreadsheet).
+function sparkBar(cell: string, maxRange: string) {
+  return `=SE(N(${cell})>0;SPARKLINE(${cell};{"charttype"\\"bar";"max"\\MÁXIMO(${maxRange});"color1"\\"#22C55E"});"")`;
 }
 
 function padRows(length: number, filler: unknown[], rows: unknown[][] = []) {

@@ -138,14 +138,14 @@ async function main() {
   const layoutReqs = batches.flatMap((b) => b.arg.requestBody.requests ?? []);
   check("requests de layout > 50", layoutReqs.length > 50, `recebeu ${layoutReqs.length}`);
 
-  // Banner — repeatCell com fontSize 22 e bold
+  // Banner (v2) — repeatCell com fontSize 18 bold, texto branco sobre ink (#0F172A)
   const banner = layoutReqs.find((r: any) =>
-    r.repeatCell?.cell?.userEnteredFormat?.textFormat?.fontSize === 22 &&
+    r.repeatCell?.cell?.userEnteredFormat?.textFormat?.fontSize === 18 &&
     r.repeatCell?.cell?.userEnteredFormat?.textFormat?.bold === true,
   );
-  check("banner tem fonte 22 bold", !!banner);
-  check("banner é dourado", banner?.repeatCell?.cell?.userEnteredFormat?.textFormat?.foregroundColor?.red > 0.9);
-  check("banner fundo navy", banner?.repeatCell?.cell?.userEnteredFormat?.backgroundColor?.red < 0.1);
+  check("banner tem fonte 18 bold", !!banner);
+  check("banner é branco", banner?.repeatCell?.cell?.userEnteredFormat?.textFormat?.foregroundColor?.red > 0.99);
+  check("banner fundo ink", banner?.repeatCell?.cell?.userEnteredFormat?.backgroundColor?.red < 0.1);
 
   // KPI cards — 4 merges do dashboard na linha 6
   const kpiMerges = layoutReqs.filter((r: any) =>
