@@ -1,4 +1,4 @@
-# Handoff: Virada App v2 (redesign + correções de usabilidade + planilha v2)
+# Handoff: Virada App v2 (redesign + correções de usabilidade + planilha v2 + landing)
 
 Pacote para implementar no repositório **APP-VIRADA** (Next.js 14 · React 18 · Tailwind 3 · lucide-react · IndexedDB) com o Claude Code.
 
@@ -85,6 +85,11 @@ Substituir `colors.virada` por: `ink: {50..900}`, `green: {...}`, `amber: {...}`
 
 ## Estado e dados
 Nada muda no modelo (`lib/types.ts`, IndexedDB). Novos campos de UI são locais: `quando` (hoje/ontem/outra), `cents`, `toast`, `acao` (linha selecionada), `aba`, `periodo`. O `Dialog` substitui `window.confirm` sem mudar as chamadas `removeDebt/removeGoal/resetLocalData`.
+
+## Landing (`public/vendas.html`)
+`landing/vendas.html` é arquivo único (vídeo do hero, temporizador, fontes, capas dos bônus embutidos). Termos, privacidade e reembolso já estão dentro da página. Pendências em `landing/LEIA-ME-vendas.md`.
+
+> **Neste repositório** o `public/vendas.html` não é copiado do pacote — é gerado por `node scripts/build-vendas.mjs` a partir de `_design/claude-design/Landing Vendas v2.dc.html` (ver a nota no `LEIA-ME-vendas.md`).
 
 ## Arquivos deste pacote
 - `README.md` (este) · `PROMPT-CLAUDE-CODE.md` (prompt pronto)

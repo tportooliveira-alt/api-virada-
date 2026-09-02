@@ -18,8 +18,22 @@ Faça em 7 commits, nesta ordem, rodando `npm run lint` e `npm run build` ao fim
 6. **Planilha** — copiar `design_handoff_virada_v2/lib-sheets/styles.ts` e `builder.ts` por cima de `lib/sheets/`. Conferir que `GoogleSyncButton.tsx` continua compilando.
 7. **Landing** — copiar `design_handoff_virada_v2/landing/vendas.html` para `public/vendas.html`. Termos de uso, privacidade e reembolso já estão dentro da página (`#termos`, `#privacidade`, `#reembolso`) — não criar páginas separadas. Fazer `/` e `/vendas` servirem essa página para visitante sem login (o app continua em `/app`).
 
-LEMBRETE: a Kiwify ainda NÃO está cadastrada. Deixe um `// TODO(kiwify)` nos pontos listados em `design_handoff_virada_v2/landing/LEIA-ME-vendas.md` (URL do checkout, WhatsApp, preço cheio, `og:image` absoluto, webhook) e crie uma issue/checklist "Pós-cadastro Kiwify" no repositório com esses itens. Não invente URL de checkout nem número de telefone.
+LEMBRETE: a Kiwify ainda NÃO está cadastrada. Deixe um `// TODO(kiwify)` nos pontos listados em `design_handoff_virada_v2/landing/LEIA-ME-vendas.md` (URL do checkout, WhatsApp, preço cheio R$ 150, `og:image` com URL absoluta, webhook em `/api/webhooks/kiwify`) e crie uma issue/checklist "Pós-cadastro Kiwify" no repositório com esses itens. Não invente URL de checkout nem número de telefone.
 
 Regras que não se negociam: nenhum texto abaixo de 12px; valores em R$ com `tabular-nums` e sem quebra de linha; verde de texto sempre `#15803D` sobre fundo claro; Lucide no lugar de emoji; a palavra "Planilha" só se refere ao Google Planilhas. Não altere `lib/types.ts`, o IndexedDB nem as rotas de API. Ao terminar, liste o que ficou fora e por quê.
 
 ---
+
+## Onde está o pacote completo
+
+O zip `design_handoff_virada_v2.zip` (protótipos HTML, design system com SKILL.md, styles.ts/builder.ts da planilha, landing vendas.html, imagens) fica na pasta do Drive **"Virada App — Handoff Claude Code"** — o dono do projeto faz o upload. Se ainda não estiver lá, peça a ele. O README.md ao lado é o mesmo que vai dentro do zip.
+
+> Estado em 02/09/2026: a pasta do Drive tem só `README.md`, `PROMPT-CLAUDE-CODE.md` e `LEIA-ME-vendas.md` (sem o zip). Tudo que eles descrevem já está implementado neste repositório; o checklist "Pós-cadastro Kiwify" pedido acima virou `docs/POS-CADASTRO-KIWIFY.md`.
+
+## Checklist para colocar no ar (dono do projeto)
+1. Cadastrar conta na Kiwify → criar produto "Código da Virada" (e-book + app + 4 bônus), preço R$ 47, preço cheio R$ 150, garantia 7 dias.
+2. Copiar a URL do checkout e o número do WhatsApp de suporte → preencher nos Tweaks da landing (ou passar ao Claude Code).
+3. Configurar webhook da Kiwify apontando para `https://SEU-DOMINIO/api/webhooks/kiwify`.
+4. Deploy com as variáveis de ambiente do Google (OAuth para Planilhas) e do webhook. *(Neste projeto o deploy é na VPS Hostinger com SQLite persistente — ver `CLAUDE.md` —, não na Vercel.)*
+5. Testar uma compra de R$ 1 de ponta a ponta: pagar → e-mail → entrar no app → lançar → conectar planilha.
+6. Desligar ou redirecionar a landing antiga do Netlify (aquamarine-crumble-9be5b2.netlify.app) para a nova.
