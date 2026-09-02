@@ -70,9 +70,9 @@ function getCategory(input: string, type: ParsedFinancialType) {
   return "Outros";
 }
 
-function cleanDescription(input: string, amount: number) {
+function cleanDescription(input: string) {
   const text = input
-    .replace(new RegExp(String(amount).replace(".", "[,.]"), "i"), "")
+    .replace(/(?:r\$\s*)?\d+(?:[.,]\d{1,2})?/i, "")
     .replace(/\b(reais|real|r\$|gastei|paguei|recebi|ganhei|guardei|vendi|venda|comprei)\b/gi, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -80,7 +80,9 @@ function cleanDescription(input: string, amount: number) {
   return text || "lançamento";
 }
 
-export function parseFinancialInput(input: string): ParsedFinancialInput | null {
+export function parseFinancialInput(rawInput: string): ParsedFinancialInput | null {
+  // Voz: "35 e 90" vira "35,90"
+  const input = rawInput.replace(/(\d+)\s+e\s+(\d{1,2})\b/g, "$1,$2");
   const amount = getAmount(input);
 
   if (!input.trim() || amount <= 0) {
@@ -89,7 +91,7 @@ export function parseFinancialInput(input: string): ParsedFinancialInput | null 
 
   const type = getType(input);
   const category = getCategory(input, type);
-  const description = cleanDescription(input, amount);
+  const description = cleanDescription(input);
 
   return {
     type,

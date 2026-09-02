@@ -37,9 +37,9 @@ interface ViradaContextValue extends ViradaData {
   saveError: boolean;
   profile: Pick<Profile, "fullName" | "email" | "role" | "plan" | "accessStatus"> | null;
   isAdmin: boolean;
-  addExpense: (payload: Omit<Expense, "id">) => void;
+  addExpense: (payload: Omit<Expense, "id">) => string;
   removeExpense: (id: string) => void;
-  addIncome: (payload: Omit<Income, "id">) => void;
+  addIncome: (payload: Omit<Income, "id">) => string;
   removeIncome: (id: string) => void;
   addDebt: (payload: Omit<Debt, "id">) => void;
   removeDebt: (id: string) => void;
@@ -236,10 +236,12 @@ export function ViradaProvider({ children }: PropsWithChildren) {
 
     // ── Gastos ────────────────────────────────────────────────────────────
     addExpense: (payload) => {
+      const id = newId("expense");
       update((prev) => ({
         ...prev,
-        expenses: [{ id: newId("expense"), ...payload }, ...prev.expenses],
+        expenses: [{ id, ...payload }, ...prev.expenses],
       }));
+      return id; // quem lançou pode desfazer (removeExpense)
     },
     removeExpense: (id) => {
       update((prev) => ({ ...prev, expenses: prev.expenses.filter((e) => e.id !== id) }));
@@ -247,10 +249,12 @@ export function ViradaProvider({ children }: PropsWithChildren) {
 
     // ── Receitas ──────────────────────────────────────────────────────────
     addIncome: (payload) => {
+      const id = newId("income");
       update((prev) => ({
         ...prev,
-        incomes: [{ id: newId("income"), ...payload }, ...prev.incomes],
+        incomes: [{ id, ...payload }, ...prev.incomes],
       }));
+      return id;
     },
     removeIncome: (id) => {
       update((prev) => ({ ...prev, incomes: prev.incomes.filter((i) => i.id !== id) }));

@@ -1,365 +1,427 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import {
-  BanknoteArrowDown,
-  BanknoteArrowUp,
+  BarChart3,
   BookOpen,
-  BriefcaseBusiness,
-  Building2,
+  Briefcase,
   Car,
-  ChartNoAxesCombined,
   Check,
   CreditCard,
   Droplets,
-  Ellipsis,
   Gamepad2,
   Handshake,
-  HeartPulse,
-  House,
+  Home,
+  Inbox,
   Lightbulb,
-  ReceiptText,
-  ShoppingBasket,
-  UtensilsCrossed,
-  WalletCards,
+  Mic,
+  Pill,
+  Plus,
+  RotateCcw,
+  ShoppingCart,
+  Utensils,
   Wifi,
   Wrench,
   Zap,
   type LucideIcon,
 } from "lucide-react";
+import { Chip } from "@/components/ui/Chip";
+import { Segmented } from "@/components/ui/Segmented";
+import { parseFinancialInput } from "@/lib/parse-financial-input";
 import type { Expense, Income, TransactionScope } from "@/lib/types";
+import { formatCurrency, toInputDate } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
-import { formatCurrency, parseCurrencyInput } from "@/lib/utils";
+
+type Tab = "gasto" | "entrada";
+type Quando = "hoje" | "ontem" | "outra";
 
 interface CategoryOption {
   key: string;
-  label: string;
   icon: LucideIcon;
 }
 
 const EXPENSE_CATS: CategoryOption[] = [
-  { key: "Mercado", icon: ShoppingBasket, label: "Mercado" },
-  { key: "Energia", icon: Zap, label: "Energia" },
-  { key: "Transporte", icon: Car, label: "Transporte" },
-  { key: "Aluguel", icon: House, label: "Aluguel" },
-  { key: "Saúde", icon: HeartPulse, label: "Saúde" },
-  { key: "Delivery", icon: UtensilsCrossed, label: "Delivery" },
-  { key: "Lazer", icon: Gamepad2, label: "Lazer" },
-  { key: "Cartão", icon: CreditCard, label: "Cartão" },
-  { key: "Internet", icon: Wifi, label: "Internet" },
-  { key: "Educação", icon: BookOpen, label: "Educação" },
-  { key: "Água", icon: Droplets, label: "Água" },
-  { key: "Outros", icon: Ellipsis, label: "Outros" },
+  { key: "Mercado", icon: ShoppingCart },
+  { key: "Energia", icon: Zap },
+  { key: "Transporte", icon: Car },
+  { key: "Aluguel", icon: Home },
+  { key: "Saúde", icon: Pill },
+  { key: "Delivery", icon: Utensils },
+  { key: "Lazer", icon: Gamepad2 },
+  { key: "Cartão", icon: CreditCard },
+  { key: "Internet", icon: Wifi },
+  { key: "Educação", icon: BookOpen },
+  { key: "Água", icon: Droplets },
+  { key: "Outros", icon: Plus },
 ];
 
 const INCOME_CATS: CategoryOption[] = [
-  { key: "Salário", icon: BriefcaseBusiness, label: "Salário" },
-  { key: "Venda", icon: Handshake, label: "Venda" },
-  { key: "Serviço", icon: Wrench, label: "Serviço" },
-  { key: "Renda extra", icon: Lightbulb, label: "Renda extra" },
-  { key: "Recebimento", icon: WalletCards, label: "Recebimento" },
-  { key: "Comissão", icon: ChartNoAxesCombined, label: "Comissão" },
-  { key: "Outros", icon: Ellipsis, label: "Outros" },
+  { key: "Salário", icon: Briefcase },
+  { key: "Venda", icon: Handshake },
+  { key: "Serviço", icon: Wrench },
+  { key: "Renda extra", icon: Lightbulb },
+  { key: "Recebimento", icon: Inbox },
+  { key: "Comissão", icon: BarChart3 },
+  { key: "Outros", icon: Plus },
 ];
 
-const PAYMENTS = ["Pix", "Dinheiro", "Débito", "Crédito", "Boleto"] as const;
+const PAYMENTS: Expense["paymentMethod"][] = ["Pix", "Dinheiro", "Débito", "Crédito", "Boleto"];
 
-type Tab = "gasto" | "entrada";
+const TOAST_MS = 7000;
 
-function formatBRL(raw: string) {
-  const value = parseCurrencyInput(raw);
-  return Number.isFinite(value) && value > 0 ? formatCurrency(value) : "R$ 0,00";
+// Reconhecimento de voz do navegador (Chrome/Edge/Safari). Sem ele, o botão nem aparece.
+type SpeechRecognitionInstance = {
+  lang: string;
+  interimResults: boolean;
+  start: () => void;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
+};
+
+function getSpeechRecognition(): (new () => SpeechRecognitionInstance) | undefined {
+  if (typeof window === "undefined") return undefined;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionInstance;
+    webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition;
+}
+
+function resolveDate(quando: Quando, outraData: string) {
+  if (quando === "outra") return outraData;
+  const day = new Date();
+  if (quando === "ontem") day.setDate(day.getDate() - 1);
+  return toInputDate(day);
+}
+
+function SectionLabel({ children }: { children: string }) {
+  return <p className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-500">{children}</p>;
 }
 
 export default function LancarPage() {
   const data = useVirada();
   const [tab, setTab] = useState<Tab>("gasto");
   const [scope, setScope] = useState<TransactionScope>("casa");
-  const [valor, setValor] = useState("");
+  const [cents, setCents] = useState(0);
   const [descricao, setDescricao] = useState("");
+  const [quando, setQuando] = useState<Quando>("hoje");
+  const [outraData, setOutraData] = useState("");
   const [categoria, setCategoria] = useState("");
-  const [pagamento, setPagamento] = useState<string>("Pix");
-  const [natureza, setNatureza] = useState<"essencial" | "impulso">("essencial");
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
+  const [pagamento, setPagamento] = useState<Expense["paymentMethod"]>("Pix");
+  const [natureza, setNatureza] = useState<Expense["nature"]>("essencial");
+  const [erro, setErro] = useState("");
+  const [toast, setToast] = useState<{ id: string; type: Tab; message: string } | null>(null);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [listening, setListening] = useState(false);
+  const valorRef = useRef<HTMLInputElement>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  const cats = tab === "gasto" ? EXPENSE_CATS : INCOME_CATS;
-  const isExpense = tab === "gasto";
+  useEffect(() => {
+    setVoiceSupported(Boolean(getSpeechRecognition()));
+    return () => clearTimeout(toastTimer.current);
+  }, []);
 
-  function reset() {
-    setValor("");
-    setDescricao("");
+  const isGasto = tab === "gasto";
+  const cats = isGasto ? EXPENSE_CATS : INCOME_CATS;
+
+  function switchTab(next: Tab) {
+    setTab(next);
     setCategoria("");
-    setPagamento("Pix");
-    setNatureza("essencial");
-    setError("");
+    setErro("");
   }
 
-  function switchTab(nextTab: Tab) {
+  function showToast(next: { id: string; type: Tab; message: string }) {
+    clearTimeout(toastTimer.current);
+    setToast(next);
+    toastTimer.current = setTimeout(() => setToast(null), TOAST_MS);
+  }
+
+  function desfazer() {
+    if (!toast) return;
+    if (toast.type === "gasto") data.removeExpense(toast.id);
+    else data.removeIncome(toast.id);
+    clearTimeout(toastTimer.current);
+    setToast(null);
+  }
+
+  function ouvir() {
+    const SpeechRecognition = getSpeechRecognition();
+    if (!SpeechRecognition || listening) return;
+    const recognition = new SpeechRecognition();
+    recognition.lang = "pt-BR";
+    recognition.interimResults = false;
+    recognition.onstart = () => setListening(true);
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => {
+      setListening(false);
+      setErro("Não consegui ouvir com clareza. Tente de novo ou digite o valor.");
+    };
+    recognition.onresult = (event) => aplicarFala(event.results[0]?.[0]?.transcript ?? "");
+    recognition.start();
+  }
+
+  function aplicarFala(text: string) {
+    const parsed = parseFinancialInput(text);
+    if (!parsed) {
+      setErro('Não entendi o valor. Tente falar assim: "Mercado 35 e 90".');
+      return;
+    }
+    const nextTab: Tab = parsed.type === "income" ? "entrada" : "gasto";
+    const nextCats = nextTab === "gasto" ? EXPENSE_CATS : INCOME_CATS;
+    const knownCategory = nextCats.some((item) => item.key === parsed.category);
     setTab(nextTab);
-    setCategoria("");
-    setError("");
-    setSuccess("");
+    setCents(Math.round(parsed.amount * 100));
+    setCategoria(knownCategory ? parsed.category : "");
+    // Se a fala virou categoria ("Mercado"), a descrição fica livre pra pessoa completar
+    setDescricao(parsed.description === "lançamento" || parsed.description === parsed.category ? "" : parsed.description);
+    setErro("");
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const parsedValue = parseCurrencyInput(valor);
-
-    if (!valor || Number.isNaN(parsedValue) || parsedValue <= 0) {
-      setError("Informe um valor maior que zero.");
+    if (cents <= 0) {
+      setErro("Digite o valor. Exemplo: 3590 vira R$ 35,90.");
+      valorRef.current?.focus();
       return;
     }
-    if (!categoria) {
-      setError("Escolha uma categoria para continuar.");
-      return;
+    if (!categoria) return setErro("Escolha uma categoria.");
+    if (categoria === "Outros" && !descricao.trim()) {
+      return setErro('Para "Outros", escreva o que foi (ex.: presente, conserto, feira).');
     }
-    if (!descricao.trim() && categoria === "Outros") {
-      setError("Descreva o lançamento quando escolher a categoria Outros.");
-      return;
-    }
+    if (quando === "outra" && !outraData) return setErro("Escolha a data.");
 
-    setSubmitting(true);
-    setError("");
-    setSuccess("");
+    const value = cents / 100;
+    const date = resolveDate(quando, outraData);
+    const description = descricao.trim() || categoria;
 
-    try {
-      if (isExpense) {
-        await data.addExpense({
-          description: descricao || categoria,
-          value: parsedValue,
+    const id = isGasto
+      ? data.addExpense({
+          description,
+          value,
           category: categoria as Expense["category"],
-          date: new Date().toISOString().split("T")[0],
-          paymentMethod: pagamento as Expense["paymentMethod"],
+          date,
+          paymentMethod: pagamento,
           nature: natureza,
           scope,
           source: "app",
-        });
-        setSuccess(`Gasto de ${formatCurrency(parsedValue)} registrado.`);
-      } else {
-        await data.addIncome({
-          description: descricao || categoria,
-          value: parsedValue,
+        })
+      : data.addIncome({
+          description,
+          value,
           category: categoria as Income["category"],
-          date: new Date().toISOString().split("T")[0],
+          date,
           scope,
           source: "app",
         });
-        setSuccess(`Entrada de ${formatCurrency(parsedValue)} registrada.`);
-      }
-      reset();
-    } catch {
-      setError("Não foi possível salvar. Tente novamente.");
-    } finally {
-      setSubmitting(false);
-    }
+
+    showToast({
+      id,
+      type: tab,
+      message: `${isGasto ? "Gasto" : "Entrada"} de ${formatCurrency(value)} registrad${isGasto ? "o" : "a"} em ${categoria}.`,
+    });
+    setCents(0);
+    setDescricao("");
+    setCategoria("");
+    setErro("");
+    valorRef.current?.focus();
   }
 
   return (
-    <form className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(20rem,0.88fr)]" onSubmit={handleSubmit}>
-      <div className="space-y-4">
-        <section className="surface-card p-2" aria-label="Tipo de lançamento">
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => switchTab("gasto")}
-              aria-pressed={isExpense}
-              className={`flex min-h-14 items-center justify-center gap-2 rounded-2xl text-sm font-extrabold transition ${
-                isExpense ? "bg-[#E6674F] text-[#FFFCFB] shadow-md" : "text-[#647875] hover:bg-[#F4F7F5]"
-              }`}
-            >
-              <BanknoteArrowUp className="h-5 w-5" /> Registrar gasto
-            </button>
-            <button
-              type="button"
-              onClick={() => switchTab("entrada")}
-              aria-pressed={!isExpense}
-              className={`flex min-h-14 items-center justify-center gap-2 rounded-2xl text-sm font-extrabold transition ${
-                !isExpense ? "bg-[#0EA978] text-[#F6FAF8] shadow-md" : "text-[#647875] hover:bg-[#F4F7F5]"
-              }`}
-            >
-              <BanknoteArrowDown className="h-5 w-5" /> Registrar entrada
-            </button>
+    <>
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+      >
+        {/* O que foi */}
+        <section className="surface-card flex flex-col gap-5 p-5 sm:p-[22px]">
+          <Segmented<Tab>
+            label="Tipo de lançamento"
+            value={tab}
+            onChange={switchTab}
+            options={[
+              { value: "gasto", label: "Gasto" },
+              { value: "entrada", label: "Entrada" },
+            ]}
+          />
+
+          <div className="flex gap-2">
+            <Chip wide active={scope === "casa"} onClick={() => setScope("casa")}>
+              Casa
+            </Chip>
+            <Chip wide active={scope === "empresa"} onClick={() => setScope("empresa")}>
+              Empresa
+            </Chip>
           </div>
-        </section>
 
-        <section className="surface-card p-5 sm:p-6">
-          <p className="eyebrow">1. Valor e identificação</p>
-          <label className="mt-5 block">
-            <span className="text-xs font-bold text-[#647875]">Valor</span>
-            <div className="mt-2 flex items-center rounded-2xl border border-[#133335]/15 bg-[#F8FAF9] px-4 focus-within:border-[#0EA978] focus-within:ring-4 focus-within:ring-[#0EA978]/10">
-              <span className="mr-2 text-lg font-bold text-[#647875]">R$</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                placeholder="0,00"
-                value={valor}
-                onChange={(event) => setValor(event.target.value)}
-                className="min-h-[4.25rem] w-full bg-transparent font-display text-3xl font-semibold tracking-tight text-[#133335] outline-none placeholder:text-[#B7C5C1]"
-                aria-label="Valor do lançamento"
-              />
-            </div>
-          </label>
+          {voiceSupported && (
+            <button
+              type="button"
+              onClick={ouvir}
+              aria-pressed={listening}
+              className={`flex min-h-[48px] items-center justify-center gap-2 rounded-xl border px-4 text-sm font-bold transition-colors duration-150 ${
+                listening
+                  ? "border-green-500 bg-green-100 text-green-700"
+                  : "border-ink-200 bg-white text-ink-900 hover:bg-ink-50"
+              }`}
+            >
+              <Mic className="h-[18px] w-[18px] shrink-0" />
+              {listening ? 'Ouvindo… diga "Mercado 35 e 90"' : "Falar em vez de digitar"}
+            </button>
+          )}
 
-          <label className="mt-5 block">
-            <span className="text-xs font-bold text-[#647875]">Descrição</span>
+          {/* Valor em centavos: a pessoa digita só os números */}
+          <label
+            className={`block rounded-xl border bg-white px-4 py-3.5 transition-colors duration-150 focus-within:border-green-500 ${
+              erro && cents <= 0 ? "border-red-300" : "border-ink-200"
+            }`}
+          >
+            <span className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-500">Valor</span>
             <input
+              ref={valorRef}
               type="text"
-              placeholder={isExpense ? "Ex.: mercado da semana" : "Ex.: pagamento do cliente"}
-              value={descricao}
-              onChange={(event) => setDescricao(event.target.value)}
-              className="input-base mt-2 px-4 py-3.5 text-sm placeholder:text-[#94A6A1]"
+              inputMode="numeric"
+              autoComplete="off"
+              aria-label="Valor em reais"
+              value={formatCurrency(cents / 100)}
+              onChange={(event) => setCents(Number(event.target.value.replace(/\D/g, "").slice(0, 12)))}
+              className={`money mt-1 w-full bg-transparent font-display text-[40px] font-extrabold leading-none tracking-[-0.03em] outline-none focus-visible:shadow-none ${
+                cents > 0 ? "text-ink-900" : "text-ink-400"
+              }`}
             />
-            <span className="mt-2 block text-xs leading-5 text-[#7B8D89]">Use um nome que você reconheça quando consultar a planilha.</span>
+            <span className="mt-1.5 block text-xs text-ink-400">Digite só os números — a vírgula entra sozinha.</span>
           </label>
+
+          <input
+            type="text"
+            value={descricao}
+            onChange={(event) => setDescricao(event.target.value)}
+            placeholder={
+              isGasto
+                ? "Onde foi? (ex.: Supermercado Extra, Uber) — opcional"
+                : "De onde veio? (ex.: Salário, Freela) — opcional"
+            }
+            className="input-base rounded-xl px-3.5 py-[13px] text-[15px] placeholder:text-ink-400"
+          />
+
+          <div className="flex flex-col gap-2.5">
+            <SectionLabel>Quando?</SectionLabel>
+            <Segmented<Quando>
+              label="Data do lançamento"
+              value={quando}
+              onChange={setQuando}
+              options={[
+                { value: "hoje", label: "Hoje" },
+                { value: "ontem", label: "Ontem" },
+                { value: "outra", label: "Outra data" },
+              ]}
+            />
+            {quando === "outra" && (
+              <input
+                type="date"
+                value={outraData}
+                max={toInputDate()}
+                onChange={(event) => setOutraData(event.target.value)}
+                className="input-base rounded-xl px-3.5 py-[11px] text-[15px]"
+              />
+            )}
+          </div>
         </section>
 
-        <section className="surface-card p-5 sm:p-6">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="eyebrow">2. Categoria</p>
-              <h2 className="mt-1.5 text-lg font-semibold text-[#133335]">Onde esse valor se encaixa?</h2>
-            </div>
-            {categoria ? <span className="rounded-full bg-[#E8F0EC] px-3 py-1 text-xs font-bold text-[#3C5552]">{categoria}</span> : null}
-          </div>
-          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {cats.map((category) => {
-              const Icon = category.icon;
-              const active = categoria === category.key;
-              return (
-                <button
-                  type="button"
-                  key={category.key}
-                  onClick={() => setCategoria(category.key)}
-                  aria-pressed={active}
-                  className={`relative flex min-h-[5.25rem] flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-xs font-bold transition ${
-                    active
-                      ? isExpense
-                        ? "border-[#E6674F] bg-[#FFF0EC] text-[#B63F2D] shadow-sm"
-                        : "border-[#0EA978] bg-[#EBF8F3] text-[#08785A] shadow-sm"
-                      : "border-[#133335]/10 bg-[#F8FAF9] text-[#647875] hover:-translate-y-0.5 hover:border-[#133335]/25 hover:bg-white"
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="leading-tight">{category.label}</span>
-                  {active ? <Check className="absolute right-2 top-2 h-3.5 w-3.5" /> : null}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      </div>
-
-      <div className="space-y-4 xl:sticky xl:top-7">
-        <section className="surface-card p-5 sm:p-6">
-          <p className="eyebrow">3. Detalhes</p>
-
-          <fieldset className="mt-5">
-            <legend className="text-xs font-bold text-[#647875]">Esse dinheiro é de onde?</legend>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {(["casa", "empresa"] as TransactionScope[]).map((item) => {
-                const active = scope === item;
-                const Icon = item === "casa" ? House : Building2;
+        {/* Detalhes + confirmar */}
+        <section className="surface-card flex flex-col gap-5 p-5 sm:p-[22px]">
+          <div className="flex flex-col gap-2.5">
+            <SectionLabel>Categoria</SectionLabel>
+            <div className="grid grid-cols-4 gap-2">
+              {cats.map(({ key, icon: Icon }) => {
+                const active = categoria === key;
                 return (
                   <button
+                    key={key}
                     type="button"
-                    key={item}
-                    onClick={() => setScope(item)}
                     aria-pressed={active}
-                    className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border text-sm font-bold capitalize transition ${
-                      active ? "border-[#133335] bg-[#133335] text-[#F6FAF8]" : "border-[#133335]/10 bg-white text-[#647875] hover:bg-[#F4F7F5]"
+                    onClick={() => setCategoria(key)}
+                    className={`flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-xl border px-0.5 py-2 text-xs font-semibold transition-colors duration-150 ${
+                      active ? "border-ink-900 bg-ink-900 text-white" : "border-ink-200 bg-white text-ink-700 hover:bg-ink-50"
                     }`}
                   >
-                    <Icon className="h-4 w-4" /> {item}
+                    <Icon className="h-5 w-5" />
+                    <span className="max-w-full truncate">{key}</span>
                   </button>
                 );
               })}
             </div>
-          </fieldset>
+          </div>
 
-          {isExpense ? (
+          {isGasto && (
             <>
-              <fieldset className="mt-5">
-                <legend className="text-xs font-bold text-[#647875]">Forma de pagamento</legend>
-                <div className="mt-2 flex flex-wrap gap-2">
+              <div className="flex flex-col gap-2.5">
+                <SectionLabel>Forma de pagamento</SectionLabel>
+                <div className="flex flex-wrap gap-2">
                   {PAYMENTS.map((item) => (
-                    <button
-                      type="button"
-                      key={item}
-                      onClick={() => setPagamento(item)}
-                      aria-pressed={pagamento === item}
-                      className={`rounded-full border px-3.5 py-2 text-xs font-bold transition ${
-                        pagamento === item
-                          ? "border-[#DDAF2B] bg-[#FFF8E8] text-[#76520C]"
-                          : "border-[#133335]/10 bg-white text-[#647875] hover:border-[#133335]/25"
-                      }`}
-                    >
+                    <Chip key={item} active={pagamento === item} onClick={() => setPagamento(item)}>
                       {item}
-                    </button>
+                    </Chip>
                   ))}
                 </div>
-              </fieldset>
+              </div>
 
-              <fieldset className="mt-5">
-                <legend className="text-xs font-bold text-[#647875]">Esse gasto era necessário?</legend>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  {(["essencial", "impulso"] as const).map((item) => (
-                    <button
-                      type="button"
-                      key={item}
-                      onClick={() => setNatureza(item)}
-                      aria-pressed={natureza === item}
-                      className={`min-h-12 rounded-xl border text-sm font-bold transition ${
-                        natureza === item
-                          ? item === "essencial"
-                            ? "border-[#0EA978] bg-[#EBF8F3] text-[#08785A]"
-                            : "border-[#E6674F] bg-[#FFF0EC] text-[#B63F2D]"
-                          : "border-[#133335]/10 bg-white text-[#647875] hover:bg-[#F4F7F5]"
-                      }`}
-                    >
-                      {item === "essencial" ? "Essencial" : "Por impulso"}
-                    </button>
-                  ))}
+              <div className="flex flex-col gap-2.5">
+                <SectionLabel>Tipo de gasto</SectionLabel>
+                <div className="flex gap-2">
+                  <Chip wide active={natureza === "essencial"} onClick={() => setNatureza("essencial")}>
+                    Essencial
+                  </Chip>
+                  <Chip wide active={natureza === "impulso"} onClick={() => setNatureza("impulso")}>
+                    Por impulso
+                  </Chip>
                 </div>
-              </fieldset>
+              </div>
             </>
-          ) : null}
-        </section>
+          )}
 
-        <section className={`rounded-[1.35rem] p-5 text-[#F6FAF8] shadow-[0_18px_44px_rgba(19,51,53,0.16)] ${isExpense ? "bg-[#7A3028]" : "bg-[#133335]"}`}>
-          <div className="flex items-center gap-2 text-ink-900/70">
-            <ReceiptText className="h-4 w-4" />
-            <span className="text-xs font-extrabold uppercase tracking-[0.13em]">Resumo do lançamento</span>
-          </div>
-          <div className="mt-4 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs text-ink-900/65">{isExpense ? "Gasto" : "Entrada"} em {scope}</p>
-              <strong className="mt-1 block font-display text-2xl font-semibold text-[#F6FAF8]">{formatBRL(valor)}</strong>
-            </div>
-            <span className="max-w-[9rem] truncate rounded-full bg-ink-100 px-3 py-1.5 text-xs font-bold text-[#F6FAF8]">
-              {categoria || "Sem categoria"}
-            </span>
-          </div>
-
-          <div className="mt-4" aria-live="polite">
-            {error ? <p className="rounded-xl bg-ink-100 px-3 py-2.5 text-sm text-[#F6FAF8]">{error}</p> : null}
-            {success ? <p className="rounded-xl bg-[#CBEA6B] px-3 py-2.5 text-sm font-bold text-[#133335]">{success}</p> : null}
-          </div>
+          {erro && (
+            <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700">
+              {erro}
+            </p>
+          )}
 
           <button
             type="submit"
-            disabled={submitting}
-            className={`mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-extrabold transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${
-              isExpense ? "bg-[#FFD4C9] text-[#7A3028] hover:bg-white" : "bg-[#CBEA6B] text-[#133335] hover:bg-white"
-            }`}
+            className="flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-green-500 px-4 text-[15px] font-bold text-green-900 transition-colors duration-150 hover:bg-green-400"
           >
-            <Check className="h-5 w-5" />
-            {submitting ? "Salvando…" : isExpense ? "Confirmar gasto" : "Confirmar entrada"}
+            <Check className="h-[18px] w-[18px]" />
+            {isGasto ? "Confirmar gasto" : "Confirmar entrada"}
           </button>
         </section>
-      </div>
-    </form>
+      </form>
+
+      {toast && (
+        <div
+          role="status"
+          className="fixed inset-x-3.5 bottom-[calc(88px+env(safe-area-inset-bottom))] z-[45] mx-auto flex max-w-[560px] flex-col gap-2.5 rounded-[14px] bg-ink-900 px-4 py-3.5 text-white shadow-float lg:bottom-6"
+        >
+          <p className="text-sm font-semibold">{toast.message}</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={desfazer}
+              className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-white/[0.18] text-[13px] font-bold transition-colors duration-150 hover:bg-white/[0.06]"
+            >
+              <RotateCcw className="h-[15px] w-[15px]" /> Desfazer
+            </button>
+            <Link
+              href="/app/inicio"
+              className="inline-flex h-10 flex-1 items-center justify-center rounded-[10px] bg-green-500 text-[13px] font-bold text-green-900 transition-colors duration-150 hover:bg-green-400"
+            >
+              Ver no Início
+            </Link>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
