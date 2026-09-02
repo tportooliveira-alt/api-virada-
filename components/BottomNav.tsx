@@ -2,23 +2,31 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, CircleUserRound, Plus, Sheet } from "lucide-react";
+import { Gauge, PenLine, Settings, Table } from "lucide-react";
 
-const navItems = [
-  { href: "/app/inicio", label: "Resumo", icon: BarChart3 },
-  { href: "/app/lancar", label: "Lançar", icon: Plus },
-  { href: "/app/evolucao", label: "Planilha", icon: Sheet },
-  { href: "/app/aprender", label: "Conta", icon: CircleUserRound },
+export const mainNavItems = [
+  { href: "/app/inicio", label: "Início", icon: Gauge },
+  { href: "/app/lancar", label: "Lançar", icon: PenLine },
+  { href: "/app/evolucao", label: "Relatórios", icon: Table },
+  { href: "/app/conta", label: "Conta", icon: Settings },
 ];
 
+export function isActivePath(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+// Menu inferior flutuante (<1024px). Único lugar com blur na interface.
 export function BottomNav() {
   const rawPath = usePathname();
   const pathname = rawPath.replace(/\/$/, "") || "/";
 
   return (
-    <nav className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-40 grid w-[calc(100%-1.25rem)] max-w-md -translate-x-1/2 grid-cols-4 gap-1 rounded-[1.35rem] border border-[#133335]/10 bg-white/95 p-1.5 backdrop-blur-xl lg:hidden" aria-label="Navegação principal">
-      {navItems.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+    <nav
+      className="fixed bottom-[max(10px,env(safe-area-inset-bottom))] left-1/2 z-40 grid w-[calc(100%-20px)] max-w-[440px] -translate-x-1/2 grid-cols-4 gap-1 rounded-2xl border border-ink-200 bg-white/95 p-1.5 shadow-float backdrop-blur-[10px] lg:hidden"
+      aria-label="Navegação principal"
+    >
+      {mainNavItems.map((item) => {
+        const active = isActivePath(pathname, item.href);
         const Icon = item.icon;
 
         return (
@@ -26,11 +34,11 @@ export function BottomNav() {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`grid min-h-[3.35rem] place-items-center gap-0.5 rounded-2xl px-1.5 py-1.5 text-xs font-bold transition ${
-              active ? "bg-[#133335] text-[#F6FAF8] shadow-md" : "text-[#647875] hover:bg-[#E8F0EC]"
+            className={`grid min-h-[52px] place-items-center gap-0.5 rounded-[11px] p-1.5 text-xs transition-colors duration-150 ${
+              active ? "bg-green-100 font-bold text-green-800" : "font-medium text-ink-500 hover:bg-ink-100"
             }`}
           >
-            <Icon className={`h-[1.15rem] w-[1.15rem] ${item.href === "/app/lancar" && active ? "text-[#CBEA6B]" : ""}`} />
+            <Icon className="h-[18px] w-[18px]" />
             {item.label}
           </Link>
         );
@@ -38,5 +46,3 @@ export function BottomNav() {
     </nav>
   );
 }
-
-export const mainNavItems = navItems;

@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PropsWithChildren } from "react";
-import { ArrowUpRight, HardDrive } from "lucide-react";
-import { BottomNav, mainNavItems } from "@/components/BottomNav";
+import { CalendarDays, Smartphone } from "lucide-react";
+import { BottomNav, isActivePath, mainNavItems } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
@@ -14,25 +14,45 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   },
   "/app/lancar": {
     title: "Lançar",
-    subtitle: "Registre compras, gastos e entradas em poucos segundos.",
+    subtitle: "Registre gastos e entradas em poucos segundos.",
   },
   "/app/evolucao": {
-    title: "Planilha",
-    subtitle: "A base completa do fluxo de caixa fica organizada aqui.",
+    title: "Relatórios",
+    subtitle: "Histórico completo: lançamentos, dívidas, metas e evolução por mês.",
+  },
+  "/app/relatorios": {
+    title: "Relatórios",
+    subtitle: "Histórico completo: lançamentos, dívidas, metas e evolução por mês.",
+  },
+  "/app/conta": {
+    title: "Conta",
+    subtitle: "Google Planilhas, instalação no celular e seus dados.",
   },
   "/app/aprender": {
     title: "Conta",
-    subtitle: "Sincronização com Google Planilhas e configurações.",
+    subtitle: "Google Planilhas, instalação no celular e seus dados.",
   },
   "/app/planilha-demo": {
-    title: "Prévia da Planilha",
+    title: "Prévia da planilha",
     subtitle: "Veja como seus dados ficam no Google Planilhas.",
   },
   "/app/instalar": {
     title: "Instalar no celular",
-    subtitle: "Use o app como PWA na tela inicial do seu celular.",
+    subtitle: "Use o app na tela inicial do seu celular, como um aplicativo.",
   },
 };
+
+const sidebarItems = [...mainNavItems, { href: "/app/instalar", label: "Instalar app", icon: Smartphone }];
+
+function MonthChip() {
+  const month = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date());
+  return (
+    <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-ink-200 bg-ink-50 px-3.5 py-2 text-[13px] font-medium text-ink-700">
+      <CalendarDays className="h-[15px] w-[15px]" />
+      {month.charAt(0).toUpperCase() + month.slice(1)}
+    </span>
+  );
+}
 
 export function AppShell({ children }: PropsWithChildren) {
   const rawPath = usePathname();
@@ -41,71 +61,56 @@ export function AppShell({ children }: PropsWithChildren) {
   const meta = pageMeta[pathname] ?? pageMeta["/app/inicio"];
 
   return (
-    <div className="app-shell mx-auto flex min-h-screen w-full max-w-[1440px] flex-col overflow-x-hidden px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 md:pt-5 lg:flex-row lg:gap-8 lg:px-7 lg:pb-7">
+    <div className="app-shell mx-auto flex w-full max-w-[1240px] flex-col gap-4 px-4 pb-[calc(100px+env(safe-area-inset-bottom))] pt-4 lg:flex-row lg:items-start lg:gap-7 lg:px-6 lg:pb-10 lg:pt-5">
 
-      {/* Sidebar desktop */}
-      <aside className="relative sticky top-7 hidden h-[calc(100vh-3.5rem)] w-[17rem] shrink-0 flex-col overflow-hidden rounded-[1.75rem] p-5 lg:flex">
-        <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#CBEA6B] text-sm font-black text-[#133335] shadow-[0_8px_22px_rgba(203,234,107,0.2)]">
-              CV
-            </div>
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#CBEA6B]">Código da</p>
-              <h2 className="font-display text-lg font-semibold tracking-tight text-[#F6FAF8]">Virada</h2>
-            </div>
+      {/* Sidebar desktop (≥1024px) */}
+      <aside className="sticky top-5 hidden min-h-[calc(100vh-40px)] w-[248px] shrink-0 flex-col rounded-2xl border border-ink-200 bg-ink-50 p-5 lg:flex">
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icons/icon-192.png" alt="" className="h-[38px] w-[38px] rounded-[10px]" />
+          <div>
+            <p className="text-[15px] font-bold text-ink-900">Virada App</p>
+            <p className="mt-0.5 text-xs text-ink-500">Fluxo de caixa no celular</p>
           </div>
-          <p className="mt-5 max-w-[13rem] text-sm leading-6 text-[#B8CBC6]">
-            Clareza para decidir melhor, um lançamento de cada vez.
-          </p>
         </div>
 
-        <nav className="relative z-10 mt-8 grid gap-1.5" aria-label="Navegação principal">
-          {mainNavItems.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        <nav className="mt-7 grid gap-1" aria-label="Navegação principal">
+          {sidebarItems.map((item) => {
+            const active = isActivePath(pathname, item.href);
             const Icon = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex min-h-11 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${
+                aria-current={active ? "page" : undefined}
+                className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm transition-colors duration-150 ${
                   active
-                    ? "bg-[#CBEA6B] text-[#133335] shadow-[0_8px_24px_rgba(203,234,107,0.14)]"
-                    : "text-[#B8CBC6] hover:bg-ink-100 hover:text-[#F6FAF8]"
+                    ? "bg-green-100 font-semibold text-green-800"
+                    : "font-medium text-ink-600 hover:bg-ink-200 hover:text-ink-900"
                 }`}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="h-[18px] w-[18px] shrink-0" />
                 {item.label}
               </Link>
             );
           })}
-          <Link
-            href="/app/instalar"
-            className="mt-1 flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#B8CBC6] transition hover:bg-ink-100 hover:text-[#F6FAF8]"
-          >
-            Instalar app <ArrowUpRight className="h-4 w-4" />
-          </Link>
         </nav>
 
-        <div className="relative z-10 mt-auto rounded-2xl border border-[#FFFFFF1A] bg-[#FFFFFF12] p-4">
-          <div className="flex items-center gap-2 text-[#CBEA6B]">
-            <HardDrive className="h-4 w-4" />
-            <p className="text-xs font-bold uppercase tracking-[0.12em]">Dados protegidos</p>
-          </div>
-          <p className="mt-2 text-xs leading-5 text-[#B8CBC6]">
-            Seus registros ficam neste dispositivo até você sincronizar.
+        <div className="mt-auto rounded-xl border border-ink-200 bg-white p-3.5">
+          <p className="text-[13px] font-semibold text-ink-900">Dados no seu celular</p>
+          <p className="mt-1 text-xs leading-[18px] text-ink-500">
+            Seus lançamentos ficam guardados aqui. Sincronize com Google Planilhas quando quiser.
           </p>
         </div>
       </aside>
 
       {/* Conteúdo principal */}
-      <div className="w-full min-w-0 flex-1 space-y-4 lg:pt-1">
-        <Header title={meta.title} subtitle={meta.subtitle} />
-        <main className="w-full min-w-0 pb-2">{children}</main>
+      <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
+        <Header title={meta.title} subtitle={meta.subtitle} aside={pathname === "/app/inicio" ? <MonthChip /> : null} />
+        <main className="w-full min-w-0">{children}</main>
       </div>
 
       <BottomNav />
-      <div className="pointer-events-none fixed -right-16 top-24 -z-10 hidden h-64 w-64 rounded-full bg-[#CBEA6B]/20 blur-3xl xl:block" aria-hidden />
     </div>
   );
 }
