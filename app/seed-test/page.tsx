@@ -109,7 +109,7 @@ export default function SeedTestPage() {
             <Link href="/app/inicio" style={{ display: "block", marginTop: 12, padding: 12, background: "#22C55E", color: "#fff", textAlign: "center", borderRadius: 6, textDecoration: "none", fontWeight: 600 }}>
               Ir pro app →
             </Link>
-            <Link href="/app/evolucao" style={{ display: "block", marginTop: 8, padding: 12, background: "#F5C542", color: "#07111F", textAlign: "center", borderRadius: 6, textDecoration: "none", fontWeight: 600 }}>
+            <Link href="/app/relatorios" style={{ display: "block", marginTop: 8, padding: 12, background: "#F5C542", color: "#07111F", textAlign: "center", borderRadius: 6, textDecoration: "none", fontWeight: 600 }}>
               Exportar planilha →
             </Link>
           </div>

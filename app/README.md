@@ -10,7 +10,7 @@ Tudo que tem rota mora aqui: páginas (UI) e endpoints (API). Next 14 App Router
 | `/app/lancar` | `app/lancar/page.tsx` | Lançar transação (texto/voz) |
 | `/app/gastos`, `/entradas` | `app/gastos`, `app/entradas` | Listas + estorno |
 | `/app/dividas`, `/metas`, `/missoes` | idem | Dívidas, metas, gamificação |
-| `/app/evolucao` | `app/evolucao/page.tsx` | Visão "planilha" |
+| `/app/relatorios` | `app/relatorios/page.tsx` | Relatórios (abas: resumo, lançamentos, dívidas, metas, dia a dia, por mês). `/evolucao`, `/dividas` e `/metas` redirecionam pra cá |
 | `/app/conta`, `/aprendizado`, `/aprender/ia` | idem | Conta, conteúdo, consultor IA |
 | `/app/instalar`, `/planilha-demo`, `/renda-extra` | idem | PWA install, demo, renda extra |
 | `/admin/membros` | `admin/membros/page.tsx` | Painel admin de compradores |

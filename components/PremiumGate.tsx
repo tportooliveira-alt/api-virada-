@@ -20,10 +20,10 @@ export function PremiumGate({ isPremium, children }: PremiumGateProps) {
         A IA personalizada fica reservada ao Premium para manter orientação individual, análise de gastos e recomendações automáticas.
       </p>
       <Link
-        href="/app/evolucao"
+        href="/app/relatorios"
         className="mt-5 inline-flex rounded-md bg-green-500 px-5 py-3 font-semibold text-green-900"
       >
-        Voltar para evolução
+        Voltar para relatórios
       </Link>
     </section>
   );

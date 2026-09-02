@@ -64,7 +64,7 @@ interface ViradaContextValue extends ViradaData {
   resetLocalData: () => void;
   // Compatibilidade com GoogleSyncButton e planilha
   user: { id: string; email: string; fullName: string | null } | null;
-  sheet: { sheetUrl: string | null };
+  sheet: { sheetUrl: string | null; lastSync: string | null };
 }
 
 // ─── Estado inicial ───────────────────────────────────────────────────────────
@@ -87,16 +87,19 @@ interface LocalAccount {
 
 interface LocalSheetMeta {
   spreadsheetUrl?: string;
+  lastSync?: string;
 }
 
-function readSheetUrl() {
+const noSheet = { sheetUrl: null, lastSync: null };
+
+function readSheetMeta(): { sheetUrl: string | null; lastSync: string | null } {
   try {
     const raw = localStorage.getItem(sheetMetaKey);
-    if (!raw) return null;
+    if (!raw) return noSheet;
     const meta = JSON.parse(raw) as LocalSheetMeta;
-    return meta.spreadsheetUrl ?? null;
+    return { sheetUrl: meta.spreadsheetUrl ?? null, lastSync: meta.lastSync ?? null };
   } catch {
-    return null;
+    return noSheet;
   }
 }
 
@@ -111,7 +114,7 @@ const ViradaContext = createContext<ViradaContextValue | null>(null);
 export function ViradaProvider({ children }: PropsWithChildren) {
   const [data, setData] = useState<ViradaData>(initialData);
   const [profile, setProfile] = useState<ViradaContextValue["profile"]>(null);
-  const [sheetUrl, setSheetUrl] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<ViradaContextValue["sheet"]>(noSheet);
   const [isReady, setIsReady] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const skipSave = useRef(false);
@@ -152,7 +155,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
             accessStatus: "active",
           });
         }
-        setSheetUrl(readSheetUrl());
+        setSheet(readSheetMeta());
       } catch {
         // localStorage indisponível — segue
       }
@@ -185,7 +188,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     function refreshSheetUrl() {
-      setSheetUrl(readSheetUrl());
+      setSheet(readSheetMeta());
     }
 
     function handleStorage(event: StorageEvent) {
@@ -232,7 +235,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
 
     // ── Usuário fictício (sem login) ──────────────────────────────────────
     user: { id: "local", email: profile?.email ?? "local@virada.app", fullName: profile?.fullName ?? null },
-    sheet: { sheetUrl },
+    sheet,
 
     // ── Gastos ────────────────────────────────────────────────────────────
     addExpense: (payload) => {
@@ -352,7 +355,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
       skipSave.current = true;
       setData(initialData);
     },
-  }), [data, isReady, saveError, profile, sheetUrl, update]);
+  }), [data, isReady, saveError, profile, sheet, update]);
 
   return <ViradaContext.Provider value={value}>{children}</ViradaContext.Provider>;
 }

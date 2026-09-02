@@ -7,7 +7,7 @@ import { Gauge, PenLine, Settings, Table } from "lucide-react";
 export const mainNavItems = [
   { href: "/app/inicio", label: "Início", icon: Gauge },
   { href: "/app/lancar", label: "Lançar", icon: PenLine },
-  { href: "/app/evolucao", label: "Relatórios", icon: Table },
+  { href: "/app/relatorios", label: "Relatórios", icon: Table },
   { href: "/app/conta", label: "Conta", icon: Settings },
 ];
 

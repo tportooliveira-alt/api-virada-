@@ -16,10 +16,6 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
     title: "Lançar",
     subtitle: "Registre gastos e entradas em poucos segundos.",
   },
-  "/app/evolucao": {
-    title: "Relatórios",
-    subtitle: "Histórico completo: lançamentos, dívidas, metas e evolução por mês.",
-  },
   "/app/relatorios": {
     title: "Relatórios",
     subtitle: "Histórico completo: lançamentos, dívidas, metas e evolução por mês.",
