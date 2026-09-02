@@ -31,20 +31,20 @@ export function TransactionList({ type, items, onDelete, onEstorno }: Transactio
           return (
             <article
               key={item.id}
-            className="rounded-lg border border-virada-line bg-white/[0.045] p-4 shadow-panel"
+            className="rounded-lg border border-virada-line bg-white p-4 shadow-card"
             >
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold text-white">{item.description}</h3>
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-virada-gray">
+                    <h3 className="text-lg font-semibold text-ink-900">{item.description}</h3>
+                    <span className="rounded-full bg-ink-100 px-3 py-1 text-xs text-virada-gray">
                       {item.category}
                     </span>
                     {expenseItem ? (
                       <span
                         className={`rounded-full px-3 py-1 text-xs ${
                           expenseItem.nature === "impulso"
-                            ? "bg-amber-300/15 text-amber-300"
+                            ? "bg-amber-300/15 text-amber-700"
                             : "bg-sky-400/15 text-sky-300"
                         }`}
                       >
@@ -60,7 +60,7 @@ export function TransactionList({ type, items, onDelete, onEstorno }: Transactio
                 <div className="flex items-center justify-between gap-4 md:flex-col md:items-end">
                   <strong
                     className={`text-xl font-semibold ${
-                      isExpense ? "text-rose-300" : "text-emerald-400"
+                      isExpense ? "text-red-700" : "text-green-700"
                     }`}
                   >
                     {formatCurrency(item.value)}
@@ -73,7 +73,7 @@ export function TransactionList({ type, items, onDelete, onEstorno }: Transactio
                             onEstorno(item, type);
                           }
                         }}
-                        className="inline-flex items-center gap-2 rounded-xl border border-amber-400/30 px-3 py-2 text-sm text-amber-300 transition hover:bg-amber-400/10"
+                        className="inline-flex items-center gap-2 rounded-xl border border-amber-400/30 px-3 py-2 text-sm text-amber-700 transition hover:bg-amber-400/10"
                       >
                         <RotateCcw className="h-4 w-4" />
                         Estornar
@@ -81,7 +81,7 @@ export function TransactionList({ type, items, onDelete, onEstorno }: Transactio
                     ) : null}
                     <button
                       onClick={() => onDelete(item.id)}
-                      className="rounded-xl border border-virada-line px-3 py-2 text-sm text-virada-gray transition hover:border-rose-400/50 hover:text-rose-300"
+                      className="rounded-xl border border-virada-line px-3 py-2 text-sm text-virada-gray transition hover:border-red-300/50 hover:text-red-700"
                     >
                       Excluir
                     </button>

@@ -18,8 +18,8 @@ export default function GoalsPage() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
-        <h2 className="text-2xl font-semibold text-white">Criar meta financeira</h2>
+      <section className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
+        <h2 className="text-2xl font-semibold text-ink-900">Criar meta financeira</h2>
         <p className="mt-2 text-sm leading-6 text-virada-gray">
           Meta boa é a que mostra próximo passo, não só um sonho distante.
         </p>
@@ -52,7 +52,7 @@ export default function GoalsPage() {
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+              className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
               placeholder="Ex.: Quitar cartão"
               required
             />
@@ -67,7 +67,7 @@ export default function GoalsPage() {
                 type="number"
                 min="0.01"
                 step="0.01"
-                className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+                className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
                 required
               />
             </label>
@@ -80,7 +80,7 @@ export default function GoalsPage() {
                 type="number"
                 min="0"
                 step="0.01"
-                className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+                className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
                 required
               />
             </label>
@@ -91,10 +91,10 @@ export default function GoalsPage() {
             <select
               value={type}
               onChange={(event) => setType(event.target.value as GoalType)}
-              className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+              className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
             >
               {goalTypes.map((item) => (
-                <option key={item} value={item} className="bg-slate-950">
+                <option key={item} value={item} className="bg-white">
                   {item}
                 </option>
               ))}
@@ -102,22 +102,22 @@ export default function GoalsPage() {
           </label>
 
           {error ? (
-            <p className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <p className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700">
               {error}
             </p>
           ) : null}
 
           <button
             type="submit"
-            className="rounded-md bg-emerald-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400"
+            className="rounded-md bg-green-500 px-5 py-3 font-semibold text-green-900 transition hover:bg-green-400"
           >
             Salvar meta
           </button>
         </form>
       </section>
 
-      <section className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
-        <h2 className="text-2xl font-semibold text-white">Metas cadastradas</h2>
+      <section className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
+        <h2 className="text-2xl font-semibold text-ink-900">Metas cadastradas</h2>
         <p className="mt-2 text-sm leading-6 text-virada-gray">
           Atualize o valor atual e deixe o progresso visível.
         </p>

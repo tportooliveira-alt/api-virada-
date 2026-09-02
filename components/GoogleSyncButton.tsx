@@ -285,7 +285,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       <div className="rounded-2xl border border-[#DDAF2B]/25 bg-[#FFF8E8] p-4 text-sm text-[#76520C]">
         <p className="font-bold">Exportação para Google Planilhas indisponível</p>
         <p className="mt-1 text-xs text-[#647875]">
-          Configure <code className="rounded bg-white/10 px-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> no .env.local
+          Configure <code className="rounded bg-ink-100 px-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> no .env.local
         </p>
       </div>
     );

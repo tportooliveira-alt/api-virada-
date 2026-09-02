@@ -317,11 +317,11 @@ export function AuthGate({ children }: PropsWithChildren) {
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-virada-green shadow-[0_0_40px_rgba(34,197,94,0.35)]">
           <span className="text-3xl">💰</span>
         </div>
-        <h1 className="text-2xl font-bold text-white">Código da Virada</h1>
-        <p className="text-sm text-slate-500">Seu controle financeiro inteligente</p>
+        <h1 className="text-2xl font-bold text-ink-900">Código da Virada</h1>
+        <p className="text-sm text-ink-500">Seu controle financeiro inteligente</p>
       </div>
 
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+      <div className="w-full max-w-sm rounded-2xl border border-ink-200 bg-white p-6 shadow-2xl">
         {stage === "needs-login" && (
           <NeedsLogin
             submitting={submitting}
@@ -333,7 +333,7 @@ export function AuthGate({ children }: PropsWithChildren) {
         )}
 
         {stage === "checking" && (
-          <p className="text-center text-sm text-slate-400">Validando acesso…</p>
+          <p className="text-center text-sm text-ink-500">Validando acesso…</p>
         )}
 
         {stage === "needs-online" && (
@@ -358,7 +358,7 @@ export function AuthGate({ children }: PropsWithChildren) {
         )}
       </div>
 
-      <p className="mt-6 text-center text-xs text-slate-700">
+      <p className="mt-6 text-center text-xs text-ink-700">
         Seus dados ficam neste celular · Código da Virada
       </p>
     </div>
@@ -381,14 +381,14 @@ function NeedsLogin({
   return (
     <>
       <p className="text-xs font-bold uppercase tracking-widest text-virada-gold">Acesse com sua conta Google</p>
-      <h2 className="mt-1 text-xl font-semibold text-white">Entre em 1 clique</h2>
-      <p className="mt-1 mb-5 text-sm text-slate-500">
+      <h2 className="mt-1 text-xl font-semibold text-ink-900">Entre em 1 clique</h2>
+      <p className="mt-1 mb-5 text-sm text-ink-500">
         Use o mesmo e-mail que você usou na compra. É só apertar e pronto.
       </p>
 
       {!clientId && (
-        <p className="mb-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-sm text-amber-200">
-          Login Google não configurado. Defina <code className="rounded bg-white/10 px-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> no servidor.
+        <p className="mb-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-sm text-amber-700">
+          Login Google não configurado. Defina <code className="rounded bg-ink-100 px-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> no servidor.
         </p>
       )}
 
@@ -396,10 +396,10 @@ function NeedsLogin({
         type="button"
         onClick={onSignIn}
         disabled={submitting || !clientId}
-        className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white py-3.5 text-sm font-bold text-slate-900 transition hover:bg-slate-100 disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white py-3.5 text-sm font-bold text-ink-900 transition hover:bg-ink-100 disabled:opacity-50"
       >
         {submitting ? (
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-ink-300 border-t-transparent" />
         ) : (
           <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden>
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -412,12 +412,12 @@ function NeedsLogin({
       </button>
 
       {error && (
-        <p className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-300">
+        <p className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-700">
           {error}
         </p>
       )}
 
-      <p className="mt-5 text-center text-xs text-slate-500">
+      <p className="mt-5 text-center text-xs text-ink-500">
           Ainda nao comprou? Fale com o suporte para liberar seu acesso.
       </p>
 
@@ -426,7 +426,7 @@ function NeedsLogin({
         <button
           type="button"
           onClick={onDevLogin}
-          className="mt-4 w-full rounded-xl border border-dashed border-slate-700 py-2.5 text-xs text-slate-600 transition hover:border-slate-500 hover:text-slate-400"
+          className="mt-4 w-full rounded-xl border border-dashed border-ink-300 py-2.5 text-xs text-ink-600 transition hover:border-ink-300 hover:text-ink-500"
         >
           ⚙ Entrar como Dev (localhost)
         </button>
@@ -438,10 +438,10 @@ function NeedsLogin({
 function NotMember({ email, onSwitch }: { email: string; onSwitch: () => void }) {
   return (
     <>
-      <p className="text-xs font-bold uppercase tracking-widest text-amber-300">Conta não encontrada na lista</p>
-      <h2 className="mt-1 text-xl font-semibold text-white">Comprou com outro e-mail?</h2>
-      <p className="mt-1 mb-5 text-sm text-slate-400">
-        Você entrou como <span className="font-semibold text-white">{email}</span>, mas esse e-mail não aparece como comprador.
+      <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Conta não encontrada na lista</p>
+      <h2 className="mt-1 text-xl font-semibold text-ink-900">Comprou com outro e-mail?</h2>
+      <p className="mt-1 mb-5 text-sm text-ink-500">
+        Você entrou como <span className="font-semibold text-ink-900">{email}</span>, mas esse e-mail não aparece como comprador.
         Verifique no seu recibo da Hotmart com qual e-mail a compra foi feita.
       </p>
       <button
@@ -451,7 +451,7 @@ function NotMember({ email, onSwitch }: { email: string; onSwitch: () => void })
       >
         Tentar com outra conta Google
       </button>
-      <p className="mt-4 text-center text-xs text-slate-500">
+      <p className="mt-4 text-center text-xs text-ink-500">
         Comprou agora? Pode levar 1-2 min até o pagamento aparecer aqui.
       </p>
     </>
@@ -461,9 +461,9 @@ function NotMember({ email, onSwitch }: { email: string; onSwitch: () => void })
 function NeedsOnline({ email, onRetry }: { email?: string; onRetry: () => void }) {
   return (
     <>
-      <p className="text-xs font-bold uppercase tracking-widest text-amber-300">Sem internet</p>
-      <h2 className="mt-1 text-xl font-semibold text-white">Conecte uma vez para validar</h2>
-      <p className="mt-1 mb-5 text-sm text-slate-400">
+      <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Sem internet</p>
+      <h2 className="mt-1 text-xl font-semibold text-ink-900">Conecte uma vez para validar</h2>
+      <p className="mt-1 mb-5 text-sm text-ink-500">
         {email ? `Você entrou como ${email}, mas precisa de internet uma vez para confirmar a compra.` : "Conecte-se à internet uma vez para entrar."}
         <br />
         Depois disso, o app funciona offline.
@@ -471,7 +471,7 @@ function NeedsOnline({ email, onRetry }: { email?: string; onRetry: () => void }
       <button
         type="button"
         onClick={onRetry}
-        className="flex w-full items-center justify-center rounded-xl bg-virada-green py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-400"
+        className="flex w-full items-center justify-center rounded-xl bg-green-500 py-3 text-sm font-bold text-green-900 transition hover:bg-green-400"
       >
         Tentar de novo
       </button>

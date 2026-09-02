@@ -27,12 +27,12 @@ export default function ContaPage() {
                 <UserRound className="h-6 w-6" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#CBEA6B]">Sua conta</p>
+                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#CBEA6B]">Sua conta</p>
                 <h2 className="mt-1 truncate text-2xl font-semibold text-[#F6FAF8]">{user?.name ?? "Olá!"}</h2>
                 <p className="mt-1 truncate text-sm text-[#B8CBC6]">{user?.email}</p>
               </div>
             </div>
-            <div className="mt-5 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-xs text-[#DCE8E4]">
+            <div className="mt-5 flex items-center gap-2 rounded-xl bg-ink-100 px-3 py-2.5 text-xs text-[#DCE8E4]">
               <ShieldCheck className="h-4 w-4 text-[#CBEA6B]" />
               Seus registros financeiros ficam neste dispositivo.
             </div>
@@ -109,7 +109,7 @@ export default function ContaPage() {
               <Trash2 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#B63F2D]">Zona de cuidado</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#B63F2D]">Zona de cuidado</p>
               <h2 className="mt-1.5 text-lg font-semibold text-[#133335]">Apagar todos os dados</h2>
               <p className="mt-1 text-sm leading-6 text-[#647875]">Remove lançamentos, dívidas e metas deste dispositivo. Sincronize antes para manter uma cópia.</p>
             </div>

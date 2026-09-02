@@ -35,16 +35,16 @@ export function AntiImpulseCard() {
   const decision = getDecision(needNow, fitsBudget, canWait24h, emotionalPurchase);
 
   return (
-    <section className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
+    <section className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
       <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-lg bg-emerald-500/15 text-emerald-300">
+        <div className="grid h-10 w-10 place-items-center rounded-lg bg-green-500/15 text-green-700">
           <ShieldCheck className="h-5 w-5" />
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-virada-gold">
             Modo anti-impulso
           </p>
-          <h2 className="text-xl font-semibold text-white">Decida antes de comprar</h2>
+          <h2 className="text-xl font-semibold text-ink-900">Decida antes de comprar</h2>
         </div>
       </div>
 
@@ -53,7 +53,7 @@ export function AntiImpulseCard() {
           value={itemName}
           onChange={(event) => setItemName(event.target.value)}
           placeholder="O que você quer comprar?"
-          className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+          className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none placeholder:text-ink-400"
         />
         <input
           value={amount}
@@ -62,7 +62,7 @@ export function AntiImpulseCard() {
           min="0"
           step="0.01"
           placeholder="Valor da compra"
-          className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+          className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none placeholder:text-ink-400"
         />
         <div className="grid gap-3 md:grid-cols-2">
           <input
@@ -72,7 +72,7 @@ export function AntiImpulseCard() {
             min="0"
             step="0.01"
             placeholder="Renda mensal"
-            className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+            className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none placeholder:text-ink-400"
           />
           <input
             value={monthlyHours}
@@ -81,7 +81,7 @@ export function AntiImpulseCard() {
             min="0"
             step="1"
             placeholder="Horas trabalhadas por mês"
-            className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+            className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none placeholder:text-ink-400"
           />
         </div>
       </div>
@@ -93,7 +93,7 @@ export function AntiImpulseCard() {
           ["Posso esperar 24 horas?", canWait24h, setCanWait24h],
           ["É compra emocional?", emotionalPurchase, setEmotionalPurchase],
         ] as CheckItem[]).map(([label, checked, setter]) => (
-          <label key={String(label)} className="flex items-center gap-3 rounded-md bg-white/5 p-3">
+          <label key={String(label)} className="flex items-center gap-3 rounded-md bg-white p-3">
             <input
               type="checkbox"
               checked={checked}
@@ -105,12 +105,12 @@ export function AntiImpulseCard() {
         ))}
       </div>
 
-      <div className="mt-5 rounded-lg border border-virada-line bg-slate-950/35 p-4">
+      <div className="mt-5 rounded-lg border border-virada-line bg-ink-50 p-4">
         <p className="text-sm text-virada-gray">
           Isso aproxima ou afasta minha meta?
         </p>
         {workHours ? (
-          <p className="mt-2 text-lg font-semibold text-white">
+          <p className="mt-2 text-lg font-semibold text-ink-900">
             Essa compra custa aproximadamente {workHours.toFixed(1)} horas do seu trabalho.
           </p>
         ) : (
@@ -118,7 +118,7 @@ export function AntiImpulseCard() {
             Informe renda mensal e horas trabalhadas para calcular o custo em horas.
           </p>
         )}
-        <p className="mt-3 text-xl font-semibold text-emerald-300">{decision}</p>
+        <p className="mt-3 text-xl font-semibold text-green-700">{decision}</p>
       </div>
 
       <button
@@ -134,11 +134,11 @@ export function AntiImpulseCard() {
             decision,
           });
         }}
-        className="mt-5 min-h-12 w-full rounded-md bg-emerald-500 px-5 py-3 font-semibold text-slate-950"
+        className="mt-5 min-h-12 w-full rounded-md bg-green-500 px-5 py-3 font-semibold text-green-900"
       >
         Registrar decisão
       </button>
-      {saved ? <p className="mt-3 text-sm text-emerald-300">Decisão registrada.</p> : null}
+      {saved ? <p className="mt-3 text-sm text-green-700">Decisão registrada.</p> : null}
     </section>
   );
 }

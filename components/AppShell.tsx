@@ -41,17 +41,17 @@ export function AppShell({ children }: PropsWithChildren) {
   const meta = pageMeta[pathname] ?? pageMeta["/app/inicio"];
 
   return (
-    <div className="app-shell virada-light mx-auto flex min-h-screen w-full max-w-[1440px] flex-col overflow-x-hidden px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 md:pt-5 lg:flex-row lg:gap-8 lg:px-7 lg:pb-7">
+    <div className="app-shell mx-auto flex min-h-screen w-full max-w-[1440px] flex-col overflow-x-hidden px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 md:pt-5 lg:flex-row lg:gap-8 lg:px-7 lg:pb-7">
 
       {/* Sidebar desktop */}
-      <aside className="app-sidebar relative sticky top-7 hidden h-[calc(100vh-3.5rem)] w-[17rem] shrink-0 flex-col overflow-hidden rounded-[1.75rem] p-5 lg:flex">
+      <aside className="relative sticky top-7 hidden h-[calc(100vh-3.5rem)] w-[17rem] shrink-0 flex-col overflow-hidden rounded-[1.75rem] p-5 lg:flex">
         <div className="relative z-10">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#CBEA6B] text-sm font-black text-[#133335] shadow-[0_8px_22px_rgba(203,234,107,0.2)]">
               CV
             </div>
             <div>
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#CBEA6B]">Código da</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#CBEA6B]">Código da</p>
               <h2 className="font-display text-lg font-semibold tracking-tight text-[#F6FAF8]">Virada</h2>
             </div>
           </div>
@@ -71,7 +71,7 @@ export function AppShell({ children }: PropsWithChildren) {
                 className={`flex min-h-11 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${
                   active
                     ? "bg-[#CBEA6B] text-[#133335] shadow-[0_8px_24px_rgba(203,234,107,0.14)]"
-                    : "text-[#B8CBC6] hover:bg-white/10 hover:text-[#F6FAF8]"
+                    : "text-[#B8CBC6] hover:bg-ink-100 hover:text-[#F6FAF8]"
                 }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -81,7 +81,7 @@ export function AppShell({ children }: PropsWithChildren) {
           })}
           <Link
             href="/app/instalar"
-            className="mt-1 flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#B8CBC6] transition hover:bg-white/10 hover:text-[#F6FAF8]"
+            className="mt-1 flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#B8CBC6] transition hover:bg-ink-100 hover:text-[#F6FAF8]"
           >
             Instalar app <ArrowUpRight className="h-4 w-4" />
           </Link>

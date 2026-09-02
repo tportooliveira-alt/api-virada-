@@ -80,7 +80,7 @@ export function TransactionForm(props: TransactionFormProps) {
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           placeholder={isExpense ? "Ex.: Mercado da semana" : "Ex.: Salário do mês"}
-          className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+          className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none placeholder:text-ink-400"
           required
         />
       </label>
@@ -94,10 +94,10 @@ export function TransactionForm(props: TransactionFormProps) {
             type="number"
             min="0.01"
             step="0.01"
-            className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+            className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
             required
           />
-          {error ? <p className="text-xs text-red-400">{error}</p> : null}
+          {error ? <p className="text-xs text-red-700">{error}</p> : null}
         </label>
 
         <label className="grid gap-2 text-sm text-virada-gray">
@@ -106,7 +106,7 @@ export function TransactionForm(props: TransactionFormProps) {
             value={date}
             onChange={(event) => setDate(event.target.value)}
             type="date"
-            className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+            className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
             required
           />
         </label>
@@ -117,10 +117,10 @@ export function TransactionForm(props: TransactionFormProps) {
         <select
           value={category}
           onChange={(event) => setCategory(event.target.value)}
-          className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+          className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
         >
           {(isExpense ? expenseCategories : incomeCategories).map((item) => (
-            <option key={item} value={item} className="bg-slate-950">
+            <option key={item} value={item} className="bg-white">
               {item}
             </option>
           ))}
@@ -132,12 +132,12 @@ export function TransactionForm(props: TransactionFormProps) {
         <select
           value={scope}
           onChange={(event) => setScope(event.target.value as TransactionScope)}
-          className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+          className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
         >
-          <option value="casa" className="bg-slate-950">
+          <option value="casa" className="bg-white">
             Casa
           </option>
-          <option value="empresa" className="bg-slate-950">
+          <option value="empresa" className="bg-white">
             Empresa
           </option>
         </select>
@@ -150,10 +150,10 @@ export function TransactionForm(props: TransactionFormProps) {
             <select
               value={paymentMethod}
               onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
-              className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+              className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
             >
               {paymentMethods.map((item) => (
-                <option key={item} value={item} className="bg-slate-950">
+                <option key={item} value={item} className="bg-white">
                   {item}
                 </option>
               ))}
@@ -165,12 +165,12 @@ export function TransactionForm(props: TransactionFormProps) {
             <select
               value={nature}
               onChange={(event) => setNature(event.target.value as ExpenseNature)}
-              className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+              className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
             >
-              <option value="essencial" className="bg-slate-950">
+              <option value="essencial" className="bg-white">
                 Essencial
               </option>
-              <option value="impulso" className="bg-slate-950">
+              <option value="impulso" className="bg-white">
                 Impulso
               </option>
             </select>
@@ -180,7 +180,7 @@ export function TransactionForm(props: TransactionFormProps) {
 
       <button
         type="submit"
-        className="rounded-md bg-emerald-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400"
+        className="rounded-md bg-green-500 px-5 py-3 font-semibold text-green-900 transition hover:bg-green-400"
       >
         Salvar
       </button>

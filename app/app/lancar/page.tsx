@@ -329,22 +329,22 @@ export default function LancarPage() {
         </section>
 
         <section className={`rounded-[1.35rem] p-5 text-[#F6FAF8] shadow-[0_18px_44px_rgba(19,51,53,0.16)] ${isExpense ? "bg-[#7A3028]" : "bg-[#133335]"}`}>
-          <div className="flex items-center gap-2 text-white/70">
+          <div className="flex items-center gap-2 text-ink-900/70">
             <ReceiptText className="h-4 w-4" />
-            <span className="text-[11px] font-extrabold uppercase tracking-[0.13em]">Resumo do lançamento</span>
+            <span className="text-xs font-extrabold uppercase tracking-[0.13em]">Resumo do lançamento</span>
           </div>
           <div className="mt-4 flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs text-white/65">{isExpense ? "Gasto" : "Entrada"} em {scope}</p>
+              <p className="text-xs text-ink-900/65">{isExpense ? "Gasto" : "Entrada"} em {scope}</p>
               <strong className="mt-1 block font-display text-2xl font-semibold text-[#F6FAF8]">{formatBRL(valor)}</strong>
             </div>
-            <span className="max-w-[9rem] truncate rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-[#F6FAF8]">
+            <span className="max-w-[9rem] truncate rounded-full bg-ink-100 px-3 py-1.5 text-xs font-bold text-[#F6FAF8]">
               {categoria || "Sem categoria"}
             </span>
           </div>
 
           <div className="mt-4" aria-live="polite">
-            {error ? <p className="rounded-xl bg-white/10 px-3 py-2.5 text-sm text-[#F6FAF8]">{error}</p> : null}
+            {error ? <p className="rounded-xl bg-ink-100 px-3 py-2.5 text-sm text-[#F6FAF8]">{error}</p> : null}
             {success ? <p className="rounded-xl bg-[#CBEA6B] px-3 py-2.5 text-sm font-bold text-[#133335]">{success}</p> : null}
           </div>
 

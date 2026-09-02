@@ -11,7 +11,7 @@ export function BadgeCard({ name, unlocked = true }: BadgeCardProps) {
       className={`flex items-center gap-3 rounded-lg border p-4 ${
         unlocked
           ? "border-amber-300/35 bg-amber-300/10 text-amber-100"
-          : "border-virada-line bg-white/[0.035] text-virada-slate"
+          : "border-virada-line bg-ink-50 text-virada-slate"
       }`}
     >
       <Award className="h-5 w-5 shrink-0" />

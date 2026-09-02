@@ -15,8 +15,8 @@ export default function IncomesPage() {
   return (
     <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
       <section className="space-y-6">
-        <article className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
-          <h2 className="text-2xl font-semibold text-white">Cadastrar entrada</h2>
+        <article className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
+          <h2 className="text-2xl font-semibold text-ink-900">Cadastrar entrada</h2>
           <p className="mt-2 text-sm leading-6 text-virada-gray">
             Salário, comissão, venda ou serviço. Toda entrada conta.
           </p>
@@ -25,18 +25,18 @@ export default function IncomesPage() {
           </div>
         </article>
 
-        <article className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
-          <h3 className="text-xl font-semibold text-white">Visão rápida das entradas</h3>
+        <article className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
+          <h3 className="text-xl font-semibold text-ink-900">Visão rápida das entradas</h3>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg bg-slate-950/30 p-4">
+            <div className="rounded-lg bg-ink-50 p-4">
               <p className="text-sm text-virada-gray">Total de entradas</p>
-              <strong className="mt-2 block text-2xl text-white">
+              <strong className="mt-2 block text-2xl text-ink-900">
                 {formatCurrency(data.incomes.reduce((total, item) => total + item.value, 0))}
               </strong>
             </div>
-            <div className="rounded-lg bg-slate-950/30 p-4">
+            <div className="rounded-lg bg-ink-50 p-4">
               <p className="text-sm text-virada-gray">Renda extra registrada</p>
-              <strong className="mt-2 block text-2xl text-emerald-400">
+              <strong className="mt-2 block text-2xl text-green-700">
                 {formatCurrency(extraIncomeTotal)}
               </strong>
             </div>
@@ -44,8 +44,8 @@ export default function IncomesPage() {
         </article>
       </section>
 
-      <section className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
-        <h2 className="text-2xl font-semibold text-white">Entradas cadastradas</h2>
+      <section className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
+        <h2 className="text-2xl font-semibold text-ink-900">Entradas cadastradas</h2>
         <p className="mt-2 text-sm leading-6 text-virada-gray">
           Mantenha o histórico. Isso mostra se sua renda extra está começando a respirar.
         </p>

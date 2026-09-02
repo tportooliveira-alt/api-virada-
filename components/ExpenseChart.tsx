@@ -170,15 +170,15 @@ export function ExpenseChart({ expenses, incomes }: Props) {
       {/* Cards resumo */}
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-2xl bg-[#EBF8F3] p-3 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#08785A]">Entradas</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#08785A]">Entradas</p>
           <p className="mt-1 text-sm font-extrabold text-[#08785A]">{brl(totalInc)}</p>
         </div>
         <div className="rounded-2xl bg-[#FFF0EC] p-3 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#B63F2D]">Saídas</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#B63F2D]">Saídas</p>
           <p className="mt-1 text-sm font-extrabold text-[#B63F2D]">{brl(totalExp)}</p>
         </div>
         <div className={`rounded-2xl p-3 text-center ${balance >= 0 ? "bg-[#EEF4FA]" : "bg-[#FFF4EA]"}`}>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#647875]">Saldo</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#647875]">Saldo</p>
           <p className={`mt-1 text-sm font-extrabold ${balance >= 0 ? "text-[#28629E]" : "text-[#B86520]"}`}>
             {brl(balance)}
           </p>
@@ -250,7 +250,7 @@ export function ExpenseChart({ expenses, incomes }: Props) {
                 <div key={d.name}>
                   <div className="mb-1 flex justify-between text-xs">
                     <span className="flex items-center gap-1 text-[#3C5552]">
-                      {i === 0 && <span className="rounded bg-[#FFF0EC] px-1 text-[10px] font-bold text-[#B63F2D]">MAIOR</span>}
+                      {i === 0 && <span className="rounded bg-[#FFF0EC] px-1 text-xs font-bold text-[#B63F2D]">MAIOR</span>}
                       {d.name}
                     </span>
                     <span className="font-semibold text-[#133335]">{brl(d.value)}</span>

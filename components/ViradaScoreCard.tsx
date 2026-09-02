@@ -8,16 +8,16 @@ interface ViradaScoreCardProps {
 
 export function ViradaScoreCard({ score, level, points }: ViradaScoreCardProps) {
   return (
-    <section className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
+    <section className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-virada-gold">
         Índice da Virada
       </p>
       <div className="mt-3 flex items-end justify-between gap-4">
         <div>
-          <strong className="text-4xl font-semibold text-white">{score}</strong>
+          <strong className="text-4xl font-semibold text-ink-900">{score}</strong>
           <span className="ml-2 text-sm text-virada-gray">/100</span>
         </div>
-        <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-sm text-emerald-300">
+        <span className="rounded-full bg-green-500/15 px-3 py-1 text-sm text-green-700">
           {level}
         </span>
       </div>

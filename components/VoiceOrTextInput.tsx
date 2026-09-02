@@ -67,8 +67,8 @@ export function VoiceOrTextInput({ onParsed }: VoiceOrTextInputProps) {
   }
 
   return (
-    <section className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
-      <h2 className="text-2xl font-semibold leading-tight text-white">
+    <section className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
+      <h2 className="text-2xl font-semibold leading-tight text-ink-900">
         Fale ou escreva o movimento financeiro. O app organiza para você.
       </h2>
 
@@ -79,7 +79,7 @@ export function VoiceOrTextInput({ onParsed }: VoiceOrTextInputProps) {
             setMode("voice");
             startListening();
           }}
-          className="flex min-h-20 items-center justify-center gap-3 rounded-lg bg-emerald-500 px-5 py-4 text-lg font-semibold text-slate-950 transition hover:bg-emerald-400"
+          className="flex min-h-20 items-center justify-center gap-3 rounded-lg bg-green-500 px-5 py-4 text-lg font-semibold text-green-900 transition hover:bg-green-400"
         >
           <Mic className="h-6 w-6" />
           {isListening ? "Ouvindo..." : "Falar"}
@@ -87,14 +87,14 @@ export function VoiceOrTextInput({ onParsed }: VoiceOrTextInputProps) {
         <button
           type="button"
           onClick={() => setMode("text")}
-          className="flex min-h-20 items-center justify-center gap-3 rounded-lg border border-virada-line bg-white/5 px-5 py-4 text-lg font-semibold text-white transition hover:bg-white/10"
+          className="flex min-h-20 items-center justify-center gap-3 rounded-lg border border-virada-line bg-white px-5 py-4 text-lg font-semibold text-ink-900 transition hover:bg-ink-100"
         >
           <PenLine className="h-6 w-6" />
           Escrever
         </button>
       </div>
 
-      <div className="mt-5 grid gap-2 rounded-lg bg-slate-950/35 p-4 text-sm text-virada-gray">
+      <div className="mt-5 grid gap-2 rounded-lg bg-ink-50 p-4 text-sm text-virada-gray">
         <span>Vendi 250 reais no Pix</span>
         <span>Recebi 100 reais de cliente</span>
         <span>Comprei 80 reais de mercadoria</span>
@@ -107,18 +107,18 @@ export function VoiceOrTextInput({ onParsed }: VoiceOrTextInputProps) {
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder="Ex: Vendi 250 reais no Pix"
-            className="min-h-32 rounded-lg border border-virada-line bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+            className="min-h-32 rounded-lg border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none placeholder:text-ink-400"
           />
           <button
             onClick={() => parse(input)}
-            className="min-h-12 rounded-md bg-emerald-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400"
+            className="min-h-12 rounded-md bg-green-500 px-5 py-3 font-semibold text-green-900 transition hover:bg-green-400"
           >
             Interpretar
           </button>
         </div>
       ) : null}
 
-      {message ? <p className="mt-4 text-sm text-amber-200">{message}</p> : null}
+      {message ? <p className="mt-4 text-sm text-amber-700">{message}</p> : null}
     </section>
   );
 }

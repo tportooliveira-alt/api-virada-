@@ -28,12 +28,12 @@ export function GoalCard({ goal, onUpdate, onDelete }: GoalCardProps) {
   }
 
   return (
-    <article className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
+    <article className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <h3 className="text-xl font-semibold text-white">{goal.name}</h3>
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-virada-gray">
+            <h3 className="text-xl font-semibold text-ink-900">{goal.name}</h3>
+            <span className="rounded-full bg-ink-100 px-3 py-1 text-xs text-virada-gray">
               {goal.type}
             </span>
           </div>
@@ -52,22 +52,22 @@ export function GoalCard({ goal, onUpdate, onDelete }: GoalCardProps) {
               type="number"
               min="0"
               step="0.01"
-              className="w-full rounded-xl border border-virada-line bg-white/5 px-3 py-2 text-white outline-none"
+              className="w-full rounded-xl border border-virada-line bg-white px-3 py-2 text-ink-900 outline-none"
             />
             <button
               onClick={handleUpdate}
-              className="rounded-xl bg-amber-300 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-amber-200"
+              className="rounded-xl bg-amber-300 px-4 py-2 text-sm font-semibold text-ink-900 transition hover:bg-amber-200"
             >
               Atualizar
             </button>
           </div>
-          {error ? <p className="text-xs text-red-400">{error}</p> : null}
+          {error ? <p className="text-xs text-red-700">{error}</p> : null}
           {onDelete ? (
             <button
               onClick={() => {
                 if (window.confirm("Excluir esta meta?")) onDelete(goal.id);
               }}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-rose-400/30 px-3 py-2 text-sm text-rose-300 transition hover:bg-rose-500/10"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-300/30 px-3 py-2 text-sm text-red-700 transition hover:bg-red-500/10"
             >
               <Trash2 className="h-4 w-4" />
               Excluir meta

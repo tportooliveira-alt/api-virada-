@@ -20,8 +20,8 @@ export default function DebtsPage() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-      <section className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
-        <h2 className="text-2xl font-semibold text-white">Cadastrar dívida</h2>
+      <section className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
+        <h2 className="text-2xl font-semibold text-ink-900">Cadastrar dívida</h2>
         <p className="mt-2 text-sm leading-6 text-virada-gray">
           Coloque a dívida no mapa. Ela pesa menos quando está organizada.
         </p>
@@ -58,7 +58,7 @@ export default function DebtsPage() {
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+              className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
               placeholder="Ex.: Cartão Nubank"
               required
             />
@@ -73,7 +73,7 @@ export default function DebtsPage() {
                 type="number"
                 min="0.01"
                 step="0.01"
-                className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+                className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
                 required
               />
             </label>
@@ -86,7 +86,7 @@ export default function DebtsPage() {
                 type="number"
                 min="0.01"
                 step="0.01"
-                className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+                className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
                 required
               />
             </label>
@@ -99,7 +99,7 @@ export default function DebtsPage() {
                 value={dueDate}
                 onChange={(event) => setDueDate(event.target.value)}
                 type="date"
-                className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+                className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
                 required
               />
             </label>
@@ -109,10 +109,10 @@ export default function DebtsPage() {
               <select
                 value={priority}
                 onChange={(event) => setPriority(event.target.value as DebtPriority)}
-                className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+                className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
               >
                 {debtPriorities.map((item) => (
-                  <option key={item} value={item} className="bg-slate-950">
+                  <option key={item} value={item} className="bg-white">
                     {item}
                   </option>
                 ))}
@@ -124,15 +124,15 @@ export default function DebtsPage() {
               <select
                 value={status}
                 onChange={(event) => setStatus(event.target.value as DebtStatus)}
-                className="rounded-md border border-virada-line bg-white/5 px-4 py-3 text-white outline-none"
+                className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
               >
-                <option value="aberta" className="bg-slate-950">
+                <option value="aberta" className="bg-white">
                   aberta
                 </option>
-                <option value="negociando" className="bg-slate-950">
+                <option value="negociando" className="bg-white">
                   negociando
                 </option>
-                <option value="quitada" className="bg-slate-950">
+                <option value="quitada" className="bg-white">
                   quitada
                 </option>
               </select>
@@ -140,22 +140,22 @@ export default function DebtsPage() {
           </div>
 
           {error ? (
-            <p className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <p className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700">
               {error}
             </p>
           ) : null}
 
           <button
             type="submit"
-            className="rounded-md bg-emerald-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400"
+            className="rounded-md bg-green-500 px-5 py-3 font-semibold text-green-900 transition hover:bg-green-400"
           >
             Salvar dívida
           </button>
         </form>
       </section>
 
-      <section className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
-        <h2 className="text-2xl font-semibold text-white">Dívidas cadastradas</h2>
+      <section className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
+        <h2 className="text-2xl font-semibold text-ink-900">Dívidas cadastradas</h2>
         <p className="mt-2 text-sm leading-6 text-virada-gray">
           Dívidas de prioridade alta aparecem com destaque para facilitar foco.
         </p>

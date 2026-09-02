@@ -22,7 +22,7 @@ function pct(a: number, b: number) {
 function Bar({ value, total, color }: { value: number; total: number; color: string }) {
   const w = total > 0 ? Math.max((value / total) * 100, 2) : 0;
   return (
-    <div className="h-1.5 w-full rounded-full bg-slate-200">
+    <div className="h-1.5 w-full rounded-full bg-ink-200">
       <div className="h-full rounded-full transition-all" style={{ width: `${w}%`, background: color }} />
     </div>
   );
@@ -31,7 +31,7 @@ function Bar({ value, total, color }: { value: number; total: number; color: str
 // ─── Célula colorida ──────────────────────────────────────────────────────────
 function Chip({ label, color }: { label: string; color: string }) {
   return (
-    <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: color + "25", color }}>
+    <span className="rounded px-1.5 py-0.5 text-xs font-semibold" style={{ background: color + "25", color }}>
       {label}
     </span>
   );
@@ -47,9 +47,9 @@ function SheetTable({ headers, rows, totalsRow }: {
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead>
-          <tr className="bg-slate-100">
+          <tr className="bg-ink-100">
             {headers.map((h, i) => (
-              <th key={i} className="whitespace-nowrap border border-virada-line px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-slate-600">
+              <th key={i} className="whitespace-nowrap border border-virada-line px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-ink-600">
                 {h}
               </th>
             ))}
@@ -57,9 +57,9 @@ function SheetTable({ headers, rows, totalsRow }: {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className={i % 2 === 0 ? "bg-white/[0.02]" : ""}>
+            <tr key={i} className={i % 2 === 0 ? "bg-ink-50" : ""}>
               {row.map((cell, j) => (
-                <td key={j} className="border border-virada-line px-3 py-2 text-slate-700">
+                <td key={j} className="border border-virada-line px-3 py-2 text-ink-700">
                   {cell}
                 </td>
               ))}
@@ -67,15 +67,15 @@ function SheetTable({ headers, rows, totalsRow }: {
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={headers.length} className="border border-virada-line px-3 py-6 text-center text-slate-500">
+              <td colSpan={headers.length} className="border border-virada-line px-3 py-6 text-center text-ink-500">
                 Nenhum dado registrado
               </td>
             </tr>
           )}
           {totalsRow && (
-            <tr className="bg-slate-100">
+            <tr className="bg-ink-100">
               {totalsRow.map((cell, j) => (
-                <td key={j} className="border border-virada-line px-3 py-2.5 text-sm font-bold text-slate-900">
+                <td key={j} className="border border-virada-line px-3 py-2.5 text-sm font-bold text-ink-900">
                   {cell}
                 </td>
               ))}
@@ -95,8 +95,8 @@ function KPI({ label, value, sub, color, emoji }: { label: string; value: string
         <span className="text-xs font-semibold uppercase tracking-wider" style={{ color }}>{label}</span>
         <span className="text-xl">{emoji}</span>
       </div>
-      <p className="mt-2 text-2xl font-extrabold text-slate-900">{value}</p>
-      {sub && <p className="mt-1 text-xs text-slate-500">{sub}</p>}
+      <p className="mt-2 text-2xl font-extrabold text-ink-900">{value}</p>
+      {sub && <p className="mt-1 text-xs text-ink-500">{sub}</p>}
     </div>
   );
 }
@@ -208,15 +208,15 @@ export default function PlanilhaDemoPage() {
             </div>
 
             {/* Gráfico de gastos */}
-            <div className="rounded-xl border border-virada-line bg-white/[0.03] p-4">
-              <p className="mb-4 text-sm font-bold text-slate-900">📊 Onde está indo seu dinheiro</p>
+            <div className="rounded-xl border border-virada-line bg-white p-4">
+              <p className="mb-4 text-sm font-bold text-ink-900">📊 Onde está indo seu dinheiro</p>
               <ExpenseChart expenses={data.expenses} incomes={data.incomes} />
             </div>
 
             {/* Gastos por categoria */}
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-virada-line bg-white/[0.03] p-4">
-                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-red-400">Gastos por Categoria</p>
+              <div className="rounded-xl border border-virada-line bg-white p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-red-700">Gastos por Categoria</p>
                 <div className="flex gap-4">
                   <MiniPie data={expByCat.map(([,v]) => ({ value: v }))} />
                   <div className="flex-1 space-y-2">
@@ -225,9 +225,9 @@ export default function PlanilhaDemoPage() {
                         <div className="flex justify-between text-xs mb-0.5">
                           <div className="flex items-center gap-1.5">
                             <div className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i] }} />
-                            <span className="text-slate-600">{cat}</span>
+                            <span className="text-ink-600">{cat}</span>
                           </div>
-                          <span className="font-semibold text-slate-900">{pct(val, totalExp)}</span>
+                          <span className="font-semibold text-ink-900">{pct(val, totalExp)}</span>
                         </div>
                         <Bar value={val} total={totalExp} color={PIE_COLORS[i]} />
                       </div>
@@ -235,13 +235,13 @@ export default function PlanilhaDemoPage() {
                   </div>
                 </div>
                 <div className="mt-3 flex justify-between border-t border-virada-line pt-2 text-xs font-bold">
-                  <span className="text-slate-400">Total</span>
-                  <span className="text-red-300">{brl(totalExp)}</span>
+                  <span className="text-ink-500">Total</span>
+                  <span className="text-red-700">{brl(totalExp)}</span>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-virada-line bg-white/[0.03] p-4">
-                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-emerald-400">Receitas por Categoria</p>
+              <div className="rounded-xl border border-virada-line bg-white p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-green-700">Receitas por Categoria</p>
                 <div className="flex gap-4">
                   <MiniPie data={incByCat.map(([,v]) => ({ value: v }))} />
                   <div className="flex-1 space-y-2">
@@ -250,9 +250,9 @@ export default function PlanilhaDemoPage() {
                         <div className="flex justify-between text-xs mb-0.5">
                           <div className="flex items-center gap-1.5">
                             <div className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i] }} />
-                            <span className="text-slate-600">{cat}</span>
+                            <span className="text-ink-600">{cat}</span>
                           </div>
-                          <span className="font-semibold text-slate-900">{pct(val, totalInc)}</span>
+                          <span className="font-semibold text-ink-900">{pct(val, totalInc)}</span>
                         </div>
                         <Bar value={val} total={totalInc} color={PIE_COLORS[i]} />
                       </div>
@@ -260,15 +260,15 @@ export default function PlanilhaDemoPage() {
                   </div>
                 </div>
                 <div className="mt-3 flex justify-between border-t border-virada-line pt-2 text-xs font-bold">
-                  <span className="text-slate-400">Total</span>
-                  <span className="text-emerald-300">{brl(totalInc)}</span>
+                  <span className="text-ink-500">Total</span>
+                  <span className="text-green-700">{brl(totalInc)}</span>
                 </div>
               </div>
             </div>
 
             {/* Status geral */}
-            <div className="rounded-xl border border-virada-line bg-white/[0.03] p-4">
-              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Status Geral</p>
+            <div className="rounded-xl border border-virada-line bg-white p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-ink-500">Status Geral</p>
               <div className="grid gap-2 text-xs">
                 {[
                   { label: "Dívidas abertas", value: data.debts.filter(d=>d.status==="aberta").length, unit: "dívidas", color: totalDebt > 0 ? "#EF4444" : "#22C55E" },
@@ -276,8 +276,8 @@ export default function PlanilhaDemoPage() {
                   { label: "Metas ativas", value: data.goals.length, unit: "metas", color: "#A855F7" },
                   { label: "Lançamentos", value: data.incomes.length + data.expenses.length, unit: "total", color: "#3B82F6" },
                 ].map(item => (
-                  <div key={item.label} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-                    <span className="text-slate-400">{item.label}</span>
+                  <div key={item.label} className="flex items-center justify-between rounded-lg bg-ink-50 px-3 py-2">
+                    <span className="text-ink-500">{item.label}</span>
                     <span className="font-bold" style={{ color: item.color }}>
                       {item.value}{item.unit ? " " + item.unit : ""}
                     </span>
@@ -306,7 +306,7 @@ export default function PlanilhaDemoPage() {
             ]}
             totalsRow={[
               "TOTAL", `${data.expenses.length + data.incomes.length} registros`,
-              <span key="t" className="text-blue-300">{brl(totalInc - totalExp)}</span>,
+              <span key="t" className="text-blue-700">{brl(totalInc - totalExp)}</span>,
               "", "", "", "", ""
             ]}
           />
@@ -317,8 +317,8 @@ export default function PlanilhaDemoPage() {
         return (
           <SheetTable
             headers={["Descrição","Valor","Categoria","Data","Escopo"]}
-            rows={data.incomes.map(i => [i.description, <span key="v" className="font-semibold text-emerald-300">{brl(i.value)}</span>, i.category, i.date, i.scope ?? "casa"])}
-            totalsRow={["TOTAL RECEITAS", <span key="t" className="text-emerald-300">{brl(totalInc)}</span>, `${data.incomes.length} registros`, "", ""]}
+            rows={data.incomes.map(i => [i.description, <span key="v" className="font-semibold text-green-700">{brl(i.value)}</span>, i.category, i.date, i.scope ?? "casa"])}
+            totalsRow={["TOTAL RECEITAS", <span key="t" className="text-green-700">{brl(totalInc)}</span>, `${data.incomes.length} registros`, "", ""]}
           />
         );
 
@@ -329,14 +329,14 @@ export default function PlanilhaDemoPage() {
             headers={["Descrição","Valor","Categoria","Data","Pagamento","Natureza"]}
             rows={data.expenses.map(e => [
               e.description,
-              <span key="v" className="font-semibold text-red-300">{brl(e.value)}</span>,
+              <span key="v" className="font-semibold text-red-700">{brl(e.value)}</span>,
               e.category, e.date,
               e.paymentMethod ?? "—",
               e.nature === "impulso"
                 ? <Chip key="n" label="IMPULSO" color="#F97316" />
                 : <Chip key="n" label="ESSENCIAL" color="#3B82F6" />,
             ])}
-            totalsRow={["TOTAL GASTOS", <span key="t" className="text-red-300">{brl(totalExp)}</span>, `${data.expenses.length} registros`, "", "", ""]}
+            totalsRow={["TOTAL GASTOS", <span key="t" className="text-red-700">{brl(totalExp)}</span>, `${data.expenses.length} registros`, "", "", ""]}
           />
         );
 
@@ -350,7 +350,7 @@ export default function PlanilhaDemoPage() {
               d.priority === "alta" ? <Chip key="p" label="ALTA" color="#EF4444" /> : d.priority === "média" ? <Chip key="p" label="MÉDIA" color="#F97316" /> : <Chip key="p" label="BAIXA" color="#22C55E" />,
               d.status === "quitada" ? <Chip key="s" label="QUITADA" color="#22C55E" /> : d.status === "negociando" ? <Chip key="s" label="NEGOCIANDO" color="#F5C542" /> : <Chip key="s" label="ABERTA" color="#EF4444" />,
             ])}
-            totalsRow={["TOTAL EM DÍVIDAS", <span key="t" className="text-red-300">{brl(totalDebt)}</span>, "", "", "", `${data.debts.filter(d=>d.status==="aberta").length} abertas`]}
+            totalsRow={["TOTAL EM DÍVIDAS", <span key="t" className="text-red-700">{brl(totalDebt)}</span>, "", "", "", `${data.debts.filter(d=>d.status==="aberta").length} abertas`]}
           />
         );
 
@@ -365,12 +365,12 @@ export default function PlanilhaDemoPage() {
               return [
                 g.name, brl(g.targetValue), brl(g.currentValue),
                 <div key="p" className="flex items-center gap-2">
-                  <div className="h-1.5 w-16 rounded-full bg-slate-200">
+                  <div className="h-1.5 w-16 rounded-full bg-ink-200">
                     <div className="h-full rounded-full bg-purple-500" style={{ width: `${Math.min(prog, 100)}%` }} />
                   </div>
-                  <span className="text-purple-300">{prog.toFixed(0)}%</span>
+                  <span className="text-purple-700">{prog.toFixed(0)}%</span>
                 </div>,
-                <span key="f" className="text-slate-400">{brl(falta)}</span>,
+                <span key="f" className="text-ink-500">{brl(falta)}</span>,
                 g.type,
               ];
             })}
@@ -384,12 +384,12 @@ export default function PlanilhaDemoPage() {
             headers={["Data","Entradas","Saídas","Saldo do Dia","Saldo Acumulado"]}
             rows={byDate.map(f => [
               f.date,
-              f.inc > 0 ? <span key="i" className="font-semibold text-emerald-300">{brl(f.inc)}</span> : "—",
-              f.exp > 0 ? <span key="e" className="font-semibold text-red-300">{brl(f.exp)}</span> : "—",
-              <span key="d" className={f.dia >= 0 ? "text-emerald-300" : "text-red-300"}>{brl(f.dia)}</span>,
-              <span key="a" className={`font-bold ${f.acc >= 0 ? "text-blue-300" : "text-orange-300"}`}>{brl(f.acc)}</span>,
+              f.inc > 0 ? <span key="i" className="font-semibold text-green-700">{brl(f.inc)}</span> : "—",
+              f.exp > 0 ? <span key="e" className="font-semibold text-red-700">{brl(f.exp)}</span> : "—",
+              <span key="d" className={f.dia >= 0 ? "text-green-700" : "text-red-700"}>{brl(f.dia)}</span>,
+              <span key="a" className={`font-bold ${f.acc >= 0 ? "text-blue-700" : "text-orange-300"}`}>{brl(f.acc)}</span>,
             ])}
-            totalsRow={["RESULTADO FINAL","","",<span key="r" className={balance>=0?"text-emerald-300":"text-red-300"}>{brl(balance)}</span>, ""]}
+            totalsRow={["RESULTADO FINAL","","",<span key="r" className={balance>=0?"text-green-700":"text-red-700"}>{brl(balance)}</span>, ""]}
           />
         );
 
@@ -402,12 +402,12 @@ export default function PlanilhaDemoPage() {
               const result = inc - exp;
               const eco = inc > 0 ? (result / inc * 100) : 0;
               return [
-                <span key="m" className="font-semibold text-slate-800">{month}</span>,
-                <span key="i" className="text-emerald-300">{brl(inc)}</span>,
-                <span key="e" className="text-red-300">{brl(exp)}</span>,
-                <span key="r" className={`font-bold ${result >= 0 ? "text-blue-300" : "text-orange-300"}`}>{brl(result)}</span>,
+                <span key="m" className="font-semibold text-ink-900">{month}</span>,
+                <span key="i" className="text-green-700">{brl(inc)}</span>,
+                <span key="e" className="text-red-700">{brl(exp)}</span>,
+                <span key="r" className={`font-bold ${result >= 0 ? "text-blue-700" : "text-orange-300"}`}>{brl(result)}</span>,
                 count,
-                <span key="p" className={eco >= 20 ? "text-emerald-300" : eco >= 0 ? "text-yellow-300" : "text-red-300"}>
+                <span key="p" className={eco >= 20 ? "text-green-700" : eco >= 0 ? "text-yellow-300" : "text-red-700"}>
                   {eco.toFixed(1)}%
                 </span>,
               ];
@@ -426,17 +426,17 @@ export default function PlanilhaDemoPage() {
       <div className="rounded-xl border border-virada-line bg-white/80 p-3 sm:p-4">
         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-500/15">
+            <div className="grid h-9 w-9 place-items-center rounded-lg bg-green-500/15">
               <span className="text-lg">📊</span>
             </div>
             <div>
-              <p className="text-[11px] text-slate-500">Google Planilhas — {data.user?.email}</p>
-              <p className="text-[13px] font-semibold text-slate-900 sm:text-sm">Virada Financeira — Dashboard Completo</p>
+              <p className="text-xs text-ink-500">Google Planilhas — {data.user?.email}</p>
+              <p className="text-[13px] font-semibold text-ink-900 sm:text-sm">Virada Financeira — Dashboard Completo</p>
             </div>
           </div>
-          <div className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1">
-            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            <span className="text-xs font-semibold text-emerald-300">Ao vivo</span>
+          <div className="flex items-center gap-1 rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1">
+            <div className="h-1.5 w-1.5 rounded-full bg-green-400" />
+            <span className="text-xs font-semibold text-green-700">Ao vivo</span>
           </div>
         </div>
       </div>
@@ -447,10 +447,10 @@ export default function PlanilhaDemoPage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-2 text-[11px] font-semibold transition sm:px-3 sm:text-xs ${
+            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-2 text-xs font-semibold transition sm:px-3 sm:text-xs ${
               activeTab === tab.key
-                ? "border-emerald-300 bg-emerald-50 text-slate-900 shadow"
-                : "border-virada-line bg-white/[0.03] text-slate-500 hover:text-slate-700"
+                ? "border-green-300 bg-green-50 text-ink-900 shadow"
+                : "border-virada-line bg-white text-ink-500 hover:text-ink-700"
             }`}
           >
             <div className="h-2 w-2 rounded-full" style={{ background: tab.color }} />
@@ -464,7 +464,7 @@ export default function PlanilhaDemoPage() {
         {renderContent()}
       </div>
 
-      <p className="text-center text-[10px] text-slate-600">
+      <p className="text-center text-xs text-ink-600">
         📊 Prévia exata da planilha que será criada no Google Drive do usuário ao sincronizar
       </p>
     </div>

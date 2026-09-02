@@ -170,7 +170,7 @@ export default function AdminMembrosPage() {
     return (
       <div className="min-h-screen bg-virada-bg p-6 text-virada-gray">
         <div className="mx-auto max-w-md rounded-lg border border-virada-line bg-virada-card p-6">
-          <h1 className="text-xl font-semibold text-white">Admin — não logado</h1>
+          <h1 className="text-xl font-semibold text-ink-900">Admin — não logado</h1>
           <p className="mt-2 text-sm">
             Você precisa estar logado no app para acessar o admin. Vá para{" "}
             <a href="/app/inicio" className="text-virada-gold underline">
@@ -187,7 +187,7 @@ export default function AdminMembrosPage() {
     return (
       <div className="min-h-screen bg-virada-bg p-6 text-virada-gray">
         <div className="mx-auto max-w-md rounded-lg border border-virada-line bg-virada-card p-6">
-          <h1 className="text-xl font-semibold text-white">Acesso negado</h1>
+          <h1 className="text-xl font-semibold text-ink-900">Acesso negado</h1>
           <p className="mt-2 text-sm">{authError}</p>
           <p className="mt-3 text-xs text-virada-slate">
             Email atual: <code className="text-virada-gold">{adminEmail}</code>
@@ -208,7 +208,7 @@ export default function AdminMembrosPage() {
           <span className="text-xs font-semibold uppercase tracking-[0.22em] text-virada-gold">
             Admin
           </span>
-          <h1 className="mt-1 text-2xl font-semibold text-white md:text-3xl">Membros</h1>
+          <h1 className="mt-1 text-2xl font-semibold text-ink-900 md:text-3xl">Membros</h1>
           <p className="mt-1 text-sm text-virada-gray">
             Logado como <code className="text-virada-gold">{adminEmail}</code>
           </p>
@@ -232,9 +232,9 @@ export default function AdminMembrosPage() {
               {Object.entries(summary.por_plataforma).map(([plat, count]) => (
                 <span
                   key={plat}
-                  className="rounded-full border border-virada-line bg-white/[0.045] px-3 py-1 text-xs text-virada-gray"
+                  className="rounded-full border border-virada-line bg-white px-3 py-1 text-xs text-virada-gray"
                 >
-                  {plat}: <span className="text-white">{count}</span>
+                  {plat}: <span className="text-ink-900">{count}</span>
                 </span>
               ))}
             </div>
@@ -247,12 +247,12 @@ export default function AdminMembrosPage() {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Buscar por email, nome, produto..."
-            className="flex-1 min-w-[200px] rounded border border-virada-line bg-virada-bgSoft px-3 py-2 text-sm text-white placeholder:text-virada-slate focus:border-virada-gold focus:outline-none"
+            className="flex-1 min-w-[200px] rounded border border-virada-line bg-virada-bgSoft px-3 py-2 text-sm text-ink-900 placeholder:text-virada-slate focus:border-virada-gold focus:outline-none"
           />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            className="rounded border border-virada-line bg-virada-bgSoft px-3 py-2 text-sm text-white focus:border-virada-gold focus:outline-none"
+            className="rounded border border-virada-line bg-virada-bgSoft px-3 py-2 text-sm text-ink-900 focus:border-virada-gold focus:outline-none"
           >
             <option value="todos">Todos</option>
             <option value="ativo">Ativos</option>
@@ -267,7 +267,7 @@ export default function AdminMembrosPage() {
           </button>
           <button
             onClick={refresh}
-            className="rounded border border-virada-line px-4 py-2 text-sm text-white hover:bg-white/[0.06]"
+            className="rounded border border-virada-line px-4 py-2 text-sm text-ink-900 hover:bg-ink-100"
           >
             Atualizar
           </button>
@@ -278,7 +278,7 @@ export default function AdminMembrosPage() {
             onSubmit={handleManualAdd}
             className="space-y-3 rounded-lg border border-virada-line bg-virada-card p-4"
           >
-            <h3 className="text-sm font-semibold text-white">Cadastro manual</h3>
+            <h3 className="text-sm font-semibold text-ink-900">Cadastro manual</h3>
             <div className="grid gap-3 sm:grid-cols-3">
               <input
                 type="email"
@@ -286,21 +286,21 @@ export default function AdminMembrosPage() {
                 value={formEmail}
                 onChange={(e) => setFormEmail(e.target.value)}
                 placeholder="email@cliente.com"
-                className="rounded border border-virada-line bg-virada-bgSoft px-3 py-2 text-sm text-white placeholder:text-virada-slate"
+                className="rounded border border-virada-line bg-virada-bgSoft px-3 py-2 text-sm text-ink-900 placeholder:text-virada-slate"
               />
               <input
                 type="text"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="Nome (opcional)"
-                className="rounded border border-virada-line bg-virada-bgSoft px-3 py-2 text-sm text-white placeholder:text-virada-slate"
+                className="rounded border border-virada-line bg-virada-bgSoft px-3 py-2 text-sm text-ink-900 placeholder:text-virada-slate"
               />
               <input
                 type="text"
                 value={formProduct}
                 onChange={(e) => setFormProduct(e.target.value)}
                 placeholder="Produto (opcional)"
-                className="rounded border border-virada-line bg-virada-bgSoft px-3 py-2 text-sm text-white placeholder:text-virada-slate"
+                className="rounded border border-virada-line bg-virada-bgSoft px-3 py-2 text-sm text-ink-900 placeholder:text-virada-slate"
               />
             </div>
             <button
@@ -339,7 +339,7 @@ export default function AdminMembrosPage() {
               <tbody>
                 {filtered.map((m) => (
                   <tr key={m.email} className="border-b border-virada-line/50 last:border-0">
-                    <td className="px-3 py-2 text-white">{m.email}</td>
+                    <td className="px-3 py-2 text-ink-900">{m.email}</td>
                     <td className="px-3 py-2">{m.name || "—"}</td>
                     <td className="px-3 py-2 text-virada-gray">{m.platform}</td>
                     <td className="px-3 py-2">{m.product || "—"}</td>
@@ -358,7 +358,7 @@ export default function AdminMembrosPage() {
                             e.target.value as "ativo" | "cancelado" | "reembolsado"
                           )
                         }
-                        className="rounded border border-virada-line bg-virada-bgSoft px-2 py-1 text-xs text-white"
+                        className="rounded border border-virada-line bg-virada-bgSoft px-2 py-1 text-xs text-ink-900"
                       >
                         <option value="ativo">Ativar</option>
                         <option value="cancelado">Cancelar</option>
@@ -386,7 +386,7 @@ function KpiCard({ label, value, highlight }: { label: string; value: number; hi
       <span className="text-xs font-semibold uppercase tracking-wider text-virada-slate">
         {label}
       </span>
-      <div className={`mt-1 text-3xl font-semibold ${highlight ? "text-virada-gold" : "text-white"}`}>
+      <div className={`mt-1 text-3xl font-semibold ${highlight ? "text-virada-gold" : "text-ink-900"}`}>
         {value}
       </div>
     </div>
@@ -396,8 +396,8 @@ function KpiCard({ label, value, highlight }: { label: string; value: number; hi
 function StatusBadge({ status }: { status: "ativo" | "cancelado" | "reembolsado" }) {
   const styles: Record<typeof status, string> = {
     ativo: "bg-virada-green/15 text-virada-green border-virada-green/30",
-    cancelado: "bg-white/[0.045] text-virada-gray border-virada-line",
-    reembolsado: "bg-red-500/15 text-red-400 border-red-500/30",
+    cancelado: "bg-white text-virada-gray border-virada-line",
+    reembolsado: "bg-red-500/15 text-red-700 border-red-500/30",
   };
   return (
     <span className={`inline-block rounded-full border px-2 py-0.5 text-xs ${styles[status]}`}>

@@ -16,8 +16,8 @@ export default function ExpensesPage() {
   return (
     <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
       <section className="space-y-6">
-        <article className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
-          <h2 className="text-2xl font-semibold text-white">Cadastrar gasto</h2>
+        <article className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
+          <h2 className="text-2xl font-semibold text-ink-900">Cadastrar gasto</h2>
           <p className="mt-2 text-sm leading-6 text-virada-gray">
             Registrar é o primeiro corte. O que aparece deixa de drenar no escuro.
           </p>
@@ -26,18 +26,18 @@ export default function ExpensesPage() {
           </div>
         </article>
 
-        <article className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
-          <h3 className="text-xl font-semibold text-white">Leitura rápida dos gastos</h3>
+        <article className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
+          <h3 className="text-xl font-semibold text-ink-900">Leitura rápida dos gastos</h3>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg bg-slate-950/30 p-4">
+            <div className="rounded-lg bg-ink-50 p-4">
               <p className="text-sm text-virada-gray">Total de gastos</p>
-              <strong className="mt-2 block text-2xl text-white">
+              <strong className="mt-2 block text-2xl text-ink-900">
                 {formatCurrency(data.expenses.reduce((total, item) => total + item.value, 0))}
               </strong>
             </div>
-            <div className="rounded-lg bg-slate-950/30 p-4">
+            <div className="rounded-lg bg-ink-50 p-4">
               <p className="text-sm text-virada-gray">Gastos por impulso</p>
-              <strong className="mt-2 block text-2xl text-amber-300">
+              <strong className="mt-2 block text-2xl text-amber-700">
                 {formatCurrency(impulseTotal)}
               </strong>
             </div>
@@ -58,8 +58,8 @@ export default function ExpensesPage() {
         </article>
       </section>
 
-      <section className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
-        <h2 className="text-2xl font-semibold text-white">Gastos cadastrados</h2>
+      <section className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
+        <h2 className="text-2xl font-semibold text-ink-900">Gastos cadastrados</h2>
         <p className="mt-2 text-sm leading-6 text-virada-gray">
           Exclua o que foi lançado errado. O objetivo aqui é clareza.
         </p>

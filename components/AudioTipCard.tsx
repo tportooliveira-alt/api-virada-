@@ -27,19 +27,19 @@ export function AudioTipCard({ text }: AudioTipCardProps) {
   }
 
   return (
-    <section className="rounded-lg border border-virada-line bg-white/[0.045] p-5 shadow-panel">
+    <section className="rounded-lg border border-virada-line bg-white p-5 shadow-card">
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-virada-gold">
         Dica rápida
       </p>
       <p className="mt-3 text-sm leading-6 text-virada-gray">{text}</p>
       <button
         onClick={speak}
-        className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-emerald-500 px-5 py-3 font-semibold text-slate-950"
+        className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-green-500 px-5 py-3 font-semibold text-green-900"
       >
         <Volume2 className="h-5 w-5" />
         Ouvir dica
       </button>
-      {message ? <p className="mt-3 text-sm text-emerald-300">{message}</p> : null}
+      {message ? <p className="mt-3 text-sm text-green-700">{message}</p> : null}
     </section>
   );
 }

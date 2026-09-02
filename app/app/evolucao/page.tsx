@@ -31,7 +31,7 @@ const COLORS = [
 function Chip({ label, color }: { label: string; color: string }) {
   return (
     <span
-      className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+      className="inline-block rounded px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide"
       style={{ background: color + "22", color }}
     >
       {label}
@@ -43,7 +43,7 @@ function Chip({ label, color }: { label: string; color: string }) {
 function Bar({ value, total, color }: { value: number; total: number; color: string }) {
   const w = total > 0 ? Math.max((value / total) * 100, 2) : 0;
   return (
-    <div className="h-1.5 w-full rounded-full bg-slate-200">
+    <div className="h-1.5 w-full rounded-full bg-ink-200">
       <div className="h-full rounded-full transition-all" style={{ width: `${w}%`, background: color }} />
     </div>
   );
@@ -59,13 +59,13 @@ function KPI({
       style={{ borderColor: color + "2b" }}
     >
       <div className="flex items-start justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color }}>
+        <p className="text-xs font-bold uppercase tracking-widest" style={{ color }}>
           {label}
         </p>
         <span className="text-base">{emoji}</span>
       </div>
       <p className="mt-1.5 font-display text-xl font-extrabold text-[#133335]">{value}</p>
-      {sub && <p className="mt-0.5 text-[11px] text-slate-500">{sub}</p>}
+      {sub && <p className="mt-0.5 text-xs text-ink-500">{sub}</p>}
     </div>
   );
 }
@@ -178,7 +178,7 @@ function ProTable({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-virada-line bg-white/[0.02] py-10 text-center text-sm text-slate-500">
+      <div className="rounded-xl border border-virada-line bg-ink-50 py-10 text-center text-sm text-ink-500">
         Nenhum dado para exibir com os filtros aplicados
       </div>
     );
@@ -187,11 +187,11 @@ function ProTable({
     <div className="overflow-x-auto rounded-xl border border-virada-line">
       <table className="w-full min-w-max text-xs">
         <thead>
-          <tr className="bg-slate-100">
+          <tr className="bg-ink-100">
             {headers.map((h, i) => (
               <th
                 key={i}
-                className="border-b border-virada-line px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-600 whitespace-nowrap"
+                className="border-b border-virada-line px-3 py-2.5 text-left text-xs font-bold uppercase tracking-widest text-ink-600 whitespace-nowrap"
               >
                 {h}
               </th>
@@ -200,11 +200,11 @@ function ProTable({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className={i % 2 === 0 ? "bg-slate-50/60" : ""}>
+            <tr key={i} className={i % 2 === 0 ? "bg-ink-50/60" : ""}>
               {row.map((cell, j) => (
                 <td
                   key={j}
-                  className="border-b border-virada-line px-3 py-2 text-slate-700 whitespace-nowrap"
+                  className="border-b border-virada-line px-3 py-2 text-ink-700 whitespace-nowrap"
                 >
                   {cell}
                 </td>
@@ -214,11 +214,11 @@ function ProTable({
         </tbody>
         {totals && (
           <tfoot>
-            <tr className="bg-slate-100">
+            <tr className="bg-ink-100">
               {totals.map((cell, j) => (
                 <td
                   key={j}
-                  className="border-t border-virada-line px-3 py-2.5 text-[11px] font-bold text-slate-900 whitespace-nowrap"
+                  className="border-t border-virada-line px-3 py-2.5 text-xs font-bold text-ink-900 whitespace-nowrap"
                 >
                   {cell}
                 </td>
@@ -260,16 +260,16 @@ function TxRow({
       <td className="border-b border-virada-line px-3 py-2 whitespace-nowrap">
         <Chip label={tipo} color={isExpense ? "#EF4444" : "#22C55E"} />
       </td>
-      <td className="border-b border-virada-line px-3 py-2 text-slate-700 max-w-[120px] truncate whitespace-nowrap">
+      <td className="border-b border-virada-line px-3 py-2 text-ink-700 max-w-[120px] truncate whitespace-nowrap">
         {tx.description}
       </td>
       <td className="border-b border-virada-line px-3 py-2 whitespace-nowrap">
-        <span className={`font-semibold ${isExpense ? "text-red-300" : "text-emerald-300"}`}>
+        <span className={`font-semibold ${isExpense ? "text-red-700" : "text-green-700"}`}>
           {brl(tx.value)}
         </span>
       </td>
-      <td className="border-b border-virada-line px-3 py-2 text-slate-500 whitespace-nowrap">{tx.category}</td>
-      <td className="border-b border-virada-line px-3 py-2 text-slate-500 whitespace-nowrap">{tx.date}</td>
+      <td className="border-b border-virada-line px-3 py-2 text-ink-500 whitespace-nowrap">{tx.category}</td>
+      <td className="border-b border-virada-line px-3 py-2 text-ink-500 whitespace-nowrap">{tx.date}</td>
       <td className="border-b border-virada-line px-3 py-2 whitespace-nowrap">
         {"paymentMethod" in tx ? tx.paymentMethod : "—"}
       </td>
@@ -289,21 +289,21 @@ function TxRow({
             <button
               onClick={() => setConfirm("estorno")}
               title="Estornar (cria lançamento de reversão)"
-              className="rounded p-1.5 text-slate-600 transition hover:bg-amber-500/10 hover:text-amber-300"
+              className="rounded p-1.5 text-ink-600 transition hover:bg-amber-500/10 hover:text-amber-700"
             >
               <RotateCcw className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => setConfirm("delete")}
               title="Excluir permanentemente"
-              className="rounded p-1.5 text-slate-600 transition hover:bg-red-500/10 hover:text-red-400"
+              className="rounded p-1.5 text-ink-600 transition hover:bg-red-500/10 hover:text-red-700"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
         ) : (
           <div className="flex items-center gap-1">
-            <span className="text-[10px] text-slate-400">
+            <span className="text-xs text-ink-500">
               {confirm === "delete" ? "Excluir?" : "Estornar?"}
             </span>
             <button
@@ -315,13 +315,13 @@ function TxRow({
                 }
                 setConfirm(null);
               }}
-              className="rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-bold text-red-300 hover:bg-red-500/30"
+              className="rounded bg-red-50 px-1.5 py-0.5 text-xs font-bold text-red-700 hover:bg-red-100"
             >
               Sim
             </button>
             <button
               onClick={() => setConfirm(null)}
-              className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-500 hover:text-slate-900"
+              className="rounded bg-white px-1.5 py-0.5 text-xs text-ink-500 hover:text-ink-900"
             >
               Não
             </button>
@@ -459,12 +459,12 @@ export default function EvolucaoPage() {
             {/* Gráfico de categorias */}
             <div className="grid gap-4 md:grid-cols-2">
               {/* Gastos por categoria */}
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-                <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-red-400">
+              <div className="rounded-2xl border border-ink-200 bg-white p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-700">
                   Gastos por Categoria
                 </p>
                 {filteredExpenses.length === 0 ? (
-                  <p className="py-4 text-center text-xs text-slate-500">Sem gastos no período</p>
+                  <p className="py-4 text-center text-xs text-ink-500">Sem gastos no período</p>
                 ) : (
                   <div className="flex gap-4">
                     <PieChart
@@ -475,19 +475,19 @@ export default function EvolucaoPage() {
                     <div className="flex-1 space-y-2">
                       {expByCat.slice(0, 6).map(([cat, val], i) => (
                         <div key={cat}>
-                          <div className="mb-0.5 flex items-center justify-between text-[11px]">
+                          <div className="mb-0.5 flex items-center justify-between text-xs">
                             <div className="flex items-center gap-1.5">
                               <div className="h-2 w-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-                              <span className="text-slate-600 truncate max-w-[80px]">{cat}</span>
+                              <span className="text-ink-600 truncate max-w-[80px]">{cat}</span>
                             </div>
-                            <span className="font-semibold text-slate-900 shrink-0">{pct(val, totalExp)}</span>
+                            <span className="font-semibold text-ink-900 shrink-0">{pct(val, totalExp)}</span>
                           </div>
                           <Bar value={val} total={totalExp} color={COLORS[i % COLORS.length]} />
                         </div>
                       ))}
-                      <div className="mt-2 flex justify-between border-t border-white/10 pt-2 text-xs font-bold">
-                        <span className="text-slate-500">Total</span>
-                        <span className="text-red-300">{brl(totalExp)}</span>
+                      <div className="mt-2 flex justify-between border-t border-ink-200 pt-2 text-xs font-bold">
+                        <span className="text-ink-500">Total</span>
+                        <span className="text-red-700">{brl(totalExp)}</span>
                       </div>
                     </div>
                   </div>
@@ -495,12 +495,12 @@ export default function EvolucaoPage() {
               </div>
 
               {/* Receitas por categoria */}
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-                <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+              <div className="rounded-2xl border border-ink-200 bg-white p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-widest text-green-700">
                   Receitas por Categoria
                 </p>
                 {filteredIncomes.length === 0 ? (
-                  <p className="py-4 text-center text-xs text-slate-500">Sem receitas no período</p>
+                  <p className="py-4 text-center text-xs text-ink-500">Sem receitas no período</p>
                 ) : (
                   <div className="flex gap-4">
                     <PieChart
@@ -511,19 +511,19 @@ export default function EvolucaoPage() {
                     <div className="flex-1 space-y-2">
                       {incByCat.slice(0, 6).map(([cat, val], i) => (
                         <div key={cat}>
-                          <div className="mb-0.5 flex items-center justify-between text-[11px]">
+                          <div className="mb-0.5 flex items-center justify-between text-xs">
                             <div className="flex items-center gap-1.5">
                               <div className="h-2 w-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-                              <span className="text-slate-600 truncate max-w-[80px]">{cat}</span>
+                              <span className="text-ink-600 truncate max-w-[80px]">{cat}</span>
                             </div>
-                            <span className="font-semibold text-slate-900 shrink-0">{pct(val, totalInc)}</span>
+                            <span className="font-semibold text-ink-900 shrink-0">{pct(val, totalInc)}</span>
                           </div>
                           <Bar value={val} total={totalInc} color={COLORS[i % COLORS.length]} />
                         </div>
                       ))}
-                      <div className="mt-2 flex justify-between border-t border-white/10 pt-2 text-xs font-bold">
-                        <span className="text-slate-500">Total</span>
-                        <span className="text-emerald-300">{brl(totalInc)}</span>
+                      <div className="mt-2 flex justify-between border-t border-ink-200 pt-2 text-xs font-bold">
+                        <span className="text-ink-500">Total</span>
+                        <span className="text-green-700">{brl(totalInc)}</span>
                       </div>
                     </div>
                   </div>
@@ -533,8 +533,8 @@ export default function EvolucaoPage() {
 
             {/* Gráfico mensal de barras */}
             {byMonth.length > 0 && (
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-                <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              <div className="rounded-2xl border border-ink-200 bg-white p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-widest text-ink-500">
                   Comparativo Mensal — Entradas vs Gastos
                 </p>
                 <MonthBarChart
@@ -547,27 +547,27 @@ export default function EvolucaoPage() {
 
             {/* Indicadores extras */}
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-center">
-                <p className="text-[10px] text-slate-500">Gastos por Impulso</p>
-                <p className="mt-1 text-base font-bold text-amber-300">{brl(impulsoTotal)}</p>
-                <p className="text-[10px] text-slate-600">{pct(impulsoTotal, totalExp)} dos gastos</p>
+              <div className="rounded-xl border border-ink-200 bg-white p-3 text-center">
+                <p className="text-xs text-ink-500">Gastos por Impulso</p>
+                <p className="mt-1 text-base font-bold text-amber-700">{brl(impulsoTotal)}</p>
+                <p className="text-xs text-ink-600">{pct(impulsoTotal, totalExp)} dos gastos</p>
               </div>
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-center">
-                <p className="text-[10px] text-slate-500">Dívidas Abertas</p>
-                <p className="mt-1 text-base font-bold text-red-300">{brl(totalDebt)}</p>
-                <p className="text-[10px] text-slate-600">{openDebts.length} dívidas</p>
+              <div className="rounded-xl border border-ink-200 bg-white p-3 text-center">
+                <p className="text-xs text-ink-500">Dívidas Abertas</p>
+                <p className="mt-1 text-base font-bold text-red-700">{brl(totalDebt)}</p>
+                <p className="text-xs text-ink-600">{openDebts.length} dívidas</p>
               </div>
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-center">
-                <p className="text-[10px] text-slate-500">Lançamentos</p>
-                <p className="mt-1 text-base font-bold text-blue-300">
+              <div className="rounded-xl border border-ink-200 bg-white p-3 text-center">
+                <p className="text-xs text-ink-500">Lançamentos</p>
+                <p className="mt-1 text-base font-bold text-blue-700">
                   {filteredIncomes.length + filteredExpenses.length}
                 </p>
-                <p className="text-[10px] text-slate-600">no período</p>
+                <p className="text-xs text-ink-600">no período</p>
               </div>
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-center">
-                <p className="text-[10px] text-slate-500">Metas Ativas</p>
-                <p className="mt-1 text-base font-bold text-purple-300">{data.goals.length}</p>
-                <p className="text-[10px] text-slate-600">em andamento</p>
+              <div className="rounded-xl border border-ink-200 bg-white p-3 text-center">
+                <p className="text-xs text-ink-500">Metas Ativas</p>
+                <p className="mt-1 text-base font-bold text-purple-700">{data.goals.length}</p>
+                <p className="text-xs text-ink-600">em andamento</p>
               </div>
             </div>
           </div>
@@ -582,7 +582,7 @@ export default function EvolucaoPage() {
 
         if (allTx.length === 0) {
           return (
-            <div className="rounded-xl border border-virada-line bg-white/[0.02] py-10 text-center text-sm text-slate-500">
+            <div className="rounded-xl border border-virada-line bg-ink-50 py-10 text-center text-sm text-ink-500">
               Nenhum dado para exibir com os filtros aplicados
             </div>
           );
@@ -592,9 +592,9 @@ export default function EvolucaoPage() {
           <div className="overflow-x-auto rounded-xl border border-virada-line">
             <table className="w-full min-w-max text-xs">
               <thead>
-                <tr className="bg-slate-100">
+                <tr className="bg-ink-100">
                   {["Tipo","Descrição","Valor","Categoria","Data","Pagto","Natureza","Escopo","Ações"].map((h, i) => (
-                    <th key={i} className="border-b border-virada-line px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-600 whitespace-nowrap">{h}</th>
+                    <th key={i} className="border-b border-virada-line px-3 py-2.5 text-left text-xs font-bold uppercase tracking-widest text-ink-600 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -610,11 +610,11 @@ export default function EvolucaoPage() {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-slate-100">
-                  <td className="border-t border-virada-line px-3 py-2.5 text-[11px] font-bold text-slate-900">TOTAL</td>
-                  <td className="border-t border-virada-line px-3 py-2.5 text-[11px] font-bold text-slate-900">{allTx.length} registros</td>
-                  <td className="border-t border-virada-line px-3 py-2.5 text-[11px] font-bold">
-                    <span className={balance >= 0 ? "text-emerald-300" : "text-red-300"}>{brl(balance)}</span>
+                <tr className="bg-ink-100">
+                  <td className="border-t border-virada-line px-3 py-2.5 text-xs font-bold text-ink-900">TOTAL</td>
+                  <td className="border-t border-virada-line px-3 py-2.5 text-xs font-bold text-ink-900">{allTx.length} registros</td>
+                  <td className="border-t border-virada-line px-3 py-2.5 text-xs font-bold">
+                    <span className={balance >= 0 ? "text-green-700" : "text-red-700"}>{brl(balance)}</span>
                   </td>
                   {Array(6).fill(null).map((_, i) => <td key={i} className="border-t border-virada-line px-3 py-2.5" />)}
                 </tr>
@@ -633,12 +633,12 @@ export default function EvolucaoPage() {
               .sort((a, b) => b.date.localeCompare(a.date))
               .map(i => [
                 i.description,
-                <span key="v" className="font-semibold text-emerald-300">{brl(i.value)}</span>,
+                <span key="v" className="font-semibold text-green-700">{brl(i.value)}</span>,
                 i.category, i.date, i.scope ?? "casa",
               ])}
             totals={[
               "TOTAL RECEITAS",
-              <span key="t" className="text-emerald-300">{brl(totalInc)}</span>,
+              <span key="t" className="text-green-700">{brl(totalInc)}</span>,
               `${filteredIncomes.length} registros`, "", "",
             ]}
           />
@@ -651,14 +651,14 @@ export default function EvolucaoPage() {
             {/* Mini resumo despesas */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3">
-                <p className="text-[10px] text-slate-500">Total Essencial</p>
-                <p className="mt-1 font-bold text-blue-300">
+                <p className="text-xs text-ink-500">Total Essencial</p>
+                <p className="mt-1 font-bold text-blue-700">
                   {brl(filteredExpenses.filter(e => e.nature === "essencial").reduce((s, e) => s + e.value, 0))}
                 </p>
               </div>
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
-                <p className="text-[10px] text-slate-500">Total Impulso</p>
-                <p className="mt-1 font-bold text-amber-300">{brl(impulsoTotal)}</p>
+                <p className="text-xs text-ink-500">Total Impulso</p>
+                <p className="mt-1 font-bold text-amber-700">{brl(impulsoTotal)}</p>
               </div>
             </div>
             <ProTable
@@ -667,7 +667,7 @@ export default function EvolucaoPage() {
                 .sort((a, b) => b.date.localeCompare(a.date))
                 .map(e => [
                   e.description,
-                  <span key="v" className="font-semibold text-red-300">{brl(e.value)}</span>,
+                  <span key="v" className="font-semibold text-red-700">{brl(e.value)}</span>,
                   e.category, e.date, e.paymentMethod,
                   e.nature === "impulso"
                     ? <Chip key="n" label="Impulso" color="#F97316" />
@@ -676,7 +676,7 @@ export default function EvolucaoPage() {
                 ])}
               totals={[
                 "TOTAL GASTOS",
-                <span key="t" className="text-red-300">{brl(totalExp)}</span>,
+                <span key="t" className="text-red-700">{brl(totalExp)}</span>,
                 `${filteredExpenses.length} registros`, "", "", "", "",
               ]}
             />
@@ -693,8 +693,8 @@ export default function EvolucaoPage() {
                 { label: "Negociando", val: data.debts.filter(d=>d.status==="negociando").length, color: "#F5C542" },
                 { label: "Quitadas", val: data.debts.filter(d=>d.status==="quitada").length, color: "#22C55E" },
               ].map(item => (
-                <div key={item.label} className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-center">
-                  <p className="text-[10px] text-slate-500">{item.label}</p>
+                <div key={item.label} className="rounded-xl border border-ink-200 bg-white p-3 text-center">
+                  <p className="text-xs text-ink-500">{item.label}</p>
                   <p className="mt-1 text-lg font-bold" style={{ color: item.color }}>{item.val}</p>
                 </div>
               ))}
@@ -719,7 +719,7 @@ export default function EvolucaoPage() {
                 <button
                   key="del"
                   onClick={() => { if (window.confirm("Excluir esta dívida?")) void data.removeDebt(d.id); }}
-                  className="rounded p-1 text-slate-600 transition hover:bg-red-500/10 hover:text-red-400"
+                  className="rounded p-1 text-ink-600 transition hover:bg-red-500/10 hover:text-red-700"
                   title="Excluir dívida"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -727,7 +727,7 @@ export default function EvolucaoPage() {
               ])}
               totals={[
                 "TOTAL ABERTO",
-                <span key="t" className="text-red-300">{brl(totalDebt)}</span>,
+                <span key="t" className="text-red-700">{brl(totalDebt)}</span>,
                 "", "", "", `${openDebts.length} abertas`, "",
               ]}
             />
@@ -745,22 +745,22 @@ export default function EvolucaoPage() {
               return [
                 g.name,
                 brl(g.targetValue),
-                <span key="a" className="text-emerald-300">{brl(g.currentValue)}</span>,
+                <span key="a" className="text-green-700">{brl(g.currentValue)}</span>,
                 <div key="p" className="flex items-center gap-2 min-w-[80px]">
-                  <div className="h-1.5 flex-1 rounded-full bg-slate-200">
+                  <div className="h-1.5 flex-1 rounded-full bg-ink-200">
                     <div
                       className="h-full rounded-full bg-purple-500"
                       style={{ width: `${Math.min(prog, 100)}%` }}
                     />
                   </div>
-                  <span className="shrink-0 text-purple-300 text-[10px]">{prog.toFixed(0)}%</span>
+                  <span className="shrink-0 text-purple-700 text-xs">{prog.toFixed(0)}%</span>
                 </div>,
-                <span key="f" className="text-slate-400">{brl(falta)}</span>,
+                <span key="f" className="text-ink-500">{brl(falta)}</span>,
                 g.type,
                 <button
                   key="del"
                   onClick={() => { if (window.confirm("Excluir esta meta?")) void data.removeGoal(g.id); }}
-                  className="rounded p-1 text-slate-600 transition hover:bg-red-500/10 hover:text-red-400"
+                  className="rounded p-1 text-ink-600 transition hover:bg-red-500/10 hover:text-red-700"
                   title="Excluir meta"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -778,21 +778,21 @@ export default function EvolucaoPage() {
             rows={byDate.map(f => [
               f.date,
               f.inc > 0
-                ? <span key="i" className="font-semibold text-emerald-300">{brl(f.inc)}</span>
-                : <span key="i" className="text-slate-600">—</span>,
+                ? <span key="i" className="font-semibold text-green-700">{brl(f.inc)}</span>
+                : <span key="i" className="text-ink-600">—</span>,
               f.exp > 0
-                ? <span key="e" className="font-semibold text-red-300">{brl(f.exp)}</span>
-                : <span key="e" className="text-slate-600">—</span>,
-              <span key="d" className={f.dia >= 0 ? "font-semibold text-emerald-300" : "font-semibold text-red-300"}>
+                ? <span key="e" className="font-semibold text-red-700">{brl(f.exp)}</span>
+                : <span key="e" className="text-ink-600">—</span>,
+              <span key="d" className={f.dia >= 0 ? "font-semibold text-green-700" : "font-semibold text-red-700"}>
                 {brl(f.dia)}
               </span>,
-              <span key="a" className={`font-bold ${f.acc >= 0 ? "text-blue-300" : "text-orange-300"}`}>
+              <span key="a" className={`font-bold ${f.acc >= 0 ? "text-blue-700" : "text-orange-300"}`}>
                 {brl(f.acc)}
               </span>,
             ])}
             totals={[
               "RESULTADO FINAL", "", "",
-              <span key="r" className={balance >= 0 ? "text-emerald-300" : "text-red-300"}>
+              <span key="r" className={balance >= 0 ? "text-green-700" : "text-red-700"}>
                 {brl(balance)}
               </span>,
               "",
@@ -805,8 +805,8 @@ export default function EvolucaoPage() {
         return (
           <div className="space-y-4">
             {byMonth.length > 0 && (
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-                <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              <div className="rounded-2xl border border-ink-200 bg-white p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-widest text-ink-500">
                   Evolução Mensal
                 </p>
                 <MonthBarChart
@@ -822,14 +822,14 @@ export default function EvolucaoPage() {
                 const result = inc - exp;
                 const eco = inc > 0 ? (result / inc * 100) : 0;
                 return [
-                  <span key="m" className="font-semibold text-slate-800">{monthLabel(month)}</span>,
-                  <span key="i" className="text-emerald-300">{brl(inc)}</span>,
-                  <span key="e" className="text-red-300">{brl(exp)}</span>,
-                  <span key="r" className={`font-bold ${result >= 0 ? "text-blue-300" : "text-orange-300"}`}>
+                  <span key="m" className="font-semibold text-ink-900">{monthLabel(month)}</span>,
+                  <span key="i" className="text-green-700">{brl(inc)}</span>,
+                  <span key="e" className="text-red-700">{brl(exp)}</span>,
+                  <span key="r" className={`font-bold ${result >= 0 ? "text-blue-700" : "text-orange-300"}`}>
                     {brl(result)}
                   </span>,
-                  <span key="c" className="text-slate-400">{count}</span>,
-                  <span key="p" className={eco >= 20 ? "text-emerald-300" : eco >= 0 ? "text-yellow-300" : "text-red-300"}>
+                  <span key="c" className="text-ink-500">{count}</span>,
+                  <span key="p" className={eco >= 20 ? "text-green-700" : eco >= 0 ? "text-yellow-300" : "text-red-700"}>
                     {eco.toFixed(1)}%
                   </span>,
                 ];
@@ -852,14 +852,14 @@ export default function EvolucaoPage() {
       <section className="surface-card border-[#0EA978]/20 p-4 sm:p-5">
         <div className="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+            <p className="text-xs font-bold uppercase tracking-widest text-green-700">
               Backup organizado
             </p>
             <p className="mt-1 text-lg font-semibold text-[#133335]">Sincronizar com Google Planilhas</p>
           </div>
           <a
             href="/app/planilha-demo"
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-virada-line bg-white/70 px-3 py-2 text-xs text-slate-600 transition hover:text-slate-900 sm:w-auto sm:justify-start sm:py-1.5"
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-virada-line bg-white/70 px-3 py-2 text-xs text-ink-600 transition hover:text-ink-900 sm:w-auto sm:justify-start sm:py-1.5"
           >
             <FileSpreadsheet className="h-3.5 w-3.5" />
             Ver prévia
@@ -883,7 +883,7 @@ export default function EvolucaoPage() {
           {isFiltered && (
             <button
               onClick={() => { setMonthFilter("all"); setTypeFilter("all"); setCategoryFilter("all"); }}
-              className="text-[10px] text-slate-500 hover:text-red-400 transition"
+              className="text-xs text-ink-500 hover:text-red-700 transition"
             >
               ✕ Limpar filtros
             </button>
@@ -892,11 +892,11 @@ export default function EvolucaoPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {/* Mês */}
           <label className="grid gap-1">
-            <span className="text-[10px] text-slate-500">Período</span>
+            <span className="text-xs text-ink-500">Período</span>
             <select
               value={monthFilter}
               onChange={e => setMonthFilter(e.target.value)}
-              className="rounded-xl border border-virada-line bg-white px-3 py-2 text-xs text-slate-900 outline-none"
+              className="rounded-xl border border-virada-line bg-white px-3 py-2 text-xs text-ink-900 outline-none"
             >
               <option value="all">Todos os meses</option>
               {availableMonths.map(m => (
@@ -907,11 +907,11 @@ export default function EvolucaoPage() {
 
           {/* Tipo */}
           <label className="grid gap-1">
-            <span className="text-[10px] text-slate-500">Tipo</span>
+            <span className="text-xs text-ink-500">Tipo</span>
             <select
               value={typeFilter}
               onChange={e => handleTypeFilter(e.target.value as "all" | "receita" | "gasto")}
-              className="rounded-xl border border-virada-line bg-white px-3 py-2 text-xs text-slate-900 outline-none"
+              className="rounded-xl border border-virada-line bg-white px-3 py-2 text-xs text-ink-900 outline-none"
             >
               <option value="all">Todos</option>
               <option value="receita">Receitas</option>
@@ -921,11 +921,11 @@ export default function EvolucaoPage() {
 
           {/* Categoria */}
           <label className="grid gap-1">
-            <span className="text-[10px] text-slate-500">Categoria</span>
+            <span className="text-xs text-ink-500">Categoria</span>
             <select
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
-              className="rounded-xl border border-virada-line bg-white px-3 py-2 text-xs text-slate-900 outline-none"
+              className="rounded-xl border border-virada-line bg-white px-3 py-2 text-xs text-ink-900 outline-none"
             >
               <option value="all">Todas as categorias</option>
               {availableCategories.map(c => (
@@ -936,7 +936,7 @@ export default function EvolucaoPage() {
         </div>
 
         {isFiltered && (
-          <p className="mt-2 text-[10px] text-amber-400">
+          <p className="mt-2 text-xs text-amber-700">
             ⚠️ Filtros ativos — os dados exibidos são parciais
           </p>
         )}
@@ -971,10 +971,10 @@ export default function EvolucaoPage() {
               key={t.key}
               onClick={() => setTab(t.key)}
               aria-label={t.label}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-lg border-b-2 px-3 py-2 text-[11px] font-semibold transition ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-lg border-b-2 px-3 py-2 text-xs font-semibold transition ${
                 tab === t.key
                   ? "border-[#0EA978] bg-white text-[#133335]"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
+                  : "border-transparent text-ink-500 hover:text-ink-700"
               }`}
             >
               <span>{t.emoji}</span>

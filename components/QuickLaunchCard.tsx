@@ -8,7 +8,7 @@ export function QuickLaunchCard() {
       <div className="relative">
         <div className="flex items-center gap-2 text-[#CBEA6B]">
           <ReceiptText className="h-4 w-4" />
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.14em]">Lançamento rápido</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em]">Lançamento rápido</p>
         </div>
         <h2 className="mt-3 max-w-sm text-2xl font-semibold leading-tight text-[#F6FAF8]">Registre agora. Entenda melhor depois.</h2>
         <p className="mt-2 max-w-sm text-sm leading-6 text-[#B8CBC6]">

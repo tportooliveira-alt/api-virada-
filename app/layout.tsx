@@ -1,24 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Sora } from "next/font/google";
+import { Figtree, Onest } from "next/font/google";
 import "./globals.css";
 import { ViradaProvider } from "@/providers/virada-provider";
 import { AuthGate } from "@/components/AuthGate";
 
-const manrope = Manrope({
+const onest = Onest({
   subsets: ["latin"],
-  variable: "--font-manrope",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-onest",
   display: "swap",
 });
 
-const sora = Sora({
+const figtree = Figtree({
   subsets: ["latin"],
-  variable: "--font-sora",
+  weight: ["700", "800"],
+  variable: "--font-figtree",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Codigo da Virada",
-  description: "Metodo com ebook, app e planilha para organizar dinheiro, dividas, metas e renda extra.",
+  title: "Código da Virada",
+  description: "Método com ebook, app e planilha para organizar dinheiro, dívidas, metas e renda extra.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -28,7 +30,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#133335",
+  themeColor: "#0F172A",
 };
 
 export default function RootLayout({
@@ -38,7 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${manrope.variable} ${sora.variable}`}>
+      <body className={`${onest.variable} ${figtree.variable}`}>
         <AuthGate>
           <ViradaProvider>{children}</ViradaProvider>
         </AuthGate>

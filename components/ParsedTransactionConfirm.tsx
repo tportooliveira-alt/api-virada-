@@ -29,8 +29,8 @@ export function ParsedTransactionConfirm({ parsed, onConfirm, onCancel }: Parsed
   }
 
   return (
-    <section className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-5 shadow-panel">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200">
+    <section className="rounded-lg border border-green-500/25 bg-green-500/10 p-5 shadow-card">
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-green-700">
         Encontramos isso
       </p>
 
@@ -41,7 +41,7 @@ export function ParsedTransactionConfirm({ parsed, onConfirm, onCancel }: Parsed
             <select
               value={draft.type}
               onChange={(event) => setDraft((current) => ({ ...current, type: event.target.value as ParsedFinancialType }))}
-              className="rounded-md border border-virada-line bg-slate-950 px-4 py-3 text-white outline-none"
+              className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
             >
               {Object.entries(typeLabels).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -58,7 +58,7 @@ export function ParsedTransactionConfirm({ parsed, onConfirm, onCancel }: Parsed
               type="number"
               min="0"
               step="0.01"
-              className="rounded-md border border-virada-line bg-slate-950 px-4 py-3 text-white outline-none"
+              className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
             />
           </label>
           <label className="grid gap-2 text-sm text-virada-gray">
@@ -66,7 +66,7 @@ export function ParsedTransactionConfirm({ parsed, onConfirm, onCancel }: Parsed
             <input
               value={draft.category}
               onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}
-              className="rounded-md border border-virada-line bg-slate-950 px-4 py-3 text-white outline-none"
+              className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
             />
           </label>
           <label className="grid gap-2 text-sm text-virada-gray">
@@ -74,16 +74,16 @@ export function ParsedTransactionConfirm({ parsed, onConfirm, onCancel }: Parsed
             <input
               value={draft.description}
               onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
-              className="rounded-md border border-virada-line bg-slate-950 px-4 py-3 text-white outline-none"
+              className="rounded-md border border-virada-line bg-white px-4 py-3 text-ink-900 outline-none"
             />
           </label>
         </div>
       ) : (
         <div className="mt-4 grid gap-3 text-sm text-virada-gray">
-          <p>Tipo: <span className="font-semibold text-white">{typeLabels[draft.type]}</span></p>
-          <p>Valor: <span className="font-semibold text-white">{formatCurrency(draft.amount)}</span></p>
-          <p>Categoria: <span className="font-semibold text-white">{draft.category}</span></p>
-          <p>Descrição: <span className="font-semibold text-white">{draft.description}</span></p>
+          <p>Tipo: <span className="font-semibold text-ink-900">{typeLabels[draft.type]}</span></p>
+          <p>Valor: <span className="font-semibold text-ink-900">{formatCurrency(draft.amount)}</span></p>
+          <p>Categoria: <span className="font-semibold text-ink-900">{draft.category}</span></p>
+          <p>Descrição: <span className="font-semibold text-ink-900">{draft.description}</span></p>
         </div>
       )}
 
@@ -91,13 +91,13 @@ export function ParsedTransactionConfirm({ parsed, onConfirm, onCancel }: Parsed
         <button
           onClick={confirm}
           disabled={isSaving}
-          className="min-h-12 rounded-md bg-emerald-500 px-5 py-3 font-semibold text-slate-950 disabled:opacity-60"
+          className="min-h-12 rounded-md bg-green-500 px-5 py-3 font-semibold text-green-900 disabled:opacity-60"
         >
           {isSaving ? "Salvando..." : "Confirmar"}
         </button>
         <button
           onClick={() => setIsEditing((current) => !current)}
-          className="min-h-12 rounded-md border border-virada-line px-5 py-3 font-semibold text-white"
+          className="min-h-12 rounded-md border border-virada-line px-5 py-3 font-semibold text-ink-900"
         >
           {isEditing ? "Ver resumo" : "Editar"}
         </button>

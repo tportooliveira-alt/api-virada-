@@ -60,10 +60,10 @@ export default function InicioPage() {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <section className="balance-rail rounded-[1.45rem] bg-[#133335] p-5 pr-12 text-[#F6FAF8] shadow-[0_22px_56px_rgba(19,51,53,0.18)] sm:p-7 sm:pr-16">
+      <section className="rounded-[1.45rem] bg-[#133335] p-5 pr-12 text-[#F6FAF8] shadow-[0_22px_56px_rgba(19,51,53,0.18)] sm:p-7 sm:pr-16">
         <div className="flex flex-wrap items-center gap-2 text-[#CBEA6B]">
           <CalendarDays className="h-4 w-4" />
-          <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] first-letter:uppercase">{currentMonth}</span>
+          <span className="text-xs font-extrabold uppercase tracking-[0.14em] first-letter:uppercase">{currentMonth}</span>
         </div>
         <p className="mt-5 text-sm text-[#B8CBC6]">Olá{data.profile?.fullName ? `, ${data.profile.fullName}` : ""}. Seu saldo do mês é</p>
         <strong className="mt-1 block font-display text-[2.15rem] font-semibold leading-tight tracking-[-0.04em] text-[#F6FAF8] sm:text-[2.8rem]">
