@@ -572,17 +572,10 @@ def build_main_ebook(content_dir: Path, out_path: Path) -> None:
     flows.append(PageBreak())
 
     flows.append(Paragraph("Sumário", styles["toc_h1"]))
+    # um item por "## " do markdown (na ordem em que os anchors sec1..secN são criados)
     toc_items = [
-        ("Aviso importante", "01"),
-        ("Introdução", "02"),
-        ("Capítulo 1 — Clareza", "03"),
-        ("Capítulo 2 — Organização", "04"),
-        ("Capítulo 3 — Plano de ataque", "05"),
-        ("Capítulo 4 — Renda extra", "06"),
-        ("Capítulo 5 — A reserva de paz", "07"),
-        ("Capítulo 6 — Direção", "08"),
-        ("Capítulo 7 — Plano de 7 dias", "09"),
-        ("Conclusão", "10"),
+        (line[3:].split(":")[0].strip(), f"{n:02d}")
+        for n, line in enumerate((l for l in md.splitlines() if l.startswith("## ")), start=1)
     ]
     for idx, (title, num) in enumerate(toc_items, start=1):
         dots = "." * max(2, 50 - len(title))
@@ -599,7 +592,7 @@ def build_main_ebook(content_dir: Path, out_path: Path) -> None:
     flows.append(Spacer(1, 14))
     flows.append(
         Paragraph(
-            'Sete capítulos curtos. Sete passos práticos. '
+            'Cinco capítulos curtos. Cinco passos práticos. '
             'No final de cada um, um exercício para você aplicar.',
             styles["caption"],
         )
