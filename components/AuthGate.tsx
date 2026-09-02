@@ -314,9 +314,9 @@ export function AuthGate({ children }: PropsWithChildren) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-virada-bg px-5 py-10">
       <div className="mb-8 flex flex-col items-center gap-3">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-virada-green shadow-[0_0_40px_rgba(34,197,94,0.35)]">
-          <span className="text-3xl">💰</span>
-        </div>
+        {/* Marca do app — o handoff proíbe emoji na interface */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icons/icon-192.png" alt="" aria-hidden className="h-16 w-16 rounded-2xl shadow-[0_0_40px_rgba(34,197,94,0.35)]" />
         <h1 className="text-2xl font-bold text-ink-900">Código da Virada</h1>
         <p className="text-sm text-ink-500">Seu controle financeiro inteligente</p>
       </div>

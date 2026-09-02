@@ -47,6 +47,12 @@ export function parseCurrencyInput(value: string) {
   return Number.isFinite(parsed) ? parsed : NaN;
 }
 
+// Vencimento de dívida: o design mostra o ano (10/07/2026), diferente do
+// formato curto usado em lançamentos ("10 de jul.").
+export function formatDateFull(date: string) {
+  return new Intl.DateTimeFormat("pt-BR").format(new Date(`${date}T00:00:00`));
+}
+
 export function formatDate(date: string) {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",

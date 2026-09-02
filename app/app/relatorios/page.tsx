@@ -8,7 +8,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Segmented } from "@/components/ui/Segmented";
 import { Sheet, SheetAction } from "@/components/ui/Sheet";
 import type { Debt, DebtPriority, DebtStatus, Goal } from "@/lib/types";
-import { formatCurrency, formatDate, timeAgo, toInputDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatDateFull, timeAgo, toInputDate } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
 
 // ── Período e abas ────────────────────────────────────────────────────────────
@@ -277,6 +277,7 @@ function Relatorios() {
     return [...map.entries()]
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
+      .slice(0, 8) // design: donut só com as 8 maiores categorias
       .map((c, i) => ({ ...c, color: CHART_COLORS[i % CHART_COLORS.length] }));
   }, [expenses]);
 
@@ -504,7 +505,7 @@ function Relatorios() {
               <div className="flex items-center gap-5">
                 <Donut slices={byCategory} total={totExp} />
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  {byCategory.slice(0, 6).map((c) => (
+                  {byCategory.slice(0, 5).map((c) => (
                     <div key={c.name} className="flex items-center gap-2.5 text-[13px] text-ink-700">
                       <i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
                       <span className="min-w-0 flex-1 truncate">{c.name}</span>
@@ -553,7 +554,7 @@ function Relatorios() {
 
       {tab === "mensal" &&
         (byMonth.length === 0 ? (
-          <Empty>Nenhum lançamento ainda.</Empty>
+          <Empty>Nada por aqui neste período.</Empty>
         ) : (
           <div>
             {byMonth.map((m) => {
@@ -645,7 +646,7 @@ function Relatorios() {
                       </span>
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-ink-500">
-                      vence {formatDate(debt.dueDate)} · parcela {formatCurrency(debt.installmentValue)} · prioridade {debt.priority}
+                      vence {formatDateFull(debt.dueDate)} · parcela {formatCurrency(debt.installmentValue)} · prioridade {debt.priority}
                     </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-1">
@@ -697,7 +698,7 @@ function Relatorios() {
               {data.goals.map((goal) => {
                 const p = goal.targetValue > 0 ? Math.min(100, Math.round((goal.currentValue / goal.targetValue) * 100)) : 0;
                 const tone = p >= 75 ? "text-green-700" : p >= 35 ? "text-amber-700" : "text-red-500";
-                const bar = p >= 75 ? "bg-green-500" : p >= 35 ? "bg-amber-500" : "bg-red-500";
+                const bar = p >= 75 ? "bg-green-700" : p >= 35 ? "bg-amber-700" : "bg-red-500";
                 return (
                   <div key={goal.id} className="flex flex-col gap-2 rounded-[14px] border border-ink-200 bg-white px-4 py-3.5">
                     <div className="flex items-center justify-between gap-2">

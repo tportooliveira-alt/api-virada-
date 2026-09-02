@@ -15,7 +15,7 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   },
   "/app/lancar": {
     title: "Lançar",
-    subtitle: "Registre gastos e entradas em poucos segundos.",
+    subtitle: "Registre compras, gastos e entradas em poucos segundos.",
   },
   "/app/relatorios": {
     title: "Relatórios",

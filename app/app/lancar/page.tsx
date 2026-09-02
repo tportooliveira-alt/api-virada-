@@ -9,16 +9,15 @@ import {
   Car,
   Check,
   CreditCard,
-  Droplets,
+  Droplet,
   Gamepad2,
-  Handshake,
+  Tag,
   Home,
   Inbox,
   Lightbulb,
   Mic,
   Pill,
   Plus,
-  RotateCcw,
   ShoppingCart,
   Utensils,
   Wifi,
@@ -52,13 +51,13 @@ const EXPENSE_CATS: CategoryOption[] = [
   { key: "Cartão", icon: CreditCard },
   { key: "Internet", icon: Wifi },
   { key: "Educação", icon: BookOpen },
-  { key: "Água", icon: Droplets },
+  { key: "Água", icon: Droplet },
   { key: "Outros", icon: Plus },
 ];
 
 const INCOME_CATS: CategoryOption[] = [
   { key: "Salário", icon: Briefcase },
-  { key: "Venda", icon: Handshake },
+  { key: "Venda", icon: Tag },
   { key: "Serviço", icon: Wrench },
   { key: "Renda extra", icon: Lightbulb },
   { key: "Recebimento", icon: Inbox },
@@ -411,7 +410,7 @@ export default function LancarPage() {
               onClick={desfazer}
               className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-white/[0.18] text-[13px] font-bold transition-colors duration-150 hover:bg-white/[0.06]"
             >
-              <RotateCcw className="h-[15px] w-[15px]" /> Desfazer
+              Desfazer
             </button>
             <Link
               href="/app/inicio"

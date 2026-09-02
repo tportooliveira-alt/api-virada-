@@ -39,7 +39,7 @@ export default function ContaPage() {
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl bg-ink-50 px-3.5 py-3">
-            <Smartphone className="h-[18px] w-[18px] shrink-0 text-ink-600" />
+            <Smartphone className="h-[18px] w-[18px] shrink-0 text-green-700" />
             <div>
               <p className="text-sm font-semibold text-ink-900">Dados no seu celular</p>
               <p className="mt-0.5 text-xs text-ink-500">

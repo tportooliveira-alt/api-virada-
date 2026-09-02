@@ -85,7 +85,7 @@ function Donut({ data, total }: DonutProps) {
       <div className="absolute inset-0 grid place-items-center text-center">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-400">Saídas</p>
-          <p className="money mt-0.5 font-display text-xs font-bold text-ink-900">{brl(total)}</p>
+          <p className="money mt-0.5 font-display text-[15px] font-bold text-ink-900">{brl(total)}</p>
         </div>
       </div>
     </div>
@@ -106,6 +106,7 @@ export function ExpenseChart({ expenses, incomes }: Props) {
     const byCategory = [...map.entries()]
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
+      .slice(0, 8) // design: só as 8 maiores entram no donut/legenda/ranking
       .map((c, i) => ({ ...c, color: CHART_COLORS[i % CHART_COLORS.length] }));
     return {
       byCategory,
@@ -164,17 +165,17 @@ export function ExpenseChart({ expenses, incomes }: Props) {
         </div>
         <div className="min-w-0 rounded-[10px] bg-red-50 px-2.5 py-2.5 sm:px-3">
           <p className="text-xs font-semibold uppercase tracking-[0.06em] text-red-700">Saídas</p>
-          <p className="money mt-1 text-sm font-bold text-red-700">{brl(totalOut)}</p>
+          <p className="money mt-1 text-sm font-bold text-[#991B1B]">{brl(totalOut)}</p>
         </div>
-        <div className="min-w-0 rounded-[10px] bg-blue-50 px-2.5 py-2.5 sm:px-3">
+        <div className={`min-w-0 rounded-[10px] px-2.5 py-2.5 sm:px-3 ${balance >= 0 ? "bg-blue-50" : "bg-[#FFF7ED]"}`}>
           <p className="text-xs font-semibold uppercase tracking-[0.06em] text-ink-600">Saldo</p>
-          <p className={`money mt-1 text-sm font-bold ${balance >= 0 ? "text-blue-700" : "text-red-700"}`}>{brl(balance)}</p>
+          <p className={`money mt-1 text-sm font-bold ${balance >= 0 ? "text-blue-700" : "text-[#C2410C]"}`}>{brl(balance)}</p>
         </div>
       </div>
 
       {byCategory.length === 0 ? (
         <p className="rounded-xl bg-ink-50 p-4 text-sm text-ink-500">
-          {hasAny ? "Nenhum gasto neste período." : "Nenhum lançamento ainda. Comece pelo botão Lançar."}
+          {hasAny ? "Nenhum gasto neste período." : "Nenhum lançamento ainda. Toque em Lançar."}
         </p>
       ) : (
         <>
@@ -187,7 +188,7 @@ export function ExpenseChart({ expenses, incomes }: Props) {
                   <i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
                   <span className="min-w-0 flex-1 truncate">{c.name}</span>
                   <span className="money text-xs text-ink-400">{brl(c.value)}</span>
-                  <b className="w-[38px] text-right tabular-nums">{Math.round((c.value / totalOut) * 100)}%</b>
+                  <b className="w-[38px] text-right tabular-nums text-ink-900">{Math.round((c.value / totalOut) * 100)}%</b>
                 </div>
               ))}
             </div>

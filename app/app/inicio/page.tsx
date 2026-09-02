@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowRight, ArrowUp, ExternalLink, PenLine, Table } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, ExternalLink, Mic, Table } from "lucide-react";
 import { ExpenseChart } from "@/components/ExpenseChart";
 import { formatCurrency, formatDate, getDashboardMetrics } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
@@ -104,7 +104,7 @@ export default function InicioPage() {
             <p className="text-xs text-ink-400">Lançamentos no mês</p>
             <p className="mt-1.5 font-display text-lg font-bold tabular-nums sm:text-xl">{monthCount}</p>
             <p className="mt-1 text-xs text-ink-500">
-              {impulseCount === 0 ? "Nenhum por impulso." : `${impulseCount} por impulso.`}
+              {impulseCount} por impulso.
             </p>
           </div>
         </div>
@@ -113,9 +113,9 @@ export default function InicioPage() {
           href="/app/lancar"
           className="flex min-h-[52px] items-center justify-center gap-2.5 rounded-xl bg-green-500 px-4 py-3 text-[15px] font-bold text-green-900 transition-colors duration-150 hover:bg-green-400"
         >
-          <PenLine className="h-[18px] w-[18px] shrink-0" />
+          <Mic className="h-[18px] w-[18px] shrink-0" />
           <span className="text-center">
-            Lançar agora <span className="font-medium text-green-800">— leva 10 segundos</span>
+            Lançar agora <span className="font-medium text-green-800">— por voz ou texto</span>
           </span>
         </Link>
       </section>
@@ -137,14 +137,14 @@ export default function InicioPage() {
               <h2 className="text-lg font-bold tracking-[-0.01em] text-ink-900">Últimos lançamentos</h2>
               <Link
                 href="/app/lancar"
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-green-700 transition-colors duration-150 hover:text-green-800"
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#047857] transition-colors duration-150 hover:text-green-800"
               >
                 Novo <ArrowRight className="h-[15px] w-[15px]" />
               </Link>
             </div>
             {latest.length === 0 ? (
-              <p className="rounded-xl bg-ink-50 p-4 text-sm text-ink-500">
-                Nenhum lançamento ainda. Comece pelo botão Lançar.
+              <p className="rounded-xl border border-dashed border-ink-300 p-5 text-center text-sm text-ink-500">
+                Nenhum lançamento ainda. Toque em <b className="font-semibold text-ink-600">Lançar</b>.
               </p>
             ) : (
               <div>
