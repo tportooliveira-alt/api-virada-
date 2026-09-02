@@ -91,3 +91,7 @@ Nada muda no modelo (`lib/types.ts`, IndexedDB). Novos campos de UI são locais:
 - `referencias/*.html` — protótipos (abrir no navegador)
 - `lib-sheets/styles.ts`, `lib-sheets/builder.ts` — planilha v2, prontos para copiar
 - `skill-virada-design/` — design system + `SKILL.md` (mover para `.claude/skills/virada-design/`)
+- `landing/vendas.html` + `landing/LEIA-ME-vendas.md` — landing de vendas pronta para `public/vendas.html` (termos, privacidade e reembolso já estão dentro da página), com a lista do que preencher depois do cadastro na Kiwify
+
+## PENDÊNCIA PARA O CLAUDE CODE LEMBRAR — Kiwify ainda não cadastrada
+Quando a conta Kiwify existir: (1) colar a URL do checkout nos botões de compra da landing, (2) colocar o número do WhatsApp de suporte, (3) conferir que o preço cheio R$ 150 bate com o checkout, (4) trocar o `og:image` da landing por URL absoluta com o domínio final (`https://SEU-DOMINIO/assets/og-image.png`), (5) cadastrar o webhook Kiwify em `/api/webhooks/kiwify` (adapter já existe em `lib/access/adapters.ts`) e testar uma compra de R$ 1. Detalhes em `landing/LEIA-ME-vendas.md`.

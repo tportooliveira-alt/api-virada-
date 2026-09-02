@@ -18,6 +18,16 @@ const nextConfig = {
   distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next",
   generateBuildId: () => buildId,
   env: { NEXT_PUBLIC_BUILD_ID: buildId },
+  // Visitante sem login cai na landing de vendas (public/vendas.html, gerada por
+  // scripts/build-vendas.mjs). O app continua em /app.
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: "/", destination: "/vendas.html" },
+        { source: "/vendas", destination: "/vendas.html" },
+      ],
+    };
+  },
 };
 
 export default nextConfig;

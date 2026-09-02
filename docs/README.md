@@ -14,6 +14,7 @@ Notas técnicas e de produto. Complementam o onboarding em `00-LEIA-AQUI/`.
 | `estrategia-google-sync.md` | Estratégia de sincronização com Google |
 | `OPERACAO-DE-VIDEOS.md` | Operação de produção de vídeos |
 | `PROMPTS-CODEX.md` | Prompts usados com IA/Codex |
+| `POS-CADASTRO-KIWIFY.md` | Checklist de publicação: cadastro na Kiwify, webhook, landing, domínio |
 
 > Para o **estado atual real** do código e os erros encontrados, ver
 > `RELATORIO-ANALISE.md` na raiz. Alguns docs aqui podem estar desatualizados.

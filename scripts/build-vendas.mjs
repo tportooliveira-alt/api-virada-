@@ -22,11 +22,15 @@ const OUT_JS = join(ROOT, "public", "vendas-hero.js");
 // Valores dos "Tweaks" do Claude Design. checkoutUrl e whatsapp ficam vazios
 // de propósito: são preenchidos direto no vendas.html (bloco CONFIG no topo).
 const PROPS = { checkoutUrl: "", plataforma: "Kiwify", preco: 47, precoDepois: 150, horasOferta: 24, whatsapp: "" };
+// TODO(kiwify): domínio final da landing (ex.: "https://codigodavirada.net.br"). Com ele, o og:image vira
+// URL absoluta — WhatsApp/Instagram só mostram a capa com URL absoluta. Vazio = fica relativo.
+const SITE_URL = "";
 
 const src = readFileSync(SRC, "utf8");
 
 // ── 1. Partes do .dc.html ─────────────────────────────────────────────────
-const helmet = between(src, "<helmet>", "</helmet>");
+const helmet = between(src, "<helmet>", "</helmet>")
+  .replace('content="/assets/og-image.png"', `content="${SITE_URL}/assets/og-image.png"`);
 const template = src.slice(src.indexOf("</helmet>") + "</helmet>".length, src.indexOf("</x-dc>"));
 const logicSrc = between(src, /<script type="text\/x-dc"[^>]*>/, "</script>");
 
@@ -52,6 +56,11 @@ let html = template
   // hero: o mini-vídeo é montado pelo vendas-hero.js
   .replace(/<x-import[^>]*ViradaDemo[^>]*><\/x-import>/, '<div id="virada-demo" style="position:absolute; inset:0;"></div>')
   .replace(/virada-design-system\/assets\/icon-192\.png/g, "/icons/icon-192.png")
+  // capas dos bônus: o design exporta cópias em assets-landing/, iguais às de public/assets/
+  .replace(/\.\/assets-landing\/bonus-negociacao\.png/g, "/assets/bonus-03-negociacao.png")
+  .replace(/\.\/assets-landing\/bonus-renda-extra\.png/g, "/assets/bonus-02-renda-extra.png")
+  .replace(/\.\/assets-landing\/bonus-plano-7-dias\.png/g, "/assets/bonus-04-plano-7-dias.png")
+  .replace(/\.\/assets-landing\/bonus-checklist\.png/g, "/assets/bonus-05-checklist.png")
   .replace(/ data-screen-label="[^"]*"/g, "")
   .replace(/ hint-[a-z-]+="[^"]*"/g, "")
   .replace(/ style-hover="([^"]*)"/g, (_, css) => {
@@ -89,15 +98,9 @@ const page = `<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Código da Virada — Você sabe quanto ganha. Não sabe pra onde foi.</title>
-<meta name="description" content="Um app que lança seus gastos em 10 segundos e uma planilha que se monta sozinha no seu Google Drive. Sem cadastro chato. Sem mensalidade. Compre uma vez, use pra sempre.">
-<meta property="og:title" content="Código da Virada — app + planilha pra saber pra onde vai seu dinheiro">
-<meta property="og:description" content="Lança em 10 segundos, funciona offline e a planilha aparece pronta no seu Google Planilhas. Pagamento único, 7 dias de garantia.">
-<meta property="og:type" content="website">
-<meta property="og:image" content="/assets/og-image.png">
 <link rel="icon" href="/assets/favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-${helmet.trim()}
+${helmet.trim()} <!-- título, description e OG vêm do design -->
 <style>
 ${hoverCss}
   #virada-demo [data-om-starter] { background:#0F172A !important; }
@@ -105,10 +108,10 @@ ${hoverCss}
   #virada-demo [data-omelette-chrome] { display:none !important; }
 </style>
 <script>
-  // ─── CONFIG (preencha aqui) ───────────────────────────────────────────
-  // Link do checkout da plataforma (Kiwify). Vazio = os botões rolam até a caixa de preço.
+  // ─── CONFIG (preencha aqui) — checklist completo em docs/POS-CADASTRO-KIWIFY.md ──
+  // TODO(kiwify): link do checkout (https://pay.kiwify.com.br/...). Vazio = os botões rolam até a caixa de preço.
   var CHECKOUT_URL = "";
-  // WhatsApp do suporte, só números com DDI+DDD (ex.: "5575999990000"). Vazio = esconde o botão flutuante.
+  // TODO(kiwify): WhatsApp do suporte, só números com DDI+DDD (ex.: "5575999990000"). Vazio = esconde o botão flutuante.
   var WHATSAPP = "";
   // Duração da oferta por visitante, em horas (0 desliga a faixa amarela).
   var HORAS_OFERTA = ${PROPS.horasOferta};
