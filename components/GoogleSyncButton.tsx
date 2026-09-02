@@ -70,8 +70,8 @@ async function googleFetch(method: string, endpoint: string, token: string, body
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
   if (!res.ok) {
-    const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
-    throw new Error(err.error?.message ?? `HTTP ${res.status}`);
+    const err = (await res.json().catch(() => ({}))) as { error?: { message?: string; status?: string } };
+    throw new Error(`HTTP ${res.status} ${err.error?.status ?? ""} — ${err.error?.message ?? "sem detalhe"}`.trim());
   }
   return res.json();
 }
@@ -159,6 +159,14 @@ async function upgradeLayout(token: string, spreadsheetId: string): Promise<void
   });
 }
 
+async function etapa<T>(nome: string, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    throw new Error(`[${nome}] ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 async function createWorkbook(token: string, email: string): Promise<{ spreadsheetId: string; spreadsheetUrl: string; ids: Record<string, number> }> {
   const created = (await googleFetch("POST", "/spreadsheets", token, {
     properties: { title: `Virada Financeira — ${email}`, locale: "pt_BR", timeZone: "America/Sao_Paulo" },
@@ -173,20 +181,26 @@ async function createWorkbook(token: string, email: string): Promise<{ spreadshe
   }
 
   // Layout: banner, kpi, formatos, proteção, ajuda
-  await googleFetch("POST", `/spreadsheets/${created.spreadsheetId}:batchUpdate`, token, {
-    requests: buildLayoutRequests(ids),
-  });
+  await etapa("layout", () =>
+    googleFetch("POST", `/spreadsheets/${created.spreadsheetId}:batchUpdate`, token, {
+      requests: buildLayoutRequests(ids),
+    }),
+  );
 
   // Conteúdo estático: cabeçalhos, banner, ajuda
-  await googleFetch("POST", `/spreadsheets/${created.spreadsheetId}/values:batchUpdate`, token, {
-    valueInputOption: "USER_ENTERED",
-    data: buildStaticValues(),
-  });
+  await etapa("conteúdo", () =>
+    googleFetch("POST", `/spreadsheets/${created.spreadsheetId}/values:batchUpdate`, token, {
+      valueInputOption: "USER_ENTERED",
+      data: buildStaticValues(),
+    }),
+  );
 
   // Gráficos
-  await googleFetch("POST", `/spreadsheets/${created.spreadsheetId}:batchUpdate`, token, {
-    requests: buildChartRequests(ids),
-  });
+  await etapa("gráficos", () =>
+    googleFetch("POST", `/spreadsheets/${created.spreadsheetId}:batchUpdate`, token, {
+      requests: buildChartRequests(ids),
+    }),
+  );
 
   return {
     spreadsheetId: created.spreadsheetId,
@@ -225,6 +239,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   const [syncing, setSyncing] = useState(false);
   const [meta, setMeta] = useState<SheetMeta | null>(null);
   const [upgrading, setUpgrading] = useState(false);
+  const [errDetail, setErrDetail] = useState("");
   const [token, setToken] = useState<Token | null>(null);
   const [status, setStatus] = useState<"idle" | "ok" | "err">("idle");
   const [errMsg, setErrMsg] = useState("");
@@ -261,6 +276,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     setSyncing(true);
     setStatus("idle");
     setErrMsg("");
+    setErrDetail("");
     try {
       let sheetId = meta?.spreadsheetId;
       let sheetUrl = meta?.spreadsheetUrl;
@@ -289,6 +305,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       console.error("[GoogleSync] falha ao sincronizar:", err);
       setUpgrading(false);
       setErrMsg("Não deu para atualizar a planilha agora. Tente de novo em alguns segundos.");
+      setErrDetail(err instanceof Error ? err.message : String(err));
       setStatus("err");
     }
     setSyncing(false);
@@ -454,9 +471,15 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       )}
 
       {status === "err" && (
-        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
-          {errMsg}
-        </p>
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+          <p>{errMsg}</p>
+          {errDetail && (
+            <details className="mt-1.5">
+              <summary className="cursor-pointer text-xs font-semibold">Ver detalhe técnico</summary>
+              <p className="mt-1 break-words text-xs font-normal text-red-800">{errDetail}</p>
+            </details>
+          )}
+        </div>
       )}
     </>
   );
