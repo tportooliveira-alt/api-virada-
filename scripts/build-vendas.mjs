@@ -126,7 +126,7 @@ ${html.trim()}
   var whats = WHATSAPP.replace(/\\D/g, "");
   document.querySelectorAll("a[data-whats]").forEach(function (a) {
     if (whats) a.href = "https://wa.me/" + whats + "?text=" + encodeURIComponent("Oi! Tenho uma dúvida sobre o Código da Virada.");
-    else if (a.hasAttribute("data-whats-float")) a.style.display = "none";
+    else a.style.display = "none";
   });
 
   // Temporizador por visitante: começa na primeira visita e fica salvo no aparelho
@@ -143,12 +143,18 @@ ${html.trim()}
   }
   var pad = function (n) { return String(n).padStart(2, "0"); };
   var els = { h: document.querySelectorAll('[data-count="h"]'), m: document.querySelectorAll('[data-count="m"]'), s: document.querySelectorAll('[data-count="s"]') };
+  var timer;
   function tick() {
     var rest = Math.max(0, deadline() - Date.now());
+    if (rest === 0) { // oferta venceu: tira a faixa em vez de deixar 00:00:00 parado
+      clearInterval(timer);
+      document.querySelectorAll("[data-oferta]").forEach(function (el) { el.style.display = "none"; });
+      return;
+    }
     var v = { h: pad(Math.floor(rest / 3600000)), m: pad(Math.floor((rest % 3600000) / 60000)), s: pad(Math.floor((rest % 60000) / 1000)) };
     for (var k in els) els[k].forEach(function (el) { el.textContent = v[k]; });
   }
-  tick(); setInterval(tick, 1000);
+  tick(); timer = setInterval(tick, 1000);
 })();
 </script>
 <script src="/vendas-hero.js" defer></script>
