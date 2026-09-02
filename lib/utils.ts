@@ -82,17 +82,9 @@ export function getGoalProgress(goal: Goal) {
   return Math.min(100, Math.round((goal.currentValue / goal.targetValue) * 100));
 }
 
-export type MetricsScope = "currentMonth" | "all";
-
-export function getMetricsByScope(data: ViradaData, scope: MetricsScope) {
-  const monthIncomes =
-    scope === "currentMonth"
-      ? data.incomes.filter((item) => isFromCurrentMonth(item.date))
-      : data.incomes;
-  const monthExpenses =
-    scope === "currentMonth"
-      ? data.expenses.filter((item) => isFromCurrentMonth(item.date))
-      : data.expenses;
+export function getDashboardMetrics(data: ViradaData) {
+  const monthIncomes = data.incomes.filter((item) => isFromCurrentMonth(item.date));
+  const monthExpenses = data.expenses.filter((item) => isFromCurrentMonth(item.date));
   const openDebts = data.debts.filter((item) => item.status !== "quitada");
   const reserveGoal = data.goals.find((item) => item.type === "reserva");
 
@@ -123,10 +115,6 @@ export function getMetricsByScope(data: ViradaData, scope: MetricsScope) {
     openDebts,
     missionProgress,
   };
-}
-
-export function getDashboardMetrics(data: ViradaData) {
-  return getMetricsByScope(data, "currentMonth");
 }
 
 export function getMissionOfDay(missions: Mission[]) {

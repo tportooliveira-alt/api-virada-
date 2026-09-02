@@ -1,17 +1,24 @@
 /**
  * POST /api/admin/members/status — muda o status de um membro.
  * Body: { email: string, status: "ativo" | "cancelado" | "reembolsado" }
- * Auth: cookie de sessão admin assinado (ver /api/access/check).
+ * Auth: header `x-admin-email` deve estar em process.env.ADMIN_EMAILS (csv).
  */
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { setStatus, type MemberStatus } from "@/lib/access/members";
-import { ADMIN_COOKIE, verifyAdminSession } from "@/lib/access/admin-session";
+
+function isAdmin(email: string | null): boolean {
+  if (!email) return false;
+  const list = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(email.trim().toLowerCase());
+}
 
 const VALID: MemberStatus[] = ["ativo", "cancelado", "reembolsado"];
 
 export async function POST(request: Request) {
-  if (!verifyAdminSession(cookies().get(ADMIN_COOKIE)?.value)) {
+  if (!isAdmin(request.headers.get("x-admin-email"))) {
     return NextResponse.json({ message: "nao autorizado" }, { status: 401 });
   }
 

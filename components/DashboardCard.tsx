@@ -17,29 +17,29 @@ export function DashboardCard({
 }: DashboardCardProps) {
   const toneClasses =
     tone === "green"
-      ? "border-emerald-500/35 bg-emerald-500/[0.08]"
+      ? "border-[#0EA978]/20 bg-[#EBF8F3]"
       : tone === "gold"
-        ? "border-amber-300/35 bg-amber-300/[0.08]"
-        : "border-virada-line bg-white/[0.045]";
+        ? "border-[#DDAF2B]/25 bg-[#FFF8E8]"
+        : "border-[#133335]/10 bg-white";
   const iconClasses =
     tone === "green"
-      ? "bg-emerald-500/15 text-emerald-300"
+      ? "bg-[#0EA978] text-white"
       : tone === "gold"
-        ? "bg-amber-300/15 text-amber-200"
-        : "bg-slate-400/10 text-virada-gray";
+        ? "bg-[#DDAF2B] text-[#133335]"
+        : "bg-[#E8F0EC] text-[#3C5552]";
 
   return (
-    <article className={`rounded-lg border p-4 shadow-panel ${toneClasses}`}>
+    <article className={`rounded-[1.2rem] border p-4 shadow-[0_8px_24px_rgba(19,51,53,0.06)] ${toneClasses}`}>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-virada-gray">{label}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#647875]">{label}</p>
         {icon ? (
-          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${iconClasses}`}>
+          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${iconClasses}`}>
             {icon}
           </span>
         ) : null}
       </div>
-      <strong className="mt-3 block text-2xl font-semibold text-white">{value}</strong>
-      <p className="mt-2 min-h-10 text-sm leading-5 text-virada-slate">{helper}</p>
+      <strong className="mt-3 block font-display text-2xl font-semibold tracking-tight text-[#133335]">{value}</strong>
+      <p className="mt-1.5 text-xs leading-5 text-[#647875]">{helper}</p>
     </article>
   );
 }

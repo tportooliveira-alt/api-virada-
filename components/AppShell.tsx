@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PropsWithChildren } from "react";
-import { Flag } from "lucide-react";
+import { ArrowUpRight, HardDrive } from "lucide-react";
 import { BottomNav, mainNavItems } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 
@@ -20,13 +20,9 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
     title: "Planilha",
     subtitle: "A base completa do fluxo de caixa fica organizada aqui.",
   },
-  "/app/conta": {
+  "/app/aprender": {
     title: "Conta",
     subtitle: "Sincronização com Google Planilhas e configurações.",
-  },
-  "/app/aprendizado": {
-    title: "Aprender",
-    subtitle: "Lições rápidas e missão do dia. Avance no método em 30 dias.",
   },
   "/app/planilha-demo": {
     title: "Prévia da Planilha",
@@ -45,21 +41,26 @@ export function AppShell({ children }: PropsWithChildren) {
   const meta = pageMeta[pathname] ?? pageMeta["/app/inicio"];
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[1280px] overflow-x-hidden px-4 pb-24 pt-4 md:gap-6 md:px-6 md:pb-6">
+    <div className="app-shell virada-light mx-auto flex min-h-screen w-full max-w-[1440px] flex-col overflow-x-hidden px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 md:pt-5 lg:flex-row lg:gap-8 lg:px-7 lg:pb-7">
 
       {/* Sidebar desktop */}
-      <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-72 flex-col rounded-lg border border-virada-line bg-slate-950/45 p-4 shadow-glow backdrop-blur lg:flex">
-        <div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500 text-slate-950">
-            <Flag className="h-5 w-5" />
+      <aside className="app-sidebar relative sticky top-7 hidden h-[calc(100vh-3.5rem)] w-[17rem] shrink-0 flex-col overflow-hidden rounded-[1.75rem] p-5 lg:flex">
+        <div className="relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#CBEA6B] text-sm font-black text-[#133335] shadow-[0_8px_22px_rgba(203,234,107,0.2)]">
+              CV
+            </div>
+            <div>
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#CBEA6B]">Código da</p>
+              <h2 className="font-display text-lg font-semibold tracking-tight text-[#F6FAF8]">Virada</h2>
+            </div>
           </div>
-          <h2 className="mt-4 text-xl font-semibold text-white">Virada App</h2>
-          <p className="mt-2 text-sm leading-6 text-virada-gray">
-            Fluxo de caixa no celular. Dados seus, planilha sua.
+          <p className="mt-5 max-w-[13rem] text-sm leading-6 text-[#B8CBC6]">
+            Clareza para decidir melhor, um lançamento de cada vez.
           </p>
         </div>
 
-        <nav className="mt-7 grid gap-1.5">
+        <nav className="relative z-10 mt-8 grid gap-1.5" aria-label="Navegação principal">
           {mainNavItems.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
@@ -67,10 +68,10 @@ export function AppShell({ children }: PropsWithChildren) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition ${
+                className={`flex min-h-11 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${
                   active
-                    ? "bg-emerald-500 text-slate-950"
-                    : "text-virada-gray hover:bg-white/5 hover:text-white"
+                    ? "bg-[#CBEA6B] text-[#133335] shadow-[0_8px_24px_rgba(203,234,107,0.14)]"
+                    : "text-[#B8CBC6] hover:bg-white/10 hover:text-[#F6FAF8]"
                 }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -80,27 +81,31 @@ export function AppShell({ children }: PropsWithChildren) {
           })}
           <Link
             href="/app/instalar"
-            className="rounded-md px-3 py-2.5 text-sm text-virada-gray transition hover:bg-white/5 hover:text-white"
+            className="mt-1 flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#B8CBC6] transition hover:bg-white/10 hover:text-[#F6FAF8]"
           >
-            Instalar app
+            Instalar app <ArrowUpRight className="h-4 w-4" />
           </Link>
         </nav>
 
-        <div className="mt-auto rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4">
-          <p className="text-sm font-semibold text-emerald-300">Dados no seu celular</p>
-          <p className="mt-1 text-xs leading-5 text-virada-gray">
-            Seus lançamentos ficam guardados aqui. Sincronize com Google Planilhas quando quiser.
+        <div className="relative z-10 mt-auto rounded-2xl border border-[#FFFFFF1A] bg-[#FFFFFF12] p-4">
+          <div className="flex items-center gap-2 text-[#CBEA6B]">
+            <HardDrive className="h-4 w-4" />
+            <p className="text-xs font-bold uppercase tracking-[0.12em]">Dados protegidos</p>
+          </div>
+          <p className="mt-2 text-xs leading-5 text-[#B8CBC6]">
+            Seus registros ficam neste dispositivo até você sincronizar.
           </p>
         </div>
       </aside>
 
       {/* Conteúdo principal */}
-      <div className="w-full min-w-0 flex-1 space-y-4">
+      <div className="w-full min-w-0 flex-1 space-y-4 lg:pt-1">
         <Header title={meta.title} subtitle={meta.subtitle} />
-        <main className="w-full min-w-0">{children}</main>
+        <main className="w-full min-w-0 pb-2">{children}</main>
       </div>
 
       <BottomNav />
+      <div className="pointer-events-none fixed -right-16 top-24 -z-10 hidden h-64 w-64 rounded-full bg-[#CBEA6B]/20 blur-3xl xl:block" aria-hidden />
     </div>
   );
 }

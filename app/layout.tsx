@@ -1,22 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, Barlow } from "next/font/google";
+import { Manrope, Sora } from "next/font/google";
 import "./globals.css";
 import { ViradaProvider } from "@/providers/virada-provider";
 import { AuthGate } from "@/components/AuthGate";
 
-// Herda a craft da landing (direção "Editorial Financeiro", anti-AI-slop):
-// títulos em Instrument Serif, corpo em Barlow.
-const serif = Instrument_Serif({
+const manrope = Manrope({
   subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-serif",
+  variable: "--font-manrope",
   display: "swap",
 });
-const sans = Barlow({
+
+const sora = Sora({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-sans",
+  variable: "--font-sora",
   display: "swap",
 });
 
@@ -32,7 +28,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0c",
+  themeColor: "#133335",
 };
 
 export default function RootLayout({
@@ -41,8 +37,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${serif.variable} ${sans.variable}`}>
-      <body>
+    <html lang="pt-BR">
+      <body className={`${manrope.variable} ${sora.variable}`}>
         <AuthGate>
           <ViradaProvider>{children}</ViradaProvider>
         </AuthGate>

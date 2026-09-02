@@ -22,7 +22,7 @@ function pct(a: number, b: number) {
 function Bar({ value, total, color }: { value: number; total: number; color: string }) {
   const w = total > 0 ? Math.max((value / total) * 100, 2) : 0;
   return (
-    <div className="h-1.5 w-full rounded-full bg-white/10">
+    <div className="h-1.5 w-full rounded-full bg-slate-200">
       <div className="h-full rounded-full transition-all" style={{ width: `${w}%`, background: color }} />
     </div>
   );
@@ -47,9 +47,9 @@ function SheetTable({ headers, rows, totalsRow }: {
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead>
-          <tr style={{ background: "#0d1a2e" }}>
+          <tr className="bg-slate-100">
             {headers.map((h, i) => (
-              <th key={i} className="whitespace-nowrap border border-white/10 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-slate-300">
+              <th key={i} className="whitespace-nowrap border border-virada-line px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-slate-600">
                 {h}
               </th>
             ))}
@@ -59,7 +59,7 @@ function SheetTable({ headers, rows, totalsRow }: {
           {rows.map((row, i) => (
             <tr key={i} className={i % 2 === 0 ? "bg-white/[0.02]" : ""}>
               {row.map((cell, j) => (
-                <td key={j} className="border border-white/[0.06] px-3 py-2 text-slate-300">
+                <td key={j} className="border border-virada-line px-3 py-2 text-slate-700">
                   {cell}
                 </td>
               ))}
@@ -67,15 +67,15 @@ function SheetTable({ headers, rows, totalsRow }: {
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={headers.length} className="border border-white/[0.06] px-3 py-6 text-center text-slate-500">
+              <td colSpan={headers.length} className="border border-virada-line px-3 py-6 text-center text-slate-500">
                 Nenhum dado registrado
               </td>
             </tr>
           )}
           {totalsRow && (
-            <tr style={{ background: "#0d1a2e" }}>
+            <tr className="bg-slate-100">
               {totalsRow.map((cell, j) => (
-                <td key={j} className="border border-white/20 px-3 py-2.5 text-sm font-bold text-white">
+                <td key={j} className="border border-virada-line px-3 py-2.5 text-sm font-bold text-slate-900">
                   {cell}
                 </td>
               ))}
@@ -95,7 +95,7 @@ function KPI({ label, value, sub, color, emoji }: { label: string; value: string
         <span className="text-xs font-semibold uppercase tracking-wider" style={{ color }}>{label}</span>
         <span className="text-xl">{emoji}</span>
       </div>
-      <p className="mt-2 text-2xl font-extrabold text-white">{value}</p>
+      <p className="mt-2 text-2xl font-extrabold text-slate-900">{value}</p>
       {sub && <p className="mt-1 text-xs text-slate-500">{sub}</p>}
     </div>
   );
@@ -122,11 +122,11 @@ function MiniPie({ data }: { data: { value: number }[] }) {
           <path key={i}
             d={`M50 50 L${x1} ${y1} A40 40 0 ${large} 1 ${x2} ${y2} Z`}
             fill={PIE_COLORS[i % PIE_COLORS.length]}
-            stroke="#07111F" strokeWidth="1.5"
+            stroke="#E2E8F0" strokeWidth="1.5"
           />
         );
       })}
-      <circle cx="50" cy="50" r="22" fill="#07111F" />
+      <circle cx="50" cy="50" r="22" fill="#F8FAFC" />
     </svg>
   );
 }
@@ -208,14 +208,14 @@ export default function PlanilhaDemoPage() {
             </div>
 
             {/* Gráfico de gastos */}
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <p className="mb-4 text-sm font-bold text-white">📊 Onde está indo seu dinheiro</p>
+            <div className="rounded-xl border border-virada-line bg-white/[0.03] p-4">
+              <p className="mb-4 text-sm font-bold text-slate-900">📊 Onde está indo seu dinheiro</p>
               <ExpenseChart expenses={data.expenses} incomes={data.incomes} />
             </div>
 
             {/* Gastos por categoria */}
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="rounded-xl border border-virada-line bg-white/[0.03] p-4">
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-red-400">Gastos por Categoria</p>
                 <div className="flex gap-4">
                   <MiniPie data={expByCat.map(([,v]) => ({ value: v }))} />
@@ -225,22 +225,22 @@ export default function PlanilhaDemoPage() {
                         <div className="flex justify-between text-xs mb-0.5">
                           <div className="flex items-center gap-1.5">
                             <div className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i] }} />
-                            <span className="text-slate-300">{cat}</span>
+                            <span className="text-slate-600">{cat}</span>
                           </div>
-                          <span className="font-semibold text-white">{pct(val, totalExp)}</span>
+                          <span className="font-semibold text-slate-900">{pct(val, totalExp)}</span>
                         </div>
                         <Bar value={val} total={totalExp} color={PIE_COLORS[i]} />
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="mt-3 flex justify-between border-t border-white/10 pt-2 text-xs font-bold">
+                <div className="mt-3 flex justify-between border-t border-virada-line pt-2 text-xs font-bold">
                   <span className="text-slate-400">Total</span>
                   <span className="text-red-300">{brl(totalExp)}</span>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="rounded-xl border border-virada-line bg-white/[0.03] p-4">
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-emerald-400">Receitas por Categoria</p>
                 <div className="flex gap-4">
                   <MiniPie data={incByCat.map(([,v]) => ({ value: v }))} />
@@ -250,16 +250,16 @@ export default function PlanilhaDemoPage() {
                         <div className="flex justify-between text-xs mb-0.5">
                           <div className="flex items-center gap-1.5">
                             <div className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i] }} />
-                            <span className="text-slate-300">{cat}</span>
+                            <span className="text-slate-600">{cat}</span>
                           </div>
-                          <span className="font-semibold text-white">{pct(val, totalInc)}</span>
+                          <span className="font-semibold text-slate-900">{pct(val, totalInc)}</span>
                         </div>
                         <Bar value={val} total={totalInc} color={PIE_COLORS[i]} />
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="mt-3 flex justify-between border-t border-white/10 pt-2 text-xs font-bold">
+                <div className="mt-3 flex justify-between border-t border-virada-line pt-2 text-xs font-bold">
                   <span className="text-slate-400">Total</span>
                   <span className="text-emerald-300">{brl(totalInc)}</span>
                 </div>
@@ -267,7 +267,7 @@ export default function PlanilhaDemoPage() {
             </div>
 
             {/* Status geral */}
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-xl border border-virada-line bg-white/[0.03] p-4">
               <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Status Geral</p>
               <div className="grid gap-2 text-xs">
                 {[
@@ -276,7 +276,7 @@ export default function PlanilhaDemoPage() {
                   { label: "Metas ativas", value: data.goals.length, unit: "metas", color: "#A855F7" },
                   { label: "Lançamentos", value: data.incomes.length + data.expenses.length, unit: "total", color: "#3B82F6" },
                 ].map(item => (
-                  <div key={item.label} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
+                  <div key={item.label} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
                     <span className="text-slate-400">{item.label}</span>
                     <span className="font-bold" style={{ color: item.color }}>
                       {item.value}{item.unit ? " " + item.unit : ""}
@@ -365,7 +365,7 @@ export default function PlanilhaDemoPage() {
               return [
                 g.name, brl(g.targetValue), brl(g.currentValue),
                 <div key="p" className="flex items-center gap-2">
-                  <div className="h-1.5 w-16 rounded-full bg-white/10">
+                  <div className="h-1.5 w-16 rounded-full bg-slate-200">
                     <div className="h-full rounded-full bg-purple-500" style={{ width: `${Math.min(prog, 100)}%` }} />
                   </div>
                   <span className="text-purple-300">{prog.toFixed(0)}%</span>
@@ -402,7 +402,7 @@ export default function PlanilhaDemoPage() {
               const result = inc - exp;
               const eco = inc > 0 ? (result / inc * 100) : 0;
               return [
-                <span key="m" className="font-semibold text-white">{month}</span>,
+                <span key="m" className="font-semibold text-slate-800">{month}</span>,
                 <span key="i" className="text-emerald-300">{brl(inc)}</span>,
                 <span key="e" className="text-red-300">{brl(exp)}</span>,
                 <span key="r" className={`font-bold ${result >= 0 ? "text-blue-300" : "text-orange-300"}`}>{brl(result)}</span>,
@@ -423,15 +423,15 @@ export default function PlanilhaDemoPage() {
   return (
     <div className="space-y-4">
       {/* Header estilo Google Sheets */}
-      <div className="rounded-xl border border-white/10 bg-slate-900 p-4">
-        <div className="flex items-center justify-between gap-3">
+      <div className="rounded-xl border border-virada-line bg-white/80 p-3 sm:p-4">
+        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
             <div className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-500/15">
               <span className="text-lg">📊</span>
             </div>
             <div>
               <p className="text-[11px] text-slate-500">Google Planilhas — {data.user?.email}</p>
-              <p className="text-sm font-semibold text-white">Virada Financeira — Dashboard Completo</p>
+              <p className="text-[13px] font-semibold text-slate-900 sm:text-sm">Virada Financeira — Dashboard Completo</p>
             </div>
           </div>
           <div className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1">
@@ -447,10 +447,10 @@ export default function PlanilhaDemoPage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-2 text-[11px] font-semibold transition sm:px-3 sm:text-xs ${
               activeTab === tab.key
-                ? "border-white/20 bg-slate-800 text-white shadow"
-                : "border-white/[0.08] bg-white/[0.03] text-slate-500 hover:text-slate-300"
+                ? "border-emerald-300 bg-emerald-50 text-slate-900 shadow"
+                : "border-virada-line bg-white/[0.03] text-slate-500 hover:text-slate-700"
             }`}
           >
             <div className="h-2 w-2 rounded-full" style={{ background: tab.color }} />
@@ -460,7 +460,7 @@ export default function PlanilhaDemoPage() {
       </div>
 
       {/* Conteúdo */}
-      <div className="rounded-xl border border-white/10 bg-slate-900/60 p-4">
+      <div className="rounded-xl border border-virada-line bg-white/80 p-4">
         {renderContent()}
       </div>
 

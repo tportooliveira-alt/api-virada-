@@ -1,8 +1,5 @@
 import type { Config } from "tailwindcss";
 
-// Direção "Editorial Financeiro" (2026-06) — herda a craft da landing (anti-AI-slop).
-// Dark PREMIUM (navy quase-preto da landing), verde-emerald suave, dourado da landing.
-// Tipografia: Instrument Serif (títulos) + Barlow (corpo). Ver CLAUDE.md.
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -14,28 +11,31 @@ const config: Config = {
     extend: {
       colors: {
         virada: {
-          bg: "#0a0a0c",       // navy quase-preto da landing (era #07111F frio)
-          bgSoft: "#121316",   // cartela um tom acima
-          green: "#34d399",    // emerald suave (era neon #22C55E)
-          gold: "#f0a830",     // dourado da landing (era #F5C542)
-          white: "#FFFFFF",
-          gray: "#CBD5E1",     // texto claro (dark — segue funcionando)
-          slate: "#8b92a0",    // texto secundário
-          line: "rgba(255, 255, 255, 0.08)",  // hairline premium sutil
-          card: "rgba(255, 255, 255, 0.03)",  // card translúcido elegante
+          bg: "#F4F7F5",
+          bgSoft: "#E8F0EC",
+          green: "#0EA978",
+          gold: "#DDAF2B",
+          white: "#133335",
+          gray: "#647875",
+          slate: "#3C5552",
+          line: "rgba(19, 51, 53, 0.12)",
+          card: "#FFFFFF",
+          ink: "#133335",
+          coral: "#E6674F",
+          lime: "#CBEA6B",
         },
       },
       fontFamily: {
-        serif: ["var(--font-serif)", "Georgia", "serif"],
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        sans: ["var(--font-manrope)", "Segoe UI", "sans-serif"],
+        display: ["var(--font-sora)", "Segoe UI", "sans-serif"],
       },
       boxShadow: {
-        glow: "0 18px 48px rgba(0, 0, 0, 0.40)",
-        panel: "0 10px 30px rgba(0, 0, 0, 0.30)",
+        glow: "0 24px 64px rgba(19, 51, 53, 0.14)",
+        panel: "0 10px 30px rgba(19, 51, 53, 0.08)",
       },
       backgroundImage: {
         hero:
-          "radial-gradient(circle at top left, rgba(52, 211, 153, 0.10), transparent 32%), radial-gradient(circle at right top, rgba(240, 168, 48, 0.08), transparent 24%), linear-gradient(180deg, #0a0a0c 0%, #0c0d10 100%)",
+          "radial-gradient(circle at top left, rgba(203, 234, 107, 0.32), transparent 34%), radial-gradient(circle at right top, rgba(14, 169, 120, 0.16), transparent 28%), linear-gradient(180deg, #F8FAF8 0%, #EEF3F0 100%)",
       },
     },
   },

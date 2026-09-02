@@ -3,7 +3,7 @@
 /**
  * ViradaProvider — 100% local, zero servidor.
  * Dados ficam no celular do usuário (localStorage).
- * Sem login. Abre e usa. Deploy do app na VPS (ver CLAUDE.md).
+ * Sem login. Abre e usa. Deploy gratuito no Netlify.
  */
 
 import {
@@ -28,11 +28,13 @@ import type {
 } from "@/lib/types";
 import { createId, storageKey } from "@/lib/utils";
 import { missions } from "@/lib/constants";
+import { loadData, saveData, clearData } from "@/lib/db/virada-store";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
 interface ViradaContextValue extends ViradaData {
   isReady: boolean;
+  saveError: boolean;
   profile: Pick<Profile, "fullName" | "email" | "role" | "plan" | "accessStatus"> | null;
   isAdmin: boolean;
   addExpense: (payload: Omit<Expense, "id">) => void;
@@ -111,39 +113,74 @@ export function ViradaProvider({ children }: PropsWithChildren) {
   const [profile, setProfile] = useState<ViradaContextValue["profile"]>(null);
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const skipSave = useRef(false);
 
-  // Carregar do localStorage na montagem
+  // Carregar na montagem: IndexedDB é a fonte da verdade dos dados financeiros,
+  // com migração única do localStorage antigo (que fica intacto como backup).
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      const accountRaw = localStorage.getItem(accountKey);
-      if (accountRaw) {
-        const account = JSON.parse(accountRaw) as LocalAccount;
-        setProfile({
-          fullName: account.name ?? null,
-          email: account.email ?? null,
-          role: account.email === "admin@local.dev" ? "admin" : "customer",
-          plan: "basic",
-          accessStatus: "active",
-        });
-      }
+    let cancelled = false;
 
-      if (raw) {
+    function readLegacy(): ViradaData | null {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return null;
         const parsed = JSON.parse(raw) as Partial<ViradaData>;
-        setData({
+        return {
           expenses: parsed.expenses ?? [],
           incomes: parsed.incomes ?? [],
           debts: parsed.debts ?? [],
           goals: parsed.goals ?? [],
           missionStatus: parsed.missionStatus ?? {},
-        });
+        };
+      } catch {
+        return null;
       }
-      setSheetUrl(readSheetUrl());
-    } catch {
-      // localStorage indisponível ou dados corrompidos — começa vazio
     }
-    setIsReady(true);
+
+    void (async () => {
+      // Conta e URL da planilha continuam no localStorage (dados pequenos, não financeiros)
+      try {
+        const accountRaw = localStorage.getItem(accountKey);
+        if (accountRaw) {
+          const account = JSON.parse(accountRaw) as LocalAccount;
+          setProfile({
+            fullName: account.name ?? null,
+            email: account.email ?? null,
+            role: account.email === "admin@local.dev" ? "admin" : "customer",
+            plan: "basic",
+            accessStatus: "active",
+          });
+        }
+        setSheetUrl(readSheetUrl());
+      } catch {
+        // localStorage indisponível — segue
+      }
+
+      // Dados financeiros: tenta IndexedDB; se vazio, migra 1x do localStorage.
+      let loaded = await loadData();
+      if (!loaded) {
+        const legacy = readLegacy();
+        if (legacy) {
+          loaded = legacy;
+          try {
+            await saveData(legacy);
+          } catch {
+            // migra em memória mesmo se a 1ª escrita falhar
+          }
+        }
+      }
+
+      if (!cancelled && loaded) {
+        skipSave.current = true; // não regravar logo após carregar
+        setData(loaded);
+      }
+      if (!cancelled) setIsReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -163,14 +200,22 @@ export function ViradaProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
-  // Salvar no localStorage sempre que os dados mudarem
+  // Salvar no IndexedDB sempre que os dados mudarem — avisando se falhar
   useEffect(() => {
     if (!isReady || skipSave.current) { skipSave.current = false; return; }
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(data));
-    } catch {
-      // sem espaço — ignora
-    }
+    let active = true;
+    void (async () => {
+      try {
+        await saveData(data);
+        if (active) setSaveError(false);
+      } catch {
+        // Não engole mais em silêncio: sinaliza que o salvamento falhou
+        if (active) setSaveError(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, [data, isReady]);
 
   // Updater tipado
@@ -181,6 +226,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
   const value = useMemo<ViradaContextValue>(() => ({
     ...data,
     isReady,
+    saveError,
     profile,
     isAdmin: profile?.role === "admin",
 
@@ -196,13 +242,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
       }));
     },
     removeExpense: (id) => {
-      // Cascata: apagar o gasto tambem remove seu contra-lancamento de estorno
-      // (income com linkedTo === id), evitando saldo "fantasma" no Resumo.
-      update((prev) => ({
-        ...prev,
-        expenses: prev.expenses.filter((e) => e.id !== id && e.linkedTo !== id),
-        incomes: prev.incomes.filter((i) => i.linkedTo !== id),
-      }));
+      update((prev) => ({ ...prev, expenses: prev.expenses.filter((e) => e.id !== id) }));
     },
 
     // ── Receitas ──────────────────────────────────────────────────────────
@@ -213,12 +253,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
       }));
     },
     removeIncome: (id) => {
-      // Cascata simetrica: apagar a receita tambem remove o estorno-expense vinculado.
-      update((prev) => ({
-        ...prev,
-        incomes: prev.incomes.filter((i) => i.id !== id && i.linkedTo !== id),
-        expenses: prev.expenses.filter((e) => e.linkedTo !== id),
-      }));
+      update((prev) => ({ ...prev, incomes: prev.incomes.filter((i) => i.id !== id) }));
     },
 
     // ── Dívidas ───────────────────────────────────────────────────────────
@@ -264,10 +299,6 @@ export function ViradaProvider({ children }: PropsWithChildren) {
     },
 
     // ── Estorno ───────────────────────────────────────────────────────────
-    // Cria um contra-lançamento (income reverso pra gasto / expense reverso
-    // pra receita) com `linkedTo` apontando ao ID original. Isso permite que
-    // `removeExpense`/`removeIncome` cascateiem o delete e evitem saldo
-    // fantasma. Não apaga o original — preserva trilha de auditoria.
     estornar: (tx) => {
       if (tx.type === "expense") {
         update((prev) => ({
@@ -281,7 +312,6 @@ export function ViradaProvider({ children }: PropsWithChildren) {
               date: tx.date,
               scope: (tx.scope as Income["scope"]) ?? "casa",
               source: "app",
-              linkedTo: tx.id,
             },
             ...prev.incomes,
           ],
@@ -300,7 +330,6 @@ export function ViradaProvider({ children }: PropsWithChildren) {
               date: tx.date,
               scope: (tx.scope as Expense["scope"]) ?? "casa",
               source: "app",
-              linkedTo: tx.id,
             },
             ...prev.expenses,
           ],
@@ -315,10 +344,11 @@ export function ViradaProvider({ children }: PropsWithChildren) {
     // ── Reset ─────────────────────────────────────────────────────────────
     resetLocalData: () => {
       localStorage.removeItem(storageKey);
+      void clearData();
       skipSave.current = true;
       setData(initialData);
     },
-  }), [data, isReady, profile, sheetUrl, update]);
+  }), [data, isReady, saveError, profile, sheetUrl, update]);
 
   return <ViradaContext.Provider value={value}>{children}</ViradaContext.Provider>;
 }

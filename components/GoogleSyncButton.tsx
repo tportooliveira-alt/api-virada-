@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ExternalLink, Palette, RefreshCcw, Unlink } from "lucide-react";
+import { ExternalLink, RefreshCcw, Unlink } from "lucide-react";
 import {
   buildChartRequests,
   buildLayoutRequests,
@@ -35,11 +35,6 @@ const SCOPES = [
 
 const STORAGE_KEY = "virada_google_token";
 const SHEET_KEY = "virada_sheet_meta";
-
-// Margem de seguranca para considerar o token "quase expirado". Cria/atualizar
-// planilha faz ate 4 chamadas HTTP — se o token tem menos de 5 minutos de vida,
-// pedimos um novo ANTES de iniciar pra evitar 401 no meio da operacao.
-const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 
 interface SheetMeta {
   spreadsheetId: string;
@@ -118,27 +113,6 @@ async function createWorkbook(token: string, email: string): Promise<{ spreadshe
   };
 }
 
-/**
- * Apaga a planilha do Drive do usuário. 404 não é erro (já estava apagada).
- * Usa Drive API v3 — scope `drive.file` é suficiente pois só apaga arquivos
- * criados por este app.
- */
-async function deleteSpreadsheet(token: string, spreadsheetId: string): Promise<void> {
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok && res.status !== 404) {
-    const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
-    throw new Error(err.error?.message ?? `HTTP ${res.status}`);
-  }
-}
-
-function isNotFoundError(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message.toLowerCase() : "";
-  return msg.includes("not found") || msg.includes("404") || msg.includes("requested entity was not found");
-}
-
 async function pushData(token: string, spreadsheetId: string, input: SyncInput): Promise<void> {
   const batch = buildSyncBatch(input);
   if (batch.clearRanges.length) {
@@ -172,11 +146,6 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   const [status, setStatus] = useState<"idle" | "ok" | "err">("idle");
   const [errMsg, setErrMsg] = useState("");
   const [gisLoaded, setGisLoaded] = useState(false);
-  // tokenClientReady e distinto de gisLoaded: o script pode estar carregado
-  // (gisLoaded=true) mas o window.google.accounts.oauth2.initTokenClient
-  // pode ainda nao estar disponivel (race no parsing). So habilitamos o botao
-  // quando o tokenClient e DE FATO inicializado.
-  const [tokenClientReady, setTokenClientReady] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !clientId) return;
@@ -205,80 +174,22 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     } catch { /* ignore */ }
   }, []);
 
-  /**
-   * Recriar planilha do zero — apaga a antiga no Drive e cria nova com
-   * paleta + layout sempre corretos. Resolve o problema de planilhas
-   * antigas que não atualizam estilos por causa de proteções/banding
-   * já aplicados (substituiu o caminho idempotente `reapplyLayout`).
-   */
-  const doRecreate = useCallback(async (accessToken: string) => {
-    setSyncing(true);
-    setStatus("idle");
-    setErrMsg("");
-    try {
-      if (meta?.spreadsheetId) {
-        try {
-          await deleteSpreadsheet(accessToken, meta.spreadsheetId);
-        } catch (err) {
-          // 404 já tratado dentro de deleteSpreadsheet. Outros erros: log e segue.
-          if (!isNotFoundError(err)) {
-            console.warn("Falha ao apagar planilha antiga:", err);
-          }
-        }
-      }
-      localStorage.removeItem(SHEET_KEY);
-      const created = await createWorkbook(accessToken, userEmail);
-      await pushData(accessToken, created.spreadsheetId, { expenses, incomes, debts, goals });
-      const newMeta: SheetMeta = {
-        spreadsheetId: created.spreadsheetId,
-        spreadsheetUrl: created.spreadsheetUrl,
-        lastSync: new Date().toISOString(),
-      };
-      localStorage.setItem(SHEET_KEY, JSON.stringify(newMeta));
-      window.dispatchEvent(new Event("virada-sheet-meta-changed"));
-      setMeta(newMeta);
-      setStatus("ok");
-    } catch (err) {
-      setErrMsg(err instanceof Error ? err.message : "Erro desconhecido.");
-      setStatus("err");
-    }
-    setSyncing(false);
-  }, [meta, expenses, incomes, debts, goals, userEmail]);
-
   const doSync = useCallback(async (accessToken: string) => {
     setSyncing(true);
     setStatus("idle");
     setErrMsg("");
-
-    const createFresh = async () => {
-      const created = await createWorkbook(accessToken, userEmail);
-      await pushData(accessToken, created.spreadsheetId, { expenses, incomes, debts, goals });
-      return { spreadsheetId: created.spreadsheetId, spreadsheetUrl: created.spreadsheetUrl };
-    };
-
     try {
-      let target: { spreadsheetId: string; spreadsheetUrl: string };
-
-      if (!meta?.spreadsheetId) {
-        target = await createFresh();
-      } else {
-        try {
-          await pushData(accessToken, meta.spreadsheetId, { expenses, incomes, debts, goals });
-          target = {
-            spreadsheetId: meta.spreadsheetId,
-            spreadsheetUrl: meta.spreadsheetUrl ?? `https://docs.google.com/spreadsheets/d/${meta.spreadsheetId}`,
-          };
-        } catch (err) {
-          if (!isNotFoundError(err)) throw err;
-          // Planilha foi apagada do Drive manualmente — limpa meta e recria.
-          localStorage.removeItem(SHEET_KEY);
-          target = await createFresh();
-        }
+      let sheetId = meta?.spreadsheetId;
+      let sheetUrl = meta?.spreadsheetUrl;
+      if (!sheetId) {
+        const created = await createWorkbook(accessToken, userEmail);
+        sheetId = created.spreadsheetId;
+        sheetUrl = created.spreadsheetUrl;
       }
-
+      await pushData(accessToken, sheetId, { expenses, incomes, debts, goals });
       const newMeta: SheetMeta = {
-        spreadsheetId: target.spreadsheetId,
-        spreadsheetUrl: target.spreadsheetUrl,
+        spreadsheetId: sheetId,
+        spreadsheetUrl: sheetUrl ?? `https://docs.google.com/spreadsheets/d/${sheetId}`,
         lastSync: new Date().toISOString(),
       };
       localStorage.setItem(SHEET_KEY, JSON.stringify(newMeta));
@@ -292,95 +203,35 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     setSyncing(false);
   }, [meta, expenses, incomes, debts, goals, userEmail]);
 
-  // Auto-sync ("planilha plugada"): depois que a planilha existe e o usuario ja
-  // autenticou uma vez, qualquer mudanca nos dados sincroniza sozinha apos 4s sem
-  // novas mudancas (debounce). A 1a vez continua manual (criar planilha + login pelo botao).
-  // O baseline evita loop: so sincroniza quando os DADOS mudam de fato (nao quando meta muda).
-  const autoSyncBaselineRef = useRef<string | null>(null);
   useEffect(() => {
-    const snapshot = JSON.stringify({ expenses, incomes, debts, goals });
-    if (autoSyncBaselineRef.current === null) {
-      autoSyncBaselineRef.current = snapshot; // 1a render: marca baseline, nao sincroniza o que ja estava
-      return;
-    }
-    if (!meta?.spreadsheetId) return;                       // precisa de planilha ja criada
-    if (!token || token.expires_at <= Date.now()) return;   // precisa de token valido
-    if (syncing) return;
-    if (snapshot === autoSyncBaselineRef.current) return;   // nada mudou desde o ultimo sync
-    const timer = window.setTimeout(() => {
-      autoSyncBaselineRef.current = snapshot;
-      void doSync(token.access_token);
-    }, 4000);
-    return () => window.clearTimeout(timer);
-  }, [expenses, incomes, debts, goals, meta, token, syncing, doSync]);
-
-  useEffect(() => {
-    // Se gisLoaded esta true mas initTokenClient ainda nao foi exposto no window,
-    // tentamos novamente em curtos intervalos ate ter o ref pronto.
-    let tries = 0;
-    const maxTries = 50; // 5 segundos
-    const interval = window.setInterval(() => {
-      const init = getInitTokenClient();
-      if (!gisLoaded || !clientId) return;
-      if (!init) {
-        tries += 1;
-        if (tries >= maxTries) window.clearInterval(interval);
-        return;
-      }
-      window.clearInterval(interval);
-      tokenClientRef.current = init({
-        client_id: clientId,
-        scope: SCOPES,
-        callback: async (resp) => {
-          if (oauthPopupTimeoutRef.current !== null) {
-            window.clearTimeout(oauthPopupTimeoutRef.current);
-            oauthPopupTimeoutRef.current = null;
-          }
-          if (resp.error || !resp.access_token) {
-            setErrMsg(resp.error ?? "Erro ao conectar com Google.");
-            setStatus("err");
-            setSyncing(false);
-            return;
-          }
-          const newToken: Token = {
-            access_token: resp.access_token,
-            expires_at: Date.now() + 55 * 60 * 1000,
-          };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(newToken));
-          setToken(newToken);
-          await runAction(pendingActionRef.current, newToken.access_token);
-        },
-      });
-      setTokenClientReady(true);
-    }, 100);
-    return () => window.clearInterval(interval);
-  }, [gisLoaded, clientId, doSync, doRecreate]);
-
-  const pendingActionRef = useRef<"sync" | "recreate">("sync");
-  const [showRecreateConfirm, setShowRecreateConfirm] = useState(false);
-
-  function runAction(action: "sync" | "recreate", accessToken: string) {
-    if (action === "recreate") return doRecreate(accessToken);
-    return doSync(accessToken);
-  }
-
-  function handleRecreateRequest() {
-    if (!meta?.spreadsheetId) return;
-    setShowRecreateConfirm(true);
-  }
-
-  function handleRecreateConfirm() {
-    setShowRecreateConfirm(false);
-    pendingActionRef.current = "recreate";
-    triggerAuthAndRun();
-  }
+    const init = getInitTokenClient();
+    if (!gisLoaded || !init || !clientId) return;
+    tokenClientRef.current = init({
+      client_id: clientId,
+      scope: SCOPES,
+      callback: async (resp) => {
+        if (oauthPopupTimeoutRef.current !== null) {
+          window.clearTimeout(oauthPopupTimeoutRef.current);
+          oauthPopupTimeoutRef.current = null;
+        }
+        if (resp.error || !resp.access_token) {
+          setErrMsg(resp.error ?? "Erro ao conectar com Google.");
+          setStatus("err");
+          setSyncing(false);
+          return;
+        }
+        const newToken: Token = {
+          access_token: resp.access_token,
+          expires_at: Date.now() + 55 * 60 * 1000,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newToken));
+        setToken(newToken);
+        await doSync(newToken.access_token);
+      },
+    });
+  }, [gisLoaded, clientId, doSync]);
 
   function handleConnect() {
-    pendingActionRef.current = "sync";
-    triggerAuthAndRun();
-  }
-
-  function triggerAuthAndRun() {
     if (!tokenClientRef.current) {
       setStatus("err");
       setErrMsg("Login Google ainda não inicializou neste navegador. Aguarde 2 segundos e tente novamente.");
@@ -402,12 +253,8 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     }
 
     setSyncing(true);
-    // Token com menos de TOKEN_REFRESH_THRESHOLD_MS de vida e tratado como
-    // "quase expirado": preferimos pedir um novo agora a arriscar 401 no meio
-    // de createWorkbook (4 chamadas HTTP sequenciais).
-    if (token && token.expires_at > Date.now() + TOKEN_REFRESH_THRESHOLD_MS) {
-      void runAction(pendingActionRef.current, token.access_token);
-    } else {
+    if (token && token.expires_at > Date.now()) void doSync(token.access_token);
+    else {
       // Em alguns navegadores o popup OAuth pode ser bloqueado sem callback.
       // Este timeout evita botão travado em estado "criando".
       if (oauthPopupTimeoutRef.current !== null) {
@@ -435,9 +282,9 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
 
   if (!clientId) {
     return (
-      <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-amber-200">
-        <p className="font-semibold">Exportação para Google Planilhas indisponível</p>
-        <p className="mt-1 text-xs text-slate-400">
+      <div className="rounded-2xl border border-[#DDAF2B]/25 bg-[#FFF8E8] p-4 text-sm text-[#76520C]">
+        <p className="font-bold">Exportação para Google Planilhas indisponível</p>
+        <p className="mt-1 text-xs text-[#647875]">
           Configure <code className="rounded bg-white/10 px-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> no .env.local
         </p>
       </div>
@@ -449,8 +296,8 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       {!meta ? (
         <button
           onClick={handleConnect}
-          disabled={syncing || !tokenClientReady}
-          className="flex w-full min-h-16 items-center justify-center gap-3 rounded-2xl bg-emerald-500 text-lg font-extrabold text-slate-950 shadow-[0_0_40px_rgba(34,197,94,0.4)] transition hover:bg-emerald-400 hover:shadow-[0_0_60px_rgba(34,197,94,0.6)] active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+          disabled={syncing || !gisLoaded}
+          className="flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#0EA978] px-5 text-base font-extrabold text-[#F6FAF8] shadow-[0_10px_26px_rgba(14,169,120,0.2)] transition hover:-translate-y-0.5 hover:bg-[#087F5B] active:translate-y-0 disabled:opacity-50 disabled:shadow-none"
         >
           {syncing ? (
             <><RefreshCcw className="h-6 w-6 animate-spin" /> Criando sua planilha…</>
@@ -470,48 +317,17 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
         <div className="space-y-2">
           <button
             onClick={handleConnect}
-            disabled={syncing || !tokenClientReady}
-            className="flex w-full min-h-14 items-center justify-center gap-3 rounded-2xl bg-emerald-500 text-base font-extrabold text-slate-950 shadow-[0_0_30px_rgba(34,197,94,0.3)] transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={syncing}
+            className="flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#0EA978] px-5 text-base font-extrabold text-[#F6FAF8] shadow-[0_10px_26px_rgba(14,169,120,0.2)] transition hover:-translate-y-0.5 hover:bg-[#087F5B] active:translate-y-0 disabled:opacity-50"
           >
             <RefreshCcw className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} />
             {syncing ? "Atualizando planilha…" : "Atualizar minha planilha"}
           </button>
-          {!showRecreateConfirm ? (
-            <button
-              onClick={handleRecreateRequest}
-              disabled={syncing || !tokenClientReady}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
-              title={tokenClientReady ? "Apaga a planilha antiga e cria uma nova com paleta e layout sempre corretos" : "Aguarde o login Google carregar..."}
-            >
-              <Palette className="h-4 w-4" />
-              {tokenClientReady ? "Recriar planilha (visual perfeito)" : "Aguardando login Google…"}
-            </button>
-          ) : (
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
-              <p className="text-xs font-semibold text-amber-200">
-                Isto apaga sua planilha antiga no Google Drive e cria uma nova com paleta e layout corretos. Os dados são sempre reenviados a partir do app.
-              </p>
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={handleRecreateConfirm}
-                  className="flex-1 rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-amber-400"
-                >
-                  Sim, recriar
-                </button>
-                <button
-                  onClick={() => setShowRecreateConfirm(false)}
-                  className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          )}
           <a
             href={meta.spreadsheetUrl}
             target="_blank"
             rel="noreferrer"
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/5 py-3 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/10"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#0EA978]/25 bg-[#EBF8F3] py-3 text-sm font-bold text-[#08785A] transition hover:bg-[#DDF3EA]"
           >
             <ExternalLink className="h-4 w-4" />
             Abrir no Google Planilhas
@@ -520,7 +336,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       )}
 
       {status === "ok" && (
-        <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-300">
+        <p className="rounded-xl border border-[#0EA978]/25 bg-[#EBF8F3] px-4 py-2.5 text-sm font-bold text-[#08785A]">
           Planilha atualizada.
           {meta?.lastSync && (
             <span className="ml-2 text-xs font-normal opacity-70">
@@ -531,18 +347,18 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       )}
 
       {status === "err" && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="rounded-xl border border-[#E6674F]/25 bg-[#FFF0EC] px-4 py-3 text-sm text-[#B63F2D]">
           <p className="font-semibold">Não consegui exportar:</p>
           <p className="mt-0.5 text-xs opacity-80">{errMsg}</p>
         </div>
       )}
 
-      <div className="flex items-center justify-between text-xs text-slate-500">
+      <div className="flex items-center justify-between gap-3 text-xs text-[#647875]">
         <span>A planilha fica na sua conta Google. Só este app acessa.</span>
         {meta && (
           <button
             onClick={handleDisconnect}
-            className="flex items-center gap-1 text-slate-500 transition hover:text-red-400"
+            className="flex shrink-0 items-center gap-1 text-[#647875] transition hover:text-[#B63F2D]"
           >
             <Unlink className="h-3 w-3" /> Desconectar
           </button>

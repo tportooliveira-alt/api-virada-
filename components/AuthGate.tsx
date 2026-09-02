@@ -418,7 +418,7 @@ function NeedsLogin({
       )}
 
       <p className="mt-5 text-center text-xs text-slate-500">
-        Ainda não comprou? <a href="https://hotmart.com" className="text-virada-gold hover:underline" target="_blank" rel="noreferrer">Compre agora</a>.
+          Ainda nao comprou? Fale com o suporte para liberar seu acesso.
       </p>
 
       {/* Botão dev — aparece APENAS em localhost, invisível em produção */}

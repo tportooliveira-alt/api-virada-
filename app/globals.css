@@ -3,58 +3,274 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  --paper: #f4f7f5;
+  --paper-deep: #e8f0ec;
+  --card: #ffffff;
+  --ink: #133335;
+  --ink-soft: #3c5552;
+  --muted: #647875;
+  --line: rgba(19, 51, 53, 0.12);
+  --green: #0ea978;
+  --green-dark: #08785a;
+  --lime: #cbea6b;
+  --coral: #e6674f;
+  --gold: #ddaf2b;
 }
 
-html,
-body {
-  height: 100%;
+html {
+  min-height: 100%;
   scroll-behavior: smooth;
-  overflow-x: hidden;
+  background: var(--paper);
 }
 
 body {
-  @apply bg-virada-bg text-virada-white font-sans antialiased;
-  background-image:
-    linear-gradient(140deg, rgba(52, 211, 153, 0.08), transparent 28%),
-    linear-gradient(220deg, rgba(240, 168, 48, 0.06), transparent 24%),
-    linear-gradient(180deg, #0a0a0c 0%, #0b0c0f 50%, #0c0d10 100%);
+  min-height: 100%;
   overflow-x: hidden;
+  color: var(--ink);
+  font-family: var(--font-manrope), "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(203, 234, 107, 0.2), transparent 24rem),
+    radial-gradient(circle at 92% 12%, rgba(14, 169, 120, 0.09), transparent 28rem),
+    var(--paper);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Títulos editoriais — herdam a serif da landing (Instrument Serif) */
-h1, h2, h3 {
-  font-family: var(--font-serif);
-  letter-spacing: -0.01em;
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-sora), var(--font-manrope), "Segoe UI", sans-serif;
+  letter-spacing: -0.025em;
 }
 
 button,
 a,
 input,
-select {
+select,
+textarea {
   min-width: 0;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(14, 169, 120, 0.28);
+  outline-offset: 2px;
+}
+
+::selection {
+  color: var(--ink);
+  background: var(--lime);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(203, 213, 225, 0.3) transparent;
+  scrollbar-color: rgba(19, 51, 53, 0.24) transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
 }
 
 *::-webkit-scrollbar-thumb {
-  background: rgba(203, 213, 225, 0.2);
+  border: 2px solid transparent;
   border-radius: 999px;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(19, 51, 53, 0.22);
+  background-clip: padding-box;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
+  opacity: 0.65;
+}
+
+.app-shell {
+  isolation: isolate;
+}
+
+.app-sidebar {
+  color: #f6faf8;
+  background:
+    linear-gradient(160deg, rgba(203, 234, 107, 0.09), transparent 36%),
+    linear-gradient(180deg, #173b3c 0%, #102c2d 100%);
+  box-shadow: 0 28px 70px rgba(19, 51, 53, 0.2);
+}
+
+.app-sidebar::after {
+  position: absolute;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  width: 0.5rem;
+  height: 5rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--lime), var(--green));
+  content: "";
   opacity: 0.8;
+}
+
+.surface-card {
+  border: 1px solid var(--line);
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 30px rgba(19, 51, 53, 0.07);
+}
+
+.eyebrow {
+  color: var(--green-dark);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.input-base {
+  width: 100%;
+  border: 1px solid rgba(19, 51, 53, 0.16);
+  border-radius: 0.95rem;
+  color: var(--ink);
+  background: #fff;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.input-base:hover {
+  border-color: rgba(19, 51, 53, 0.28);
+}
+
+.input-base:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(14, 169, 120, 0.1);
+  outline: 0;
+}
+
+.balance-rail {
+  position: relative;
+  overflow: hidden;
+}
+
+.balance-rail::before {
+  position: absolute;
+  top: 1.3rem;
+  right: 1.25rem;
+  bottom: 1.3rem;
+  width: 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  content: "";
+}
+
+.balance-rail::after {
+  position: absolute;
+  right: 1.25rem;
+  bottom: 1.3rem;
+  width: 0.55rem;
+  height: 58%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--lime), #53d69e);
+  content: "";
+  box-shadow: 0 0 24px rgba(203, 234, 107, 0.42);
+}
+
+.app-bottom-nav {
+  box-shadow: 0 16px 44px rgba(19, 51, 53, 0.2);
+}
+
+/* Compatibilidade visual para telas secundárias ainda baseadas no tema antigo. */
+.virada-light {
+  color: var(--ink);
+}
+
+.virada-light .text-white {
+  color: var(--ink) !important;
+}
+
+.virada-light .text-virada-gray,
+.virada-light .text-slate-400,
+.virada-light .text-slate-500,
+.virada-light .text-slate-600 {
+  color: var(--muted) !important;
+}
+
+.virada-light .text-emerald-300,
+.virada-light .text-emerald-400 {
+  color: var(--green-dark) !important;
+}
+
+.virada-light .text-red-300,
+.virada-light .text-red-400,
+.virada-light .text-rose-300 {
+  color: #c34a39 !important;
+}
+
+.virada-light .text-amber-200,
+.virada-light .text-amber-300,
+.virada-light .text-amber-400 {
+  color: #9a6810 !important;
+}
+
+.virada-light .text-blue-300,
+.virada-light .text-blue-400 {
+  color: #28629e !important;
+}
+
+.virada-light .text-purple-300,
+.virada-light .text-purple-400 {
+  color: #72539a !important;
+}
+
+.virada-light .bg-white\/\[0\.045\],
+.virada-light .bg-white\/\[0\.04\],
+.virada-light .bg-white\/\[0\.03\],
+.virada-light .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.virada-light .border-white\/10,
+.virada-light .border-white\/\[0\.08\],
+.virada-light .border-white\/\[0\.06\] {
+  border-color: var(--line) !important;
+}
+
+.virada-light .bg-slate-900,
+.virada-light .bg-slate-900\/60,
+.virada-light .bg-slate-900\/80,
+.virada-light .bg-slate-900\/95,
+.virada-light .bg-slate-950,
+.virada-light .bg-slate-950\/45,
+.virada-light .bg-slate-950\/40,
+.virada-light .bg-slate-950\/35,
+.virada-light .bg-virada-bg {
+  background-color: #fff !important;
+}
+
+.virada-light .border-virada-line {
+  border-color: var(--line) !important;
+}
+
+.virada-light .shadow-panel,
+.virada-light .shadow-glow {
+  box-shadow: 0 10px 30px rgba(19, 51, 53, 0.07) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

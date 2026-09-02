@@ -9,11 +9,9 @@
  */
 import { NextResponse } from "next/server";
 import { isMember } from "@/lib/access/members";
-import { ADMIN_COOKIE, createAdminSession, isAdminEmail } from "@/lib/access/admin-session";
 
 interface TokenInfo {
   aud?: string;
-  azp?: string;
   sub?: string;
   email?: string;
   email_verified?: string | boolean;
@@ -31,17 +29,25 @@ interface UserInfo {
   picture?: string;
 }
 
+function isAdminEmail(email: string): boolean {
+  const list = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(email.trim().toLowerCase());
+}
+
 function emailVerified(value: unknown): boolean {
   return value === true || value === "true";
 }
 
-async function validateByIdToken(idToken: string, expectedClient: string) {
+async function validateByIdToken(idToken: string, expectedClient?: string) {
   const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
   if (!res.ok) throw new Error("Token Google inválido.");
 
   const info = (await res.json()) as TokenInfo;
   if (info.error_description) throw new Error(info.error_description);
-  if (info.aud !== expectedClient) throw new Error("Audiência inválida.");
+  if (expectedClient && info.aud && info.aud !== expectedClient) throw new Error("Audiência inválida.");
   if (!info.email || !info.sub) throw new Error("Token sem email/sub.");
   if (!emailVerified(info.email_verified)) throw new Error("Email Google não verificado.");
 
@@ -53,12 +59,12 @@ async function validateByIdToken(idToken: string, expectedClient: string) {
   };
 }
 
-async function validateByAccessToken(accessToken: string, expectedClient: string) {
+async function validateByAccessToken(accessToken: string, expectedClient?: string) {
   const tokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`);
   if (!tokenRes.ok) throw new Error("Access token inválido.");
   const tokenInfo = (await tokenRes.json()) as TokenInfo;
 
-  if (tokenInfo.aud !== expectedClient && tokenInfo.azp !== expectedClient) {
+  if (expectedClient && tokenInfo.aud && tokenInfo.aud !== expectedClient) {
     throw new Error("Audiência inválida.");
   }
 
@@ -81,12 +87,6 @@ async function validateByAccessToken(accessToken: string, expectedClient: string
 
 export async function POST(request: Request) {
   const expectedClient = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID;
-  if (!expectedClient) {
-    return NextResponse.json(
-      { message: "Servidor sem GOOGLE_CLIENT_ID configurado." },
-      { status: 500 }
-    );
-  }
 
   let credential = "";
   let accessToken = "";
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     const admin = isAdminEmail(profile.email);
     const ativo = admin || isMember(profile.email);
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       status: ativo ? "ativo" : "inativo",
       email: profile.email,
       sub: profile.sub,
@@ -118,21 +118,6 @@ export async function POST(request: Request) {
       picture: profile.picture,
       isAdmin: admin,
     });
-
-    // Emite (ou limpa) o cookie de sessão admin assinado. Só admins recebem.
-    const session = admin ? createAdminSession(profile.email) : null;
-    if (session) {
-      response.cookies.set(ADMIN_COOKIE, session, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 60 * 12,
-      });
-    } else {
-      response.cookies.set(ADMIN_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
-    }
-    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Token Google inválido.";
     return NextResponse.json({ message }, { status: 401 });

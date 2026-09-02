@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Gauge, PenLine, GraduationCap, Settings, Table } from "lucide-react";
+import { BarChart3, CircleUserRound, Plus, Sheet } from "lucide-react";
 
 const navItems = [
-  { href: "/app/inicio", label: "Início", icon: Gauge },
-  { href: "/app/lancar", label: "Lançar", icon: PenLine },
-  { href: "/app/aprendizado", label: "Aprender", icon: GraduationCap },
-  { href: "/app/evolucao", label: "Planilha", icon: Table },
-  { href: "/app/conta", label: "Conta", icon: Settings },
+  { href: "/app/inicio", label: "Resumo", icon: BarChart3 },
+  { href: "/app/lancar", label: "Lançar", icon: Plus },
+  { href: "/app/evolucao", label: "Planilha", icon: Sheet },
+  { href: "/app/aprender", label: "Conta", icon: CircleUserRound },
 ];
 
 export function BottomNav() {
@@ -17,7 +16,7 @@ export function BottomNav() {
   const pathname = rawPath.replace(/\/$/, "") || "/";
 
   return (
-    <nav className="fixed bottom-3 left-1/2 z-40 grid w-[calc(100%-1rem)] max-w-md -translate-x-1/2 grid-cols-5 gap-1 rounded-lg border border-virada-line bg-slate-950/95 p-2 shadow-glow backdrop-blur lg:hidden">
+    <nav className="app-bottom-nav fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-40 grid w-[calc(100%-1.25rem)] max-w-md -translate-x-1/2 grid-cols-4 gap-1 rounded-[1.35rem] border border-[#133335]/10 bg-white/95 p-1.5 backdrop-blur-xl lg:hidden" aria-label="Navegação principal">
       {navItems.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
@@ -26,11 +25,12 @@ export function BottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`grid min-h-14 place-items-center gap-1 rounded-md px-1 py-2 text-[11px] transition ${
-              active ? "bg-emerald-500 font-semibold text-slate-950" : "text-virada-gray"
+            aria-current={active ? "page" : undefined}
+            className={`grid min-h-[3.35rem] place-items-center gap-0.5 rounded-2xl px-1.5 py-1.5 text-[10px] font-bold transition ${
+              active ? "bg-[#133335] text-[#F6FAF8] shadow-md" : "text-[#647875] hover:bg-[#E8F0EC]"
             }`}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className={`h-[1.15rem] w-[1.15rem] ${item.href === "/app/lancar" && active ? "text-[#CBEA6B]" : ""}`} />
             {item.label}
           </Link>
         );
