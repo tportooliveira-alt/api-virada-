@@ -24,7 +24,7 @@ const OUT_JS = join(ROOT, "public", "vendas-hero.js");
 const PROPS = { checkoutUrl: "", plataforma: "Kiwify", preco: 47, precoDepois: 150, horasOferta: 24, whatsapp: "" };
 // TODO(kiwify): domínio final da landing (ex.: "https://codigodavirada.net.br"). Com ele, o og:image vira
 // URL absoluta — WhatsApp/Instagram só mostram a capa com URL absoluta. Vazio = fica relativo.
-const SITE_URL = "";
+const SITE_URL = "https://codigodavirada.net.br";
 
 const src = readFileSync(SRC, "utf8");
 
