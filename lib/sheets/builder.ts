@@ -9,7 +9,7 @@ import {
   FORMAT,
   STYLE,
   addBanding,
-  condFormatGradient,
+  condFormatProgressBands,
   condFormatPositiveNegative,
   condFormatTextEquals,
   freezeRows,
@@ -69,6 +69,10 @@ export const HEADERS: Partial<Record<TabKey, string[]>> = {
   fluxo: ["Data", "Entradas", "Saídas", "Resultado do dia", "Saldo acumulado"],
   resumo: ["Mês", "Entradas", "Saídas", "Resultado", "Saldo acumulado", "Economia", "Lançamentos"],
 };
+
+// Cores das barras de participação do Dashboard — mesma sequência da legenda
+// da pizza no design (Planilha Virada - Redesign).
+const SPARK_COLORS = ["#22C55E", "#F5C542", "#3B82F6", "#EF4444", "#A855F7", "#F97316", "#06B6D4", "#EC4899", "#84CC16", "#14B8A6"];
 
 export const MAX_DATA_ROWS = 1000;
 
@@ -221,6 +225,14 @@ function buildDashboardLayout(requests: unknown[], sheetId: number) {
   requests.push(repeatCell(sheetId, range(5, 6, 6, 9), STYLE.kpiValueGold));
   requests.push(repeatCell(sheetId, range(5, 6, 9, 12), STYLE.kpiValueCount));
 
+  // design: títulos 28/24px, cabeçalho da tabela 26px e linhas de dados 22px
+  requests.push(setRowHeight(sheetId, 8, 9, 28));
+  requests.push(setRowHeight(sheetId, 9, 10, 24));
+  requests.push(setRowHeight(sheetId, 10, 11, 26));
+  requests.push(setRowHeight(sheetId, 11, 21, 22));
+  requests.push(setRowHeight(sheetId, 32, 33, 28));
+  requests.push(setRowHeight(sheetId, 33, 34, 24));
+
   // v2: linhas separadoras finas (3–4, 7–8, 22)
   requests.push(setRowHeight(sheetId, 2, 4, 12));
   requests.push(setRowHeight(sheetId, 6, 8, 12));
@@ -263,6 +275,7 @@ function buildDataSheetLayout(requests: unknown[], key: DataTabKey, sheetId: num
   const mainCols = headers.length;
 
   requests.push(setRowHeight(sheetId, 0, 1, 38));
+  requests.push(setRowHeight(sheetId, 1, MAX_DATA_ROWS + 1, 24)); // design: linhas de dados 24px
   requests.push(repeatCell(sheetId, range(0, 1, 0, mainCols), STYLE.tableHeader));
   requests.push(freezeRows(sheetId, 1));
   requests.push(addBanding(sheetId, 0, MAX_DATA_ROWS + 1, 0, mainCols));
@@ -363,6 +376,13 @@ function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
     textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.brandDeep },
   }, "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)");
 
+  const countCol = (sheetId: number, col: number) => repeatCell(sheetId, dataCol(col), {
+    numberFormat: { type: "NUMBER", pattern: FORMAT.intCount },
+    horizontalAlignment: "CENTER",
+    verticalAlignment: "MIDDLE",
+    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.slate700 },
+  }, "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)");
+
   const dashboardNumber = (
     rowStart: number,
     rowEnd: number,
@@ -393,14 +413,14 @@ function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
   requests.push(dateCol(ids[TAB.dividas], 1), moneyCol(ids[TAB.dividas], 4), moneyCol(ids[TAB.dividas], 5), moneyCol(ids[TAB.dividas], 6));
   requests.push(moneyCol(ids[TAB.metas], 2), moneyCol(ids[TAB.metas], 3), moneyCol(ids[TAB.metas], 4), pctCol(ids[TAB.metas], 5));
   requests.push(dateCol(ids[TAB.fluxo], 0), moneyCol(ids[TAB.fluxo], 1), moneyCol(ids[TAB.fluxo], 2), moneyCol(ids[TAB.fluxo], 3), moneyCol(ids[TAB.fluxo], 4));
-  requests.push(monthCol(ids[TAB.resumo], 0), moneyCol(ids[TAB.resumo], 1), moneyCol(ids[TAB.resumo], 2), moneyCol(ids[TAB.resumo], 3), moneyCol(ids[TAB.resumo], 4), pctCol(ids[TAB.resumo], 5));
+  requests.push(monthCol(ids[TAB.resumo], 0), moneyCol(ids[TAB.resumo], 1), moneyCol(ids[TAB.resumo], 2), moneyCol(ids[TAB.resumo], 3), moneyCol(ids[TAB.resumo], 4), pctCol(ids[TAB.resumo], 5), countCol(ids[TAB.resumo], 6));
 }
 
 function applyConditionals(requests: unknown[], ids: Record<string, number>) {
   requests.push(...condFormatPositiveNegative(ids[TAB.dashboard], 5, 6, 6, 7));
   requests.push(...condFormatPositiveNegative(ids[TAB.fluxo], 1, MAX_DATA_ROWS + 1, 3, 5));
   requests.push(...condFormatPositiveNegative(ids[TAB.resumo], 1, MAX_DATA_ROWS + 1, 3, 5));
-  requests.push(condFormatGradient(ids[TAB.metas], 1, MAX_DATA_ROWS + 1, 5, 6));
+  requests.push(...condFormatProgressBands(ids[TAB.metas], 1, MAX_DATA_ROWS + 1, 5, 6));
   requests.push(condFormatTextEquals(ids[TAB.dividas], 1, MAX_DATA_ROWS + 1, 3, 4, "aberta", COLOR.redSoft, COLOR.red, 0));
   requests.push(condFormatTextEquals(ids[TAB.dividas], 1, MAX_DATA_ROWS + 1, 3, 4, "negociando", COLOR.goldSoft, COLOR.orange, 1));
   requests.push(condFormatTextEquals(ids[TAB.dividas], 1, MAX_DATA_ROWS + 1, 3, 4, "quitada", COLOR.greenSoft, COLOR.brandDeep, 2));
@@ -414,7 +434,7 @@ export function buildStaticValues() {
   DATA_TABS.forEach((key) => data.push({ range: `${TAB[key]}!A1`, values: [HEADERS[key] ?? []] }));
   data.push(
     { range: `${TAB.dashboard}!A1`, values: [["CÓDIGO DA VIRADA • BASE FINANCEIRA CLARA E ESTRUTURADA"]] },
-    { range: `${TAB.dashboard}!A2`, values: [["Dashboard oficial da marca. Sincronize pelo app para preencher dados reais com fidelidade visual."]] },
+    { range: `${TAB.dashboard}!A2`, values: [[`Atualizado em ${new Date().toLocaleString("pt-BR")}`]] },
     { range: `${TAB.dashboard}!A5`, values: [["ENTRADAS DO PERÍODO", "", "", "SAÍDAS DO PERÍODO", "", "", "SALDO ATUAL", "", "", "LANÇAMENTOS", "", ""]] },
     { range: `${TAB.dashboard}!A6`, values: [[0, "", "", 0, "", "", 0, "", "", 0, "", ""]] },
     { range: `${TAB.dashboard}!A9`, values: [["Top categorias de gasto"], ["As dez categorias com maior saída financeira no período sincronizado."]] },
@@ -426,7 +446,7 @@ export function buildStaticValues() {
     { range: `${TAB.dashboard}!A33`, values: [["Dívidas em aberto e pressão de caixa"], ["Gráfico de barras para visualizar rapidamente onde está o maior peso financeiro."]] },
     { range: `${TAB.dashboard}!C11`, values: [["participação"]] },
     { range: `${TAB.dashboard}!K11`, values: [["resultado do mês"]] },
-    { range: `${TAB.dashboard}!C12:C21`, values: Array.from({ length: 10 }, (_, i) => [sparkBar(`B${12 + i}`, "$B$12:$B$21")]) },
+    { range: `${TAB.dashboard}!C12:C21`, values: Array.from({ length: 10 }, (_, i) => [sparkBar(`B${12 + i}`, "$B$12:$B$21", SPARK_COLORS[i])]) },
     { range: `${TAB.dashboard}!K12:K21`, values: Array.from({ length: 10 }, (_, i) => [sparkBar(`J${12 + i}`, "$J$12:$J$21")]) },
   );
 
@@ -710,7 +730,7 @@ function monthlyChart(dashboard: number, rowIndex: number, columnIndex: number, 
 
 function lineChart(dashboard: number, fluxo: number, rowIndex: number, columnIndex: number, widthPixels: number, heightPixels: number) {
   return basicChart(dashboard, fluxo, rowIndex, columnIndex, widthPixels, heightPixels, "LINE", "NO_LEGEND", source(fluxo, 0, MAX_DATA_ROWS + 1, 0, 1), [
-    { range: source(fluxo, 0, MAX_DATA_ROWS + 1, 4, 5), color: COLOR.green },
+    { range: source(fluxo, 0, MAX_DATA_ROWS + 1, 4, 5), color: COLOR.blue },
   ]);
 }
 
@@ -770,8 +790,8 @@ function source(sheetId: number, startRowIndex: number, endRowIndex: number, sta
 }
 
 // Barra horizontal proporcional ao máximo da coluna. Sintaxe pt_BR (locale definido em createSpreadsheet).
-function sparkBar(cell: string, maxRange: string) {
-  return `=SE(N(${cell})>0;SPARKLINE(${cell};{"charttype"\\"bar";"max"\\MÁXIMO(${maxRange});"color1"\\"#22C55E"});"")`;
+function sparkBar(cell: string, maxRange: string, color = "#22C55E") {
+  return `=SE(N(${cell})>0;SPARKLINE(${cell};{"charttype"\\"bar";"max"\\MÁXIMO(${maxRange});"color1"\\"${color}"});"")`;
 }
 
 function padRows(length: number, filler: unknown[], rows: unknown[][] = []) {

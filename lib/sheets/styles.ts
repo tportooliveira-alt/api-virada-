@@ -139,7 +139,7 @@ export const STYLE: Record<string, CellFormat> = {
     horizontalAlignment: "LEFT",
     verticalAlignment: "MIDDLE",
     padding: { top: 8, right: 12, bottom: 8, left: 12 },
-    textFormat: text(10, white, true),
+    textFormat: text(11, white, true),
   },
   sectionTitle: {
     backgroundColor: white,
@@ -153,7 +153,7 @@ export const STYLE: Record<string, CellFormat> = {
     horizontalAlignment: "LEFT",
     verticalAlignment: "TOP",
     padding: { top: 0, right: 12, bottom: 8, left: 12 },
-    textFormat: text(9, slate500),
+    textFormat: text(10, slate500),
     borders: { bottom: border(slate200) },
     wrapStrategy: "WRAP",
   },
@@ -308,7 +308,7 @@ export const STYLE: Record<string, CellFormat> = {
     backgroundColor: green,
     horizontalAlignment: "CENTER",
     verticalAlignment: "MIDDLE",
-    textFormat: text(14, ink, true),
+    textFormat: text(15, ink, true),
   },
   helpStepTitle: {
     backgroundColor: white,
@@ -460,6 +460,27 @@ export function condFormatPositiveNegative(
         index: 1,
       },
     },
+  ];
+}
+
+export function condFormatProgressBands(
+  sheetId: number,
+  startRow: number,
+  endRow: number,
+  startCol: number,
+  endCol: number,
+) {
+  const ranges = [{ sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startCol, endColumnIndex: endCol }];
+  const band = (condition: Record<string, unknown>, bg: RGB, fg: RGB, index: number) => ({
+    addConditionalFormatRule: {
+      rule: { ranges, booleanRule: { condition, format: { backgroundColor: bg, textFormat: { foregroundColor: fg, bold: true } } } },
+      index,
+    },
+  });
+  return [
+    band({ type: "NUMBER_GREATER_THAN_EQ", values: [{ userEnteredValue: "0.75" }] }, greenSoft, greenDeep, 0),
+    band({ type: "NUMBER_GREATER_THAN_EQ", values: [{ userEnteredValue: "0.35" }] }, amberSoft, amberDeep, 1),
+    band({ type: "NUMBER_LESS", values: [{ userEnteredValue: "0.35" }] }, redSoft, red, 2),
   ];
 }
 
