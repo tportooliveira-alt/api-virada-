@@ -6,6 +6,7 @@ import { PropsWithChildren } from "react";
 import { CalendarDays, Smartphone } from "lucide-react";
 import { BottomNav, isActivePath, mainNavItems } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
+import { UpdateBanner } from "@/components/UpdateBanner";
 
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
   "/app/inicio": {
@@ -103,6 +104,7 @@ export function AppShell({ children }: PropsWithChildren) {
       </div>
 
       <BottomNav />
+      <UpdateBanner />
     </div>
   );
 }
