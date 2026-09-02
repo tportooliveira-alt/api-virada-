@@ -4,32 +4,46 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Política de Privacidade — Código da Virada</title>
+  <link rel="icon" href="/assets/favicon-32.png" sizes="32x32" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Figtree:wght@700;800&display=swap" rel="stylesheet" />
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #1a1a1a; line-height: 1.7; }
-    h1 { color: #07111F; border-bottom: 3px solid #F5C542; padding-bottom: 12px; }
-    h2 { color: #07111F; margin-top: 32px; }
-    p, li { color: #333; }
-    a { color: #C49B1A; }
-    .updated { color: #666; font-size: 14px; margin-bottom: 32px; }
-    code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; }
+    /* Design system Virada: Ink #0F172A · verde #22C55E · âmbar #F5C542 · Onest/Figtree */
+    body { margin: 0; background: #F8FAFC; color: #0F172A; font-family: Onest, system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+    .topo { background: #0F172A; padding: 14px 20px; }
+    .topo a { display: flex; align-items: center; gap: 10px; max-width: 800px; margin: 0 auto; color: #fff; text-decoration: none; font-weight: 700; font-size: 16px; }
+    .topo img { width: 32px; height: 32px; border-radius: 8px; }
+    main { max-width: 800px; margin: 0 auto; padding: 40px 20px 64px; }
+    h1 { font-family: Figtree, Onest, sans-serif; font-weight: 800; font-size: clamp(30px, 5vw, 40px); letter-spacing: -0.02em; line-height: 1.1; margin: 0 0 12px; }
+    h2 { font-family: Figtree, Onest, sans-serif; font-weight: 700; font-size: 20px; margin: 40px 0 10px; }
+    p, li { color: #334155; font-size: 16px; }
+    a { color: #166534; }
+    .updated { color: #64748B; font-size: 14px; margin: 0 0 32px; padding-bottom: 20px; border-bottom: 1px solid #E2E8F0; }
+    .destaque { background: #FFFBEB; border: 1px solid #FCD34D; padding: 14px 18px; margin: 16px 0; border-radius: 12px; }
+    code { background: #E2E8F0; padding: 2px 6px; border-radius: 6px; font-size: 14px; }
+    .rodape { max-width: 800px; margin: 0 auto; padding: 0 20px 40px; display: flex; flex-wrap: wrap; gap: 8px 20px; color: #64748B; font-size: 14px; }
+    .rodape a { color: #64748B; }
   </style>
 </head>
 <body>
+  <header class="topo"><a href="/vendas.html"><img src="/icons/icon-192.png" alt="" /> Código da Virada</a></header>
+  <main>
   <h1>Política de Privacidade</h1>
-  <p class="updated"><strong>Última atualização:</strong> 1º de maio de 2026</p>
+  <p class="updated"><strong>Última atualização:</strong> 2 de setembro de 2026</p>
 
   <p>Esta Política de Privacidade descreve como o <strong>Código da Virada</strong> (também referido como "nós", "nosso" ou "aplicativo") coleta, usa, armazena e protege suas informações quando você usa nosso produto. Este documento foi elaborado em conformidade com a <strong>Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)</strong>.</p>
 
   <h2>1. Quem somos</h2>
-  <p>O Código da Virada é um produto digital de propriedade de <strong>[SEU NOME OU CNPJ]</strong>, com contato em <a href="mailto:contato@SEUDOMINIO.com.br">contato@SEUDOMINIO.com.br</a>. Para questões relacionadas à privacidade, você pode nos contatar diretamente neste email.</p>
+  <p>O Código da Virada é um produto digital de propriedade de <strong>[SEU NOME OU CNPJ]</strong>, com contato em <a href="mailto:contato@codigodavirada.net.br">contato@codigodavirada.net.br</a>. Para questões relacionadas à privacidade, você pode nos contatar diretamente neste email.</p>
 
   <h2>2. Quais dados coletamos</h2>
   <p>Coletamos apenas os dados estritamente necessários para o funcionamento do produto:</p>
   <ul>
-    <li><strong>E-mail e nome:</strong> fornecidos quando você compra o produto via Hotmart, Eduzz, Kiwify, Monetizze, Cakto ou Perfectpay. São usados para liberar seu acesso ao app.</li>
+    <li><strong>E-mail e nome:</strong> fornecidos quando você compra o produto via Kiwify ou Cakto. São usados para liberar seu acesso ao app.</li>
     <li><strong>Identificador Google (sub):</strong> ao entrar com sua conta Google, salvamos um identificador imutável da sua conta para validar o acesso. Não acessamos sua senha.</li>
     <li><strong>Plataforma de compra e ID da transação:</strong> usados apenas para auditoria e suporte (em caso de reembolso, por exemplo).</li>
-    <li><strong>Dados financeiros que você lança no app:</strong> entradas, gastos, dívidas, metas. <strong>Esses dados ficam armazenados apenas no seu celular</strong> (IndexedDB do navegador) e nunca são enviados para nossos servidores.</li>
+    <li><strong>Dados financeiros que você lança no app:</strong> entradas, gastos, dívidas, metas. <strong>Esses dados ficam armazenados apenas no seu celular</strong> (armazenamento local do navegador) e nunca são enviados para nossos servidores.</li>
   </ul>
 
   <h2>3. O que NÃO coletamos</h2>
@@ -44,7 +58,7 @@
   <ul>
     <li><strong>Liberar seu acesso:</strong> precisamos do seu e-mail para confirmar que você comprou o produto.</li>
     <li><strong>Suporte:</strong> em caso de dúvidas ou problemas, usamos o e-mail para responder.</li>
-    <li><strong>Auditoria de vendas:</strong> registramos a plataforma, ID de transação e status para conformidade com a Hotmart e demais plataformas.</li>
+    <li><strong>Auditoria de vendas:</strong> registramos a plataforma, ID de transação e status para conformidade com a plataforma de venda.</li>
     <li><strong>Prevenir fraudes:</strong> o identificador Google (sub) impede que alguém edite manualmente o e-mail no banco e libere acesso indevido.</li>
   </ul>
 
@@ -59,7 +73,7 @@
   <h2>6. Com quem compartilhamos seus dados</h2>
   <p>Apenas com:</p>
   <ul>
-    <li><strong>Plataforma de venda</strong> (Hotmart, Eduzz, Kiwify, Monetizze, Cakto, Perfectpay) — eles nos enviam os dados da compra automaticamente via webhook.</li>
+    <li><strong>Plataforma de venda</strong> (Kiwify ou Cakto) — eles nos enviam os dados da compra automaticamente via webhook.</li>
     <li><strong>Google</strong> — apenas o necessário para validar seu login (não acessamos seus outros dados Google).</li>
     <li><strong>Provedor de hospedagem</strong> — nosso servidor armazena os dados em conformidade com a LGPD.</li>
   </ul>
@@ -83,7 +97,7 @@
     <li>Revogar o consentimento a qualquer momento.</li>
     <li>Solicitar a exclusão de todos os dados pessoais tratados com base em consentimento.</li>
   </ul>
-  <p>Para exercer qualquer desses direitos, envie um email para <a href="mailto:contato@SEUDOMINIO.com.br">contato@SEUDOMINIO.com.br</a>. Vamos responder em até <strong>15 dias</strong>.</p>
+  <p>Para exercer qualquer desses direitos, envie um email para <a href="mailto:contato@codigodavirada.net.br">contato@codigodavirada.net.br</a>. Vamos responder em até <strong>15 dias</strong>.</p>
 
   <h2>9. Segurança</h2>
   <p>Protegemos seus dados com:</p>
@@ -98,7 +112,7 @@
   <h2>10. Cookies e tecnologias semelhantes</h2>
   <p>Usamos apenas:</p>
   <ul>
-    <li><strong>localStorage</strong> e <strong>IndexedDB</strong> — guardam seu login e seus dados financeiros no seu celular. Sem isso o app não funciona.</li>
+    <li><strong>localStorage</strong> — guardam seu login e seus dados financeiros no seu celular. Sem isso o app não funciona.</li>
     <li><strong>Cookies de sessão</strong> — apenas durante o login com Google.</li>
   </ul>
   <p>Não usamos cookies de rastreamento publicitário.</p>
@@ -111,12 +125,14 @@
 
   <h2>13. Encarregado de Dados (DPO)</h2>
   <p>Como microempresa, atuamos como nosso próprio encarregado. Para qualquer questão sobre tratamento de dados, entre em contato:</p>
-  <p><strong>Email:</strong> <a href="mailto:contato@SEUDOMINIO.com.br">contato@SEUDOMINIO.com.br</a></p>
+  <p><strong>Email:</strong> <a href="mailto:contato@codigodavirada.net.br">contato@codigodavirada.net.br</a></p>
 
   <h2>14. Contato e reclamações</h2>
   <p>Se você acredita que seus direitos não foram respeitados, pode reclamar diretamente à <strong>Autoridade Nacional de Proteção de Dados (ANPD)</strong> em <a href="https://www.gov.br/anpd" target="_blank" rel="noopener">www.gov.br/anpd</a>.</p>
 
-  <hr style="margin: 40px 0; border: 0; border-top: 1px solid #ddd;">
-  <p style="font-size: 13px; color: #666;">Este documento é um modelo geral e foi adaptado para o Código da Virada. Para validação jurídica completa, consulte um advogado de sua confiança especializado em LGPD.</p>
+  <hr style="margin: 40px 0; border: 0; border-top: 1px solid #E2E8F0;">
+  <p style="font-size: 13px; color: #64748B;">Este documento é um modelo geral e foi adaptado para o Código da Virada. Para validação jurídica completa, consulte um advogado de sua confiança especializado em LGPD.</p>
+  </main>
+  <footer class="rodape"><span>© Código da Virada</span> <a href="/vendas.html">Página do produto</a> <a href="/termos-de-uso.html">Termos de Uso</a> <a href="mailto:contato@codigodavirada.net.br">contato@codigodavirada.net.br</a></footer>
 </body>
 </html>

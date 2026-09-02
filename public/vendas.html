@@ -1,329 +1,305 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Código da Virada — Tira o caos do dinheiro do seu celular</title>
-  <meta name="description" content="App + planilha que mostram pra onde seu dinheiro está indo. Sem cadastro, sem mensalidade. Compre uma vez e use o resto da vida." />
-  <meta property="og:title" content="Código da Virada — App de controle financeiro" />
-  <meta property="og:description" content="Controle suas entradas, gastos, dívidas e metas no celular. Exporta uma planilha pronta pro Google Planilhas." />
-  <meta property="og:type" content="website" />
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg: #07111F;
-      --bg-soft: #0B1020;
-      --card: rgba(11, 16, 32, 0.78);
-      --line: rgba(203, 213, 225, 0.12);
-      --gold: #F5C542;
-      --green: #22C55E;
-      --white: #FFFFFF;
-      --gray: #CBD5E1;
-      --slate: #94A3B8;
-    }
-    html, body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-      background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 34%),
-                  radial-gradient(circle at right top, rgba(245, 197, 66, 0.12), transparent 24%),
-                  linear-gradient(180deg, #07111F 0%, #0B1020 100%);
-      color: var(--gray);
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
-    header { padding: 24px 0; border-bottom: 1px solid var(--line); }
-    .logo { font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
-    .hero { padding: 80px 0 60px; text-align: center; }
-    .hero h1 {
-      font-size: clamp(32px, 6vw, 56px);
-      color: var(--white);
-      font-weight: 700;
-      line-height: 1.15;
-      max-width: 800px;
-      margin: 0 auto 20px;
-    }
-    .hero h1 .highlight { color: var(--gold); }
-    .hero p {
-      font-size: clamp(16px, 2vw, 20px);
-      color: var(--gray);
-      max-width: 640px;
-      margin: 0 auto 32px;
-    }
-    .cta {
-      display: inline-block;
-      background: var(--gold);
-      color: var(--bg);
-      padding: 18px 42px;
-      border-radius: 8px;
-      font-size: 18px;
-      font-weight: 700;
-      text-decoration: none;
-      box-shadow: 0 18px 48px rgba(245, 197, 66, 0.35);
-      transition: transform 0.15s;
-    }
-    .cta:hover { transform: translateY(-2px); }
-    .cta-sub { display: block; margin-top: 12px; font-size: 13px; color: var(--slate); }
-    .price-tag { display: inline-block; padding: 4px 12px; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 999px; color: var(--green); font-size: 12px; font-weight: 600; margin-bottom: 16px; }
-    section { padding: 60px 0; border-top: 1px solid var(--line); }
-    section h2 {
-      font-size: clamp(26px, 4vw, 38px);
-      color: var(--white);
-      font-weight: 700;
-      margin-bottom: 16px;
-      text-align: center;
-    }
-    section .lead { text-align: center; max-width: 640px; margin: 0 auto 40px; font-size: 17px; }
-    .grid-3 { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
-    .card h3 { color: var(--white); font-size: 18px; margin-bottom: 8px; }
-    .card .icon { font-size: 32px; margin-bottom: 12px; display: block; }
-    .pain-list { max-width: 700px; margin: 0 auto; }
-    .pain-list li { list-style: none; padding: 12px 0 12px 32px; position: relative; border-bottom: 1px solid var(--line); }
-    .pain-list li:last-child { border-bottom: 0; }
-    .pain-list li:before { content: "✕"; position: absolute; left: 8px; top: 12px; color: #ef4444; font-weight: 700; }
-    .gain-list li:before { content: "✓"; color: var(--green); }
-    .testimonials { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-    .testimonial { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
-    .testimonial p { color: var(--gray); font-style: italic; margin-bottom: 16px; }
-    .testimonial .name { color: var(--gold); font-weight: 600; font-size: 14px; }
-    .testimonial .role { color: var(--slate); font-size: 13px; }
-    .price-box {
-      max-width: 480px;
-      margin: 0 auto;
-      background: var(--card);
-      border: 2px solid var(--gold);
-      border-radius: 16px;
-      padding: 32px;
-      text-align: center;
-    }
-    .price-box .old { text-decoration: line-through; color: var(--slate); font-size: 16px; }
-    .price-box .now { color: var(--gold); font-size: 56px; font-weight: 800; line-height: 1; margin: 8px 0; }
-    .price-box .now .cents { font-size: 28px; vertical-align: top; }
-    .price-box .install { color: var(--gray); margin-bottom: 16px; }
-    .price-box ul { text-align: left; margin: 24px 0; list-style: none; }
-    .price-box ul li { padding: 8px 0 8px 28px; position: relative; }
-    .price-box ul li:before { content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: 700; }
-    .faq { max-width: 700px; margin: 0 auto; }
-    .faq details { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; }
-    .faq summary { cursor: pointer; color: var(--white); font-weight: 600; }
-    .faq summary::-webkit-details-marker { display: none; }
-    .faq details[open] summary { color: var(--gold); }
-    .faq p { margin-top: 12px; }
-    .guarantee { background: var(--card); border: 1px solid var(--green); border-radius: 12px; padding: 24px; max-width: 600px; margin: 0 auto; text-align: center; }
-    .guarantee strong { color: var(--green); }
-    footer { padding: 40px 0; text-align: center; color: var(--slate); font-size: 13px; border-top: 1px solid var(--line); }
-    footer a { color: var(--gold); text-decoration: none; margin: 0 8px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Código da Virada — Você sabe quanto ganha. Não sabe pra onde foi.</title>
+<meta name="description" content="Um app que lança seus gastos em 10 segundos e uma planilha que se monta sozinha no seu Google Drive. Sem cadastro chato. Sem mensalidade. Compre uma vez, use pra sempre.">
+<meta property="og:title" content="Código da Virada — app + planilha pra saber pra onde vai seu dinheiro">
+<meta property="og:description" content="Lança em 10 segundos, funciona offline e a planilha aparece pronta no seu Google Planilhas. Pagamento único, 7 dias de garantia.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/assets/og-image.png">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Figtree:wght@700;800;900&display=swap" rel="stylesheet">
+<script>
+window.OM_SCENES = '[{"name":"Lançar","dur":3,"desc":"No celular, o valor R$ 35,90 é digitado, Mercado é escolhido e o gasto é confirmado"},{"name":"Início","dur":3,"desc":"A tela Início mostra o saldo do mês subindo e as barras por categoria"},{"name":"Exportar","dur":2.6,"desc":"Na tela Conta, um toque em Conectar e a planilha voa para o notebook"},{"name":"Planilha","dur":4.4,"desc":"O Google Planilhas abre com cabeçalho, indicadores e a tabela de lançamentos"},{"name":"Fim","dur":1,"desc":"Tudo se acomoda e a cena volta ao começo"}]';
+window.OM_PLAYBACK = '{"mode":"loop"}';
+</script>
+<style>
+  html, body { margin:0; padding:0; min-height:100%; scroll-behavior:smooth; }
+  body { font-family:"Onest", ui-sans-serif, system-ui, sans-serif; color:#0F172A; background:#FFFFFF; -webkit-font-smoothing:antialiased; text-wrap:pretty; }
+  a { color:#047857; } a:hover { color:#065F46; }
+  details > summary { list-style:none; } details > summary::-webkit-details-marker { display:none; }
+  @keyframes ticker { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+  @keyframes pulse { 0%, 100% { box-shadow:0 0 0 0 rgba(34,197,94,0.45); } 70% { box-shadow:0 0 0 14px rgba(34,197,94,0); } }
+</style>
+<style>
+  .hv1:hover { background:#4ADE80; }
+  .hv2:hover { transform:translateY(-4px); box-shadow:0 20px 40px rgba(15,23,42,0.08); }
+  .hv3:hover { transform:translateY(-2px); }
+  #virada-demo [data-om-starter] { background:#0F172A !important; }
+  /* barra de player (pausar/arrastar/baixar) é ferramenta do editor, não entra na página */
+  #virada-demo [data-omelette-chrome] { display:none !important; }
+</style>
+<script>
+  // ─── CONFIG (preencha aqui) ───────────────────────────────────────────
+  // Link do checkout da plataforma (Kiwify). Vazio = os botões rolam até a caixa de preço.
+  var CHECKOUT_URL = "";
+  // WhatsApp do suporte, só números com DDI+DDD (ex.: "5575999990000"). Vazio = esconde o botão flutuante.
+  var WHATSAPP = "";
+  // Duração da oferta por visitante, em horas (0 desliga a faixa amarela).
+  var HORAS_OFERTA = 24;
+</script>
 </head>
 <body>
-  <header>
-    <div class="container">
-      <span class="logo">Código da Virada</span>
+<div>
+  <header style="position:sticky; top:0; z-index:30; background:#0F172A; border-bottom:1px solid rgba(255,255,255,0.08);">
+    
+      <div data-oferta style="background:#F5C542; color:#0F172A;">
+        <div style="max-width:1200px; margin:0 auto; padding:8px 24px; display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap; font-size:13px; font-weight:600;">
+          <span style="display:inline-flex; align-items:baseline; gap:8px;">Pagamento único — de <s style="text-decoration-color:#EF4444; text-decoration-thickness:2px; opacity:0.7;">R$ 150</s> por <b style="font-family:'Figtree', sans-serif; font-size:24px; font-weight:900; letter-spacing:-0.03em;">R$ 47</b></span>
+          <span style="display:inline-flex; gap:5px; align-items:center;"><span style="display:inline-flex; flex-direction:column; align-items:center; background:#0F172A; color:#F5C542; border-radius:8px; padding:4px 8px; min-width:40px;"><b style="font-family:'Figtree', sans-serif; font-size:18px; letter-spacing:-0.02em; line-height:1; font-variant-numeric:tabular-nums;"><span data-count="h">24</span></b><span style="font-size:8px; letter-spacing:0.1em; color:#94A3B8;">HORAS</span></span><span style="display:inline-flex; flex-direction:column; align-items:center; background:#0F172A; color:#F5C542; border-radius:8px; padding:4px 8px; min-width:40px;"><b style="font-family:'Figtree', sans-serif; font-size:18px; letter-spacing:-0.02em; line-height:1; font-variant-numeric:tabular-nums;"><span data-count="m">00</span></b><span style="font-size:8px; letter-spacing:0.1em; color:#94A3B8;">MIN</span></span><span style="display:inline-flex; flex-direction:column; align-items:center; background:#0F172A; color:#F5C542; border-radius:8px; padding:4px 8px; min-width:40px;"><b style="font-family:'Figtree', sans-serif; font-size:18px; letter-spacing:-0.02em; line-height:1; font-variant-numeric:tabular-nums;"><span data-count="s">00</span></b><span style="font-size:8px; letter-spacing:0.1em; color:#94A3B8;">SEG</span></span></span>
+        </div>
+      </div>
+    
+    <div style="max-width:1200px; margin:0 auto; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; color:#FFFFFF;">
+      <div style="display:flex; align-items:center; gap:10px;"><img src="/icons/icon-192.png" alt="" style="width:32px; height:32px; border-radius:9px;"><span style="font-size:15px; font-weight:700; letter-spacing:-0.01em;">Código da Virada</span></div>
+      <div style="display:flex; align-items:center; gap:14px;"><span style="font-size:13px; color:#94A3B8;">Pagamento único, sem mensalidade · <b style="color:#FFFFFF;">R$ 47</b></span><a href="#comprar" data-checkout style="display:inline-flex; align-items:center; border-radius:999px; background:#22C55E; padding:10px 18px; font-size:14px; font-weight:700; color:#052E16; text-decoration:none;" class="hv1">Quero o app</a></div>
     </div>
   </header>
 
-  <!-- HERO -->
-  <section class="hero" style="border-top: 0;">
-    <div class="container">
-      <span class="price-tag">Lançamento — preço promocional</span>
-      <h1>Pare de chegar no fim do mês <span class="highlight">sem saber pra onde foi seu dinheiro</span>.</h1>
-      <p>App + planilha que mostram, no celular, suas entradas, gastos, dívidas e metas. Sem cadastro chato. Sem mensalidade. Compre uma vez e use o resto da vida.</p>
-      <a href="#comprar" class="cta">QUERO O CONTROLE NA MÃO →</a>
-      <span class="cta-sub">Acesso vitalício • Garantia de 7 dias • Sem mensalidade</span>
+  <section style="background:#0F172A; color:#FFFFFF; overflow:hidden;">
+    <div style="max-width:1200px; margin:0 auto; padding:64px 24px 0; display:flex; flex-direction:column; gap:28px;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap:32px; align-items:end;">
+        <h1 style="margin:0; font-family:'Figtree', sans-serif; font-size:clamp(40px, 6.4vw, 84px); font-weight:900; letter-spacing:-0.045em; line-height:0.98;">Você sabe quanto ganha.<br>Não sabe <span style="display:inline-block; background:#F5C542; color:#0F172A; padding:0 0.18em; transform:rotate(-1.2deg); border-radius:6px;">pra onde foi</span>.</h1>
+        <div style="display:flex; flex-direction:column; gap:18px; padding-bottom:8px;">
+          <p style="margin:0; font-size:18px; line-height:1.55; color:#CBD5E1;">Um app que lança seus gastos em 10 segundos e uma planilha que se monta sozinha no seu Google Drive. Sem cadastro chato. Sem mensalidade. Compre uma vez, use pra sempre.</p>
+          <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            <a href="#comprar" data-checkout style="display:inline-flex; align-items:center; gap:10px; border-radius:999px; background:#22C55E; padding:16px 26px; font-size:17px; font-weight:700; color:#052E16; text-decoration:none; animation:pulse 2.4s ease-out infinite;" class="hv1">Quero o controle na mão <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+            <span style="display:inline-flex; align-items:baseline; gap:8px; font-size:13px; line-height:1.4; color:#94A3B8;"><s style="font-size:16px; text-decoration-color:#EF4444; text-decoration-thickness:2px;">R$ 150</s><b style="font-family:'Figtree', sans-serif; font-size:30px; font-weight:900; letter-spacing:-0.04em; color:#F5C542;">R$ 47</b><span><b style="color:#FFFFFF;">Pagamento único, sem mensalidade</b><br>e-book + app + 4 bônus · 7 dias de garantia</span></span>
+          </div>
+        </div>
+      </div>
+      <div style="position:relative; width:100%; height:clamp(320px, 55vw, 644px); border-radius:20px 20px 0 0; overflow:hidden; border:1px solid rgba(255,255,255,0.1); border-bottom:0; box-shadow:0 -20px 80px rgba(34,197,94,0.12);">
+        <div id="virada-demo" style="position:absolute; inset:0;"></div>
+      </div>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,0.08); background:#0B1220; overflow:hidden; white-space:nowrap; padding:12px 0;">
+      <div style="display:inline-flex; gap:40px; animation:ticker 38s linear infinite; padding-right:40px;">
+        <span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#22C55E;"></span>Salário <b style="font-variant-numeric:tabular-nums; color:#4ADE80;">+R$ 2.900,00</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Compra do mês <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 412,40</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Aluguel <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 950,00</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#22C55E;"></span>Freela de sábado <b style="font-variant-numeric:tabular-nums; color:#4ADE80;">+R$ 520,00</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Gasolina <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 180,00</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Pizza no domingo <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 78,90</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#22C55E;"></span>Venda de leite <b style="font-variant-numeric:tabular-nums; color:#4ADE80;">+R$ 950,00</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Internet <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 99,90</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Farmácia <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 87,60</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#22C55E;"></span>Comissão <b style="font-variant-numeric:tabular-nums; color:#4ADE80;">+R$ 340,00</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Feira <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 86,50</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Tênis em promoção <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 199,90</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#22C55E;"></span>Salário <b style="font-variant-numeric:tabular-nums; color:#4ADE80;">+R$ 2.900,00</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Compra do mês <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 412,40</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Aluguel <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 950,00</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#22C55E;"></span>Freela de sábado <b style="font-variant-numeric:tabular-nums; color:#4ADE80;">+R$ 520,00</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Gasolina <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 180,00</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Pizza no domingo <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 78,90</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#22C55E;"></span>Venda de leite <b style="font-variant-numeric:tabular-nums; color:#4ADE80;">+R$ 950,00</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Internet <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 99,90</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Farmácia <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 87,60</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#22C55E;"></span>Comissão <b style="font-variant-numeric:tabular-nums; color:#4ADE80;">+R$ 340,00</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Feira <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 86,50</b></span><span style="display:inline-flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8;"><span style="height:6px; width:6px; border-radius:999px; background:#475569;"></span>Tênis em promoção <b style="font-variant-numeric:tabular-nums; color:#E2E8F0;">−R$ 199,90</b></span>
+      </div>
     </div>
   </section>
 
-  <!-- DOR -->
-  <section>
-    <div class="container">
-      <h2>Você se reconhece em alguma dessas?</h2>
-      <p class="lead">A maioria das pessoas não tem problema de dinheiro. Tem problema de <strong style="color: var(--white);">ver onde o dinheiro está indo</strong>.</p>
-      <ul class="pain-list">
-        <li>Recebe o salário e na metade do mês já não sabe onde gastou.</li>
-        <li>Tem dívida em mais de 2 lugares e não lembra o valor exato de cada uma.</li>
-        <li>Já tentou planilha do Excel mas parou na primeira semana.</li>
-        <li>Já baixou app de banco "premium" e nunca abriu de novo.</li>
-        <li>Sente que ganha dinheiro mas no fim do mês a conta sempre fecha no zero.</li>
-        <li>Quer juntar pra alguma coisa (casa, viagem, gado, equipamento) e nunca consegue.</li>
+  <section style="max-width:1200px; margin:0 auto; padding:88px 24px; display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap:48px; align-items:start;">
+    <div style="position:sticky; top:96px; display:flex; flex-direction:column; gap:16px;">
+      <p style="margin:0; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:#B45309;">Capítulo 01 · O problema</p>
+      <h2 style="margin:0; font-family:'Figtree', sans-serif; font-size:clamp(30px, 3.6vw, 46px); font-weight:800; letter-spacing:-0.03em; line-height:1.05;">A maioria não tem problema de dinheiro. Tem problema de <em style="font-style:normal; background:#F5C542; padding:0 0.15em; border-radius:4px;">ver</em> onde ele está indo.</h2>
+      <p style="margin:0; font-size:16px; line-height:1.6; color:#475569;">Marque quantas você já viveu. Se for uma, o app já se paga no primeiro mês.</p>
+    </div>
+    <ol style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column;">
+      
+        <li style="display:grid; grid-template-columns:72px 1fr; gap:16px; align-items:baseline; padding:22px 0; border-bottom:1px solid #E5E9F0;"><span style="font-family:'Figtree', sans-serif; font-size:40px; font-weight:800; letter-spacing:-0.04em; color:#CBD5E1; line-height:1;">01</span><span style="font-size:20px; line-height:1.4; font-weight:500; letter-spacing:-0.01em;">Recebe o salário e na metade do mês já não sabe onde gastou.</span></li>
+      
+        <li style="display:grid; grid-template-columns:72px 1fr; gap:16px; align-items:baseline; padding:22px 0; border-bottom:1px solid #E5E9F0;"><span style="font-family:'Figtree', sans-serif; font-size:40px; font-weight:800; letter-spacing:-0.04em; color:#CBD5E1; line-height:1;">02</span><span style="font-size:20px; line-height:1.4; font-weight:500; letter-spacing:-0.01em;">Tem dívida em mais de 2 lugares e não lembra o valor exato de cada uma.</span></li>
+      
+        <li style="display:grid; grid-template-columns:72px 1fr; gap:16px; align-items:baseline; padding:22px 0; border-bottom:1px solid #E5E9F0;"><span style="font-family:'Figtree', sans-serif; font-size:40px; font-weight:800; letter-spacing:-0.04em; color:#CBD5E1; line-height:1;">03</span><span style="font-size:20px; line-height:1.4; font-weight:500; letter-spacing:-0.01em;">Já tentou planilha do Excel mas parou na primeira semana.</span></li>
+      
+        <li style="display:grid; grid-template-columns:72px 1fr; gap:16px; align-items:baseline; padding:22px 0; border-bottom:1px solid #E5E9F0;"><span style="font-family:'Figtree', sans-serif; font-size:40px; font-weight:800; letter-spacing:-0.04em; color:#CBD5E1; line-height:1;">04</span><span style="font-size:20px; line-height:1.4; font-weight:500; letter-spacing:-0.01em;">Já baixou app de banco &quot;premium&quot; e nunca abriu de novo.</span></li>
+      
+        <li style="display:grid; grid-template-columns:72px 1fr; gap:16px; align-items:baseline; padding:22px 0; border-bottom:1px solid #E5E9F0;"><span style="font-family:'Figtree', sans-serif; font-size:40px; font-weight:800; letter-spacing:-0.04em; color:#CBD5E1; line-height:1;">05</span><span style="font-size:20px; line-height:1.4; font-weight:500; letter-spacing:-0.01em;">Sente que ganha dinheiro mas no fim do mês a conta sempre fecha no zero.</span></li>
+      
+        <li style="display:grid; grid-template-columns:72px 1fr; gap:16px; align-items:baseline; padding:22px 0; border-bottom:1px solid #E5E9F0;"><span style="font-family:'Figtree', sans-serif; font-size:40px; font-weight:800; letter-spacing:-0.04em; color:#CBD5E1; line-height:1;">06</span><span style="font-size:20px; line-height:1.4; font-weight:500; letter-spacing:-0.01em;">Quer juntar pra alguma coisa (casa, viagem, gado, equipamento) e nunca consegue.</span></li>
+      
+    </ol>
+  </section>
+
+  <section style="background:#F4F6FA;">
+    <div style="max-width:1200px; margin:0 auto; padding:88px 24px; display:flex; flex-direction:column; gap:40px;">
+      <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap;">
+        <div style="display:flex; flex-direction:column; gap:12px; max-width:640px;"><p style="margin:0; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:#B45309;">Capítulo 02 · Como funciona</p><h2 style="margin:0; font-family:'Figtree', sans-serif; font-size:clamp(30px, 3.6vw, 46px); font-weight:800; letter-spacing:-0.03em; line-height:1.05;">Lançar igual mandar um zap. O resto o app faz.</h2></div>
+        <p style="margin:0; font-size:15px; color:#64748B; max-width:320px;">Digitando ou falando. Funciona sem internet e separa casa de empresa.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">
+        
+          <div style="border-radius:20px; background:#FFFFFF; border:1px solid #E5E9F0; padding:26px; display:flex; flex-direction:column; gap:14px; transition:transform .2s, box-shadow .2s;" class="hv2">
+            <span style="font-family:'Figtree', sans-serif; font-size:52px; font-weight:800; letter-spacing:-0.04em; line-height:1; color:#22C55E;">01</span>
+            <h3 style="margin:0; font-size:22px; font-weight:700; letter-spacing:-0.02em;">Lança em 10 segundos</h3>
+            <p style="margin:0; font-size:15px; line-height:1.55; color:#475569;">Valor, categoria, confirmar. Digitando ou falando: &quot;gastei 35 reais no mercado&quot; já vira lançamento.</p>
+            <p style="margin:auto 0 0; padding-top:10px; border-top:1px solid #EEF2F6; font-size:13px; font-weight:600; color:#15803D;">Funciona offline · separa casa e empresa</p>
+          </div>
+        
+          <div style="border-radius:20px; background:#FFFFFF; border:1px solid #E5E9F0; padding:26px; display:flex; flex-direction:column; gap:14px; transition:transform .2s, box-shadow .2s;" class="hv2">
+            <span style="font-family:'Figtree', sans-serif; font-size:52px; font-weight:800; letter-spacing:-0.04em; line-height:1; color:#22C55E;">02</span>
+            <h3 style="margin:0; font-size:22px; font-weight:700; letter-spacing:-0.02em;">Vê pra onde foi</h3>
+            <p style="margin:0; font-size:15px; line-height:1.55; color:#475569;">Saldo do mês, o maior gasto, o que foi essencial e o que foi impulso. Sem gráfico difícil.</p>
+            <p style="margin:auto 0 0; padding-top:10px; border-top:1px solid #EEF2F6; font-size:13px; font-weight:600; color:#15803D;">Início e Relatórios no celular</p>
+          </div>
+        
+          <div style="border-radius:20px; background:#FFFFFF; border:1px solid #E5E9F0; padding:26px; display:flex; flex-direction:column; gap:14px; transition:transform .2s, box-shadow .2s;" class="hv2">
+            <span style="font-family:'Figtree', sans-serif; font-size:52px; font-weight:800; letter-spacing:-0.04em; line-height:1; color:#22C55E;">03</span>
+            <h3 style="margin:0; font-size:22px; font-weight:700; letter-spacing:-0.02em;">Planilha pronta com 1 toque</h3>
+            <p style="margin:0; font-size:15px; line-height:1.55; color:#475569;">Toca em Conectar e a planilha completa aparece no seu Google Drive, atualizada a cada sync.</p>
+            <p style="margin:auto 0 0; padding-top:10px; border-top:1px solid #EEF2F6; font-size:13px; font-weight:600; color:#15803D;">9 abas · gráficos · fluxo de caixa</p>
+          </div>
+        
+      </div>
+    </div>
+  </section>
+
+  <section style="background:#0F172A; color:#FFFFFF;">
+    <div style="max-width:1200px; margin:0 auto; padding:88px 24px; display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap:48px; align-items:center;">
+      <div style="display:flex; flex-direction:column; gap:18px;">
+        <p style="margin:0; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:#F5C542;">Capítulo 03 · A planilha</p>
+        <h2 style="margin:0; font-family:'Figtree', sans-serif; font-size:clamp(30px, 3.6vw, 46px); font-weight:800; letter-spacing:-0.03em; line-height:1.05;">A planilha que você nunca conseguiu montar. Pronta, no seu Google Drive.</h2>
+        <p style="margin:0; font-size:16px; line-height:1.6; color:#CBD5E1;">Nove abas que se preenchem sozinhas a cada toque em Conectar: Dashboard com indicadores e gráficos, lançamentos, receitas, despesas, dívidas, metas, fluxo de caixa dia a dia e fechamento mensal. Vai pra <b style="color:#FFFFFF;">sua</b> conta Google — não pra nossa.</p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;"><span style="border-radius:999px; border:1px solid rgba(255,255,255,0.14); padding:6px 12px; font-size:12px; font-weight:600; color:#CBD5E1;">Dashboard</span><span style="border-radius:999px; border:1px solid rgba(255,255,255,0.14); padding:6px 12px; font-size:12px; font-weight:600; color:#CBD5E1;">Lançamentos</span><span style="border-radius:999px; border:1px solid rgba(255,255,255,0.14); padding:6px 12px; font-size:12px; font-weight:600; color:#CBD5E1;">Receitas</span><span style="border-radius:999px; border:1px solid rgba(255,255,255,0.14); padding:6px 12px; font-size:12px; font-weight:600; color:#CBD5E1;">Despesas</span><span style="border-radius:999px; border:1px solid rgba(255,255,255,0.14); padding:6px 12px; font-size:12px; font-weight:600; color:#CBD5E1;">Dívidas</span><span style="border-radius:999px; border:1px solid rgba(255,255,255,0.14); padding:6px 12px; font-size:12px; font-weight:600; color:#CBD5E1;">Metas</span><span style="border-radius:999px; border:1px solid rgba(255,255,255,0.14); padding:6px 12px; font-size:12px; font-weight:600; color:#CBD5E1;">Fluxo de Caixa</span><span style="border-radius:999px; border:1px solid rgba(255,255,255,0.14); padding:6px 12px; font-size:12px; font-weight:600; color:#CBD5E1;">Resumo Mensal</span><span style="border-radius:999px; border:1px solid rgba(255,255,255,0.14); padding:6px 12px; font-size:12px; font-weight:600; color:#CBD5E1;">Como usar</span></div>
+      </div>
+      <div style="border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,0.12); box-shadow:0 30px 80px rgba(0,0,0,0.45); background:#FFFFFF; color:#0F172A; font-size:11px;">
+        <div style="height:32px; background:#F8FAFC; border-bottom:1px solid #E5E9F0; display:flex; align-items:center; gap:10px; padding:0 12px;"><span style="width:14px; height:18px; border-radius:3px; background:#22A565;"></span><span style="font-weight:600; color:#334155;">Virada Financeira — Planilhas Google</span></div>
+        <div style="padding:10px; display:flex; flex-direction:column; gap:8px;">
+          <div style="border-radius:6px; background:#0F172A; color:#FFFFFF; padding:9px 12px; border-bottom:2px solid #22C55E;"><p style="margin:0; font-size:12px; font-weight:700;">CÓDIGO DA VIRADA • BASE FINANCEIRA CLARA E ESTRUTURADA</p><p style="margin:2px 0 0; font-size:9px; color:#94A3B8;">Atualizado em 17/06/2026, 20:59</p></div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px;">
+            <div style="border-radius:6px; border:1px solid #E5E9F0; padding:8px 10px;"><p style="margin:0; font-size:8px; font-weight:700; color:#64748B;">ENTRADAS DO PERÍODO</p><p style="margin:3px 0 0; font-family:'Figtree', sans-serif; font-size:16px; font-weight:800; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; white-space:nowrap;">R$ 27.855,00</p></div>
+            <div style="border-radius:6px; border:1px solid #E5E9F0; padding:8px 10px;"><p style="margin:0; font-size:8px; font-weight:700; color:#64748B;">SAÍDAS DO PERÍODO</p><p style="margin:3px 0 0; font-family:'Figtree', sans-serif; font-size:16px; font-weight:800; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; white-space:nowrap;">R$ 12.231,00</p></div>
+            <div style="border-radius:6px; border:1px solid #86EFAC; background:#DCFCE7; padding:8px 10px;"><p style="margin:0; font-size:8px; font-weight:700; color:#15803D;">SALDO ATUAL</p><p style="margin:3px 0 0; font-family:'Figtree', sans-serif; font-size:16px; font-weight:800; letter-spacing:-0.02em; color:#15803D; font-variant-numeric:tabular-nums; white-space:nowrap;">R$ 15.624,00</p></div>
+            <div style="border-radius:6px; border:1px solid #E5E9F0; padding:8px 10px;"><p style="margin:0; font-size:8px; font-weight:700; color:#64748B;">LANÇAMENTOS</p><p style="margin:3px 0 0; font-family:'Figtree', sans-serif; font-size:16px; font-weight:800; letter-spacing:-0.02em; color:#334155;">72</p></div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:8px;">
+            <div style="border:1px solid #E5E9F0; border-radius:6px; overflow:hidden;">
+              <div style="display:grid; grid-template-columns:1.3fr 1fr; background:#F1F5F9; border-bottom:1px solid #CBD5E1; font-size:8px; font-weight:700; color:#475569; text-transform:uppercase;"><span style="padding:5px 8px;">Categoria</span><span style="padding:5px 8px; text-align:right;">Total</span></div>
+              <div style="display:grid; grid-template-columns:1.3fr 1fr; font-size:10px; border-bottom:1px solid #E5E9F0; background:#FFFFFF;"><span style="padding:4px 8px; display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:2px; background:#22C55E;"></span>Educação</span><span style="padding:4px 8px; text-align:right; font-variant-numeric:tabular-nums;">R$ 960,00</span></div><div style="display:grid; grid-template-columns:1.3fr 1fr; font-size:10px; border-bottom:1px solid #E5E9F0; background:#F8FAFC;"><span style="padding:4px 8px; display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:2px; background:#F5C542;"></span>Água</span><span style="padding:4px 8px; text-align:right; font-variant-numeric:tabular-nums;">R$ 906,00</span></div><div style="display:grid; grid-template-columns:1.3fr 1fr; font-size:10px; border-bottom:1px solid #E5E9F0; background:#FFFFFF;"><span style="padding:4px 8px; display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:2px; background:#3B82F6;"></span>Farmácia</span><span style="padding:4px 8px; text-align:right; font-variant-numeric:tabular-nums;">R$ 852,00</span></div><div style="display:grid; grid-template-columns:1.3fr 1fr; font-size:10px; border-bottom:1px solid #E5E9F0; background:#F8FAFC;"><span style="padding:4px 8px; display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:2px; background:#EF4444;"></span>Internet</span><span style="padding:4px 8px; text-align:right; font-variant-numeric:tabular-nums;">R$ 828,00</span></div><div style="display:grid; grid-template-columns:1.3fr 1fr; font-size:10px; border-bottom:1px solid #E5E9F0; background:#FFFFFF;"><span style="padding:4px 8px; display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:2px; background:#A855F7;"></span>Mercado</span><span style="padding:4px 8px; text-align:right; font-variant-numeric:tabular-nums;">R$ 786,00</span></div><div style="display:grid; grid-template-columns:1.3fr 1fr; font-size:10px; border-bottom:1px solid #E5E9F0; background:#F8FAFC;"><span style="padding:4px 8px; display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:2px; background:#F97316;"></span>Cartão</span><span style="padding:4px 8px; text-align:right; font-variant-numeric:tabular-nums;">R$ 777,00</span></div>
+            </div>
+            <div style="border:1px solid #E5E9F0; border-radius:6px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+              <p style="margin:0; font-size:8px; font-weight:700; color:#475569; text-transform:uppercase;">Comparativo mensal</p>
+              <div style="flex:1; display:flex; align-items:flex-end; gap:8px; min-height:70px; border-bottom:1px solid #E5E9F0;"><div style="flex:1; display:flex; align-items:flex-end; justify-content:center; gap:2px; height:100%;"><div style="width:9px; border-radius:2px 2px 0 0; background:#22C55E; height:97.76357827476039%;"></div><div style="width:9px; border-radius:2px 2px 0 0; background:#EF4444; height:28.56230031948882%;"></div></div><div style="flex:1; display:flex; align-items:flex-end; justify-content:center; gap:2px; height:100%;"><div style="width:9px; border-radius:2px 2px 0 0; background:#22C55E; height:98.21086261980831%;"></div><div style="width:9px; border-radius:2px 2px 0 0; background:#EF4444; height:34.504792332268366%;"></div></div><div style="flex:1; display:flex; align-items:flex-end; justify-content:center; gap:2px; height:100%;"><div style="width:9px; border-radius:2px 2px 0 0; background:#22C55E; height:98.65814696485623%;"></div><div style="width:9px; border-radius:2px 2px 0 0; background:#EF4444; height:40.447284345047926%;"></div></div><div style="flex:1; display:flex; align-items:flex-end; justify-content:center; gap:2px; height:100%;"><div style="width:9px; border-radius:2px 2px 0 0; background:#22C55E; height:99.10543130990416%;"></div><div style="width:9px; border-radius:2px 2px 0 0; background:#EF4444; height:46.38977635782748%;"></div></div><div style="flex:1; display:flex; align-items:flex-end; justify-content:center; gap:2px; height:100%;"><div style="width:9px; border-radius:2px 2px 0 0; background:#22C55E; height:99.55271565495207%;"></div><div style="width:9px; border-radius:2px 2px 0 0; background:#EF4444; height:52.332268370607025%;"></div></div><div style="flex:1; display:flex; align-items:flex-end; justify-content:center; gap:2px; height:100%;"><div style="width:9px; border-radius:2px 2px 0 0; background:#22C55E; height:100%;"></div><div style="width:9px; border-radius:2px 2px 0 0; background:#EF4444; height:58.27476038338658%;"></div></div></div>
+              <div style="display:flex; gap:8px; font-size:8px; color:#64748B;"><span style="flex:1; text-align:center;">jan</span><span style="flex:1; text-align:center;">fev</span><span style="flex:1; text-align:center;">mar</span><span style="flex:1; text-align:center;">abr</span><span style="flex:1; text-align:center;">mai</span><span style="flex:1; text-align:center;">jun</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:4px; padding:6px 10px; background:#F8FAFC; border-top:1px solid #E5E9F0;"><span style="border-radius:5px; padding:3px 8px; font-size:8px; font-weight:600; background:#0F172A; color:#FFFFFF; border:1px solid #0F172A;">Dashboard</span><span style="border-radius:5px; padding:3px 8px; font-size:8px; font-weight:600; background:#FFFFFF; color:#334155; border:1px solid #E5E9F0;">Lançamentos</span><span style="border-radius:5px; padding:3px 8px; font-size:8px; font-weight:600; background:#FFFFFF; color:#334155; border:1px solid #E5E9F0;">Receitas</span><span style="border-radius:5px; padding:3px 8px; font-size:8px; font-weight:600; background:#FFFFFF; color:#334155; border:1px solid #E5E9F0;">Despesas</span><span style="border-radius:5px; padding:3px 8px; font-size:8px; font-weight:600; background:#FFFFFF; color:#334155; border:1px solid #E5E9F0;">Dívidas</span><span style="border-radius:5px; padding:3px 8px; font-size:8px; font-weight:600; background:#FFFFFF; color:#334155; border:1px solid #E5E9F0;">Metas</span><span style="border-radius:5px; padding:3px 8px; font-size:8px; font-weight:600; background:#FFFFFF; color:#334155; border:1px solid #E5E9F0;">Fluxo de Caixa</span><span style="border-radius:5px; padding:3px 8px; font-size:8px; font-weight:600; background:#FFFFFF; color:#334155; border:1px solid #E5E9F0;">Resumo Mensal</span><span style="border-radius:5px; padding:3px 8px; font-size:8px; font-weight:600; background:#FFFFFF; color:#334155; border:1px solid #E5E9F0;">Como usar</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="comprar" style="max-width:1200px; margin:0 auto; padding:88px 24px; display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:40px; align-items:start;">
+    <div style="display:flex; flex-direction:column; gap:20px;">
+      <p style="margin:0; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:#B45309;">Capítulo 04 · A oferta</p>
+      <h2 style="margin:0; font-family:'Figtree', sans-serif; font-size:clamp(30px, 3.6vw, 46px); font-weight:800; letter-spacing:-0.03em; line-height:1.05;">Tudo isso pelo preço de uma pizza. Uma vez só, pra sempre.</h2>
+      <div style="border:1px dashed #CBD5E1; border-radius:16px; padding:22px 24px; display:flex; flex-direction:column; gap:0; background:#FFFFFF;">
+        <p style="margin:0 0 10px; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:#64748B; display:flex; justify-content:space-between;"><span>O que você leva</span><span>Avulso</span></p>
+        
+          <div style="display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid #EEF2F6; font-size:15px;"><span><strong>App Código da Virada</strong> <span style="color:#64748B;">instalável no celular (Android e iPhone), funciona offline</span></span><span style="flex-shrink:0; color:#94A3B8; text-decoration:line-through; font-variant-numeric:tabular-nums;">R$ 97</span></div>
+        
+          <div style="display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid #EEF2F6; font-size:15px;"><span><strong>Sincronização com Google Planilhas</strong> <span style="color:#64748B;">um toque em Conectar e a planilha se cria e atualiza no seu Google Drive</span></span><span style="flex-shrink:0; color:#94A3B8; text-decoration:line-through; font-variant-numeric:tabular-nums;">R$ 67</span></div>
+        
+          <div style="display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid #EEF2F6; font-size:15px;"><span><strong>Planilha profissional</strong> <span style="color:#64748B;">9 abas, indicadores, gráficos e fluxo de caixa</span></span><span style="flex-shrink:0; color:#94A3B8; text-decoration:line-through; font-variant-numeric:tabular-nums;">R$ 47</span></div>
+        
+          <div style="display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid #EEF2F6; font-size:15px;"><span><strong>eBook Código da Virada</strong> <span style="color:#64748B;">método em 5 capítulos, com os exercícios feitos no app</span></span><span style="flex-shrink:0; color:#94A3B8; text-decoration:line-through; font-variant-numeric:tabular-nums;">R$ 47</span></div>
+        
+          <div style="display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid #EEF2F6; font-size:15px;"><span><strong>Bônus 1 · Roteiro de negociação de dívidas</strong> <span style="color:#64748B;">mensagens prontas que funcionam</span></span><span style="flex-shrink:0; color:#94A3B8; text-decoration:line-through; font-variant-numeric:tabular-nums;">R$ 37</span></div>
+        
+          <div style="display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid #EEF2F6; font-size:15px;"><span><strong>Bônus 2 · 50 ideias de renda extra</strong> <span style="color:#64748B;">para começar do zero</span></span><span style="flex-shrink:0; color:#94A3B8; text-decoration:line-through; font-variant-numeric:tabular-nums;">R$ 27</span></div>
+        
+          <div style="display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid #EEF2F6; font-size:15px;"><span><strong>Bônus 3 · Plano de 7 dias</strong> <span style="color:#64748B;">um dia, uma ação</span></span><span style="flex-shrink:0; color:#94A3B8; text-decoration:line-through; font-variant-numeric:tabular-nums;">R$ 19</span></div>
+        
+          <div style="display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid #EEF2F6; font-size:15px;"><span><strong>Bônus 4 · Checklist mensal</strong> <span style="color:#64748B;">a revisão de todo fim de mês</span></span><span style="flex-shrink:0; color:#94A3B8; text-decoration:line-through; font-variant-numeric:tabular-nums;">R$ 19</span></div>
+        
+          <div style="display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid #EEF2F6; font-size:15px;"><span><strong>Atualizações vitalícias</strong> <span style="color:#64748B;">novas versões, sem cobrança</span></span><span style="flex-shrink:0; color:#94A3B8; text-decoration:line-through; font-variant-numeric:tabular-nums;">incluso</span></div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:baseline; padding-top:14px; font-size:15px;"><span style="font-weight:700;">Hoje, tudo junto, pagamento único</span><span style="font-family:'Figtree', sans-serif; font-size:28px; font-weight:800; letter-spacing:-0.03em; color:#15803D; font-variant-numeric:tabular-nums;">R$ 47</span></div>
+      </div>
+    </div>
+    <div style="border-radius:24px; background:#0F172A; color:#FFFFFF; padding:36px; display:flex; flex-direction:column; gap:20px; position:sticky; top:96px;">
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <span style="display:inline-flex; align-items:center; gap:10px; font-size:15px; color:#94A3B8;">De <s style="font-family:'Figtree', sans-serif; font-size:26px; font-weight:800; letter-spacing:-0.03em; color:#94A3B8; text-decoration-color:#EF4444; text-decoration-thickness:3px;">R$ 150</s> por</span>
+        <p style="margin:0; font-family:'Figtree', sans-serif; font-size:clamp(84px, 9vw, 112px); font-weight:900; letter-spacing:-0.06em; line-height:0.9; color:#F5C542; text-shadow:0 12px 40px rgba(245,197,66,0.35);">R$ 47</p>
+        <p style="margin:10px 0 0; display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:15px; color:#CBD5E1;"><span style="display:inline-flex; align-items:center; gap:6px; border-radius:999px; background:rgba(34,197,94,0.14); color:#86EFAC; padding:5px 12px; font-size:13px; font-weight:700;">Pagamento único · sem mensalidade</span><span>ou 5x de R$ 9,90</span></p>
+      </div>
+      <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; font-size:15px; color:#E2E8F0;">
+        <li style="display:flex; gap:10px; align-items:flex-start;"><span style="color:#4ADE80; font-weight:800;">✓</span><span>App no celular, funciona offline</span></li>
+        <li style="display:flex; gap:10px; align-items:flex-start;"><span style="color:#4ADE80; font-weight:800;">✓</span><span><b style="color:#FFFFFF;">Sincroniza com o Google Planilhas</b> — a planilha se cria e atualiza sozinha no seu Drive</span></li>
+        <li style="display:flex; gap:10px; align-items:flex-start;"><span style="color:#4ADE80; font-weight:800;">✓</span><span>E-book + 4 bônus</span></li>
+        <li style="display:flex; gap:10px; align-items:flex-start;"><span style="color:#4ADE80; font-weight:800;">✓</span><span>Atualizações grátis pra sempre — <b style="color:#FFFFFF;">você paga uma vez só</b></span></li>
       </ul>
+      
+        <div data-oferta style="border-radius:16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:16px; display:flex; flex-direction:column; gap:12px;">
+          <p style="margin:0; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:#FDE68A; display:flex; align-items:center; gap:8px;"><span style="height:8px; width:8px; border-radius:999px; background:#F5C542; animation:pulse 1.6s ease-out infinite;"></span>Preço de lançamento termina em</p>
+          <div style="display:grid; grid-template-columns:1fr auto 1fr auto 1fr; align-items:center; gap:6px;">
+            <div style="border-radius:12px; background:#0B1220; border:1px solid rgba(245,197,66,0.3); padding:12px 6px; text-align:center;"><p style="margin:0; font-family:'Figtree', sans-serif; font-size:40px; font-weight:900; letter-spacing:-0.04em; line-height:1; color:#F5C542; font-variant-numeric:tabular-nums;"><span data-count="h">24</span></p><p style="margin:6px 0 0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:#94A3B8;">horas</p></div>
+            <span style="font-family:'Figtree', sans-serif; font-size:28px; font-weight:800; color:#475569; padding-bottom:18px;">:</span>
+            <div style="border-radius:12px; background:#0B1220; border:1px solid rgba(245,197,66,0.3); padding:12px 6px; text-align:center;"><p style="margin:0; font-family:'Figtree', sans-serif; font-size:40px; font-weight:900; letter-spacing:-0.04em; line-height:1; color:#F5C542; font-variant-numeric:tabular-nums;"><span data-count="m">00</span></p><p style="margin:6px 0 0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:#94A3B8;">min</p></div>
+            <span style="font-family:'Figtree', sans-serif; font-size:28px; font-weight:800; color:#475569; padding-bottom:18px;">:</span>
+            <div style="border-radius:12px; background:#0B1220; border:1px solid rgba(245,197,66,0.3); padding:12px 6px; text-align:center;"><p style="margin:0; font-family:'Figtree', sans-serif; font-size:40px; font-weight:900; letter-spacing:-0.04em; line-height:1; color:#F5C542; font-variant-numeric:tabular-nums;"><span data-count="s">00</span></p><p style="margin:6px 0 0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:#94A3B8;">seg</p></div>
+          </div>
+          <p style="margin:0; font-size:13px; color:#94A3B8;">Depois, o pacote volta a <b style="color:#FFFFFF;">R$ 150</b>.</p>
+        </div>
+      
+      <a href="#comprar" data-checkout style="display:flex; align-items:center; justify-content:center; gap:10px; border-radius:999px; background:#22C55E; padding:18px 24px; font-size:18px; font-weight:700; color:#052E16; text-decoration:none;" class="hv1">Quero comprar agora <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+      <p style="margin:0; font-size:13px; color:#94A3B8; display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Pagamento seguro via Kiwify · Pix, cartão, Google Pay e Apple Pay</p>
+      <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:18px; display:flex; gap:12px; align-items:flex-start;"><span style="display:grid; place-items:center; flex-shrink:0; height:36px; width:36px; border-radius:999px; background:rgba(34,197,94,0.14); color:#86EFAC; font-weight:800;">7</span><p style="margin:0; font-size:14px; line-height:1.5; color:#CBD5E1;"><b style="color:#FFFFFF;">Garantia de 7 dias, sem perguntas.</b> Não gostou por qualquer motivo? Manda uma mensagem e devolvemos 100%.</p></div>
     </div>
   </section>
 
-  <!-- SOLUÇÃO -->
-  <section>
-    <div class="container">
-      <h2>O Código da Virada resolve isso de um jeito diferente</h2>
-      <p class="lead">App leve no celular + planilha profissional no Google Planilhas. Tudo conversa entre si.</p>
-      <div class="grid-3">
-        <div class="card">
-          <span class="icon">📱</span>
-          <h3>App no seu celular</h3>
-          <p>Lança gasto, entrada, dívida ou meta em 5 segundos. Funciona offline. Sem cadastro de senha — entra com Google.</p>
-        </div>
-        <div class="card">
-          <span class="icon">📊</span>
-          <h3>Planilha pronta</h3>
-          <p>Com 1 clique você exporta uma planilha profissional pro Google Planilhas. Dashboard, gráficos, fluxo de caixa, resumo mensal.</p>
-        </div>
-        <div class="card">
-          <span class="icon">🎯</span>
-          <h3>Metas e dívidas</h3>
-          <p>Acompanha sua evolução com barras de progresso. Vê quanto falta pra quitar cada dívida e bater cada meta.</p>
-        </div>
-        <div class="card">
-          <span class="icon">🔒</span>
-          <h3>Seu dado fica com você</h3>
-          <p>Tudo salvo no seu celular. Não fica num servidor de empresa. Você é dono dos seus dados.</p>
-        </div>
-        <div class="card">
-          <span class="icon">⚡</span>
-          <h3>Funciona offline</h3>
-          <p>Lançou no sinal ruim? Sem problema. Salva no celular e sincroniza depois.</p>
-        </div>
-        <div class="card">
-          <span class="icon">💰</span>
-          <h3>Pague uma vez</h3>
-          <p>Sem mensalidade. Sem renovação. Comprou, é seu pra sempre. Acesso vitalício às atualizações.</p>
-        </div>
+  <section style="background:#F4F6FA;">
+    <div style="max-width:1200px; margin:0 auto; padding:72px 24px; display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:40px;">
+      <div><p style="margin:0; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:#B45309;">Perguntas frequentes</p><h2 style="margin:12px 0 0; font-family:'Figtree', sans-serif; font-size:clamp(28px, 3vw, 38px); font-weight:800; letter-spacing:-0.03em; line-height:1.05;">O que todo mundo pergunta antes de comprar.</h2></div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        
+          <details style="border-radius:12px; border:1px solid #E5E9F0; background:#FFFFFF; padding:14px 18px;"><summary style="cursor:pointer; font-size:16px; font-weight:700; display:flex; justify-content:space-between; gap:12px; align-items:center;">Funciona em iPhone e Android?<span style="color:#94A3B8; font-weight:400;">+</span></summary><p style="margin:10px 0 0; font-size:15px; line-height:1.6; color:#475569;">Sim. É um app web (PWA) que se instala como aplicativo nos dois sistemas. No iPhone: abre no Safari → compartilhar → adicionar à tela. No Android: abre no Chrome → instalar app.</p></details>
+        
+          <details style="border-radius:12px; border:1px solid #E5E9F0; background:#FFFFFF; padding:14px 18px;"><summary style="cursor:pointer; font-size:16px; font-weight:700; display:flex; justify-content:space-between; gap:12px; align-items:center;">Preciso de internet pra usar?<span style="color:#94A3B8; font-weight:400;">+</span></summary><p style="margin:10px 0 0; font-size:15px; line-height:1.6; color:#475569;">Não. Depois do primeiro login, o app funciona offline. Você só precisa de internet pra exportar a planilha pro Google Planilhas.</p></details>
+        
+          <details style="border-radius:12px; border:1px solid #E5E9F0; background:#FFFFFF; padding:14px 18px;"><summary style="cursor:pointer; font-size:16px; font-weight:700; display:flex; justify-content:space-between; gap:12px; align-items:center;">Meus dados ficam onde?<span style="color:#94A3B8; font-weight:400;">+</span></summary><p style="margin:10px 0 0; font-size:15px; line-height:1.6; color:#475569;">No seu celular. Não enviamos pra nenhum servidor. Quando exporta, a planilha vai pra sua conta Google — não pra nossa.</p></details>
+        
+          <details style="border-radius:12px; border:1px solid #E5E9F0; background:#FFFFFF; padding:14px 18px;"><summary style="cursor:pointer; font-size:16px; font-weight:700; display:flex; justify-content:space-between; gap:12px; align-items:center;">Tem mensalidade?<span style="color:#94A3B8; font-weight:400;">+</span></summary><p style="margin:10px 0 0; font-size:15px; line-height:1.6; color:#475569;">Não. Você paga uma vez e usa pra sempre. As atualizações também são grátis.</p></details>
+        
+          <details style="border-radius:12px; border:1px solid #E5E9F0; background:#FFFFFF; padding:14px 18px;"><summary style="cursor:pointer; font-size:16px; font-weight:700; display:flex; justify-content:space-between; gap:12px; align-items:center;">Como recebo depois da compra?<span style="color:#94A3B8; font-weight:400;">+</span></summary><p style="margin:10px 0 0; font-size:15px; line-height:1.6; color:#475569;">Imediato. Assim que a Kiwify confirma o pagamento, seu e-mail já é liberado automaticamente. Você recebe o link, entra com sua conta Google e pronto.</p></details>
+        
+          <details style="border-radius:12px; border:1px solid #E5E9F0; background:#FFFFFF; padding:14px 18px;"><summary style="cursor:pointer; font-size:16px; font-weight:700; display:flex; justify-content:space-between; gap:12px; align-items:center;">E se eu comprar e não gostar?<span style="color:#94A3B8; font-weight:400;">+</span></summary><p style="margin:10px 0 0; font-size:15px; line-height:1.6; color:#475569;">Tem 7 dias pra pedir reembolso. Devolvemos 100% do valor. Sem perguntas.</p></details>
+        
+          <details style="border-radius:12px; border:1px solid #E5E9F0; background:#FFFFFF; padding:14px 18px;"><summary style="cursor:pointer; font-size:16px; font-weight:700; display:flex; justify-content:space-between; gap:12px; align-items:center;">Serve pra quem trabalha por conta (autônomo / produtor)?<span style="color:#94A3B8; font-weight:400;">+</span></summary><p style="margin:10px 0 0; font-size:15px; line-height:1.6; color:#475569;">Serve. O app separa &quot;casa&quot; e &quot;empresa&quot;, então quem mistura conta pessoal com profissional consegue ver os dois lados sem confundir.</p></details>
+        
+          <details style="border-radius:12px; border:1px solid #E5E9F0; background:#FFFFFF; padding:14px 18px;"><summary style="cursor:pointer; font-size:16px; font-weight:700; display:flex; justify-content:space-between; gap:12px; align-items:center;">Preciso saber de Excel ou ser bom com tecnologia?<span style="color:#94A3B8; font-weight:400;">+</span></summary><p style="margin:10px 0 0; font-size:15px; line-height:1.6; color:#475569;">Não. O app foi feito pra quem nunca usou planilha. É lançar igual zap: valor, categoria, confirmar. A planilha bonita aparece sozinha.</p></details>
+        
       </div>
     </div>
   </section>
 
-  <!-- O QUE VOCÊ RECEBE -->
-  <section>
-    <div class="container">
-      <h2>O que você leva quando comprar</h2>
-      <ul class="pain-list gain-list" style="max-width: 700px; margin: 0 auto;">
-        <li><strong style="color: var(--white);">App Código da Virada</strong> instalável no celular (Android e iPhone)</li>
-        <li><strong style="color: var(--white);">Planilha Profissional</strong> com 9 abas, gráficos e fluxo de caixa</li>
-        <li><strong style="color: var(--white);">eBook Código da Virada</strong> — método pra organizar o dinheiro em 7 dias</li>
-        <li><strong style="color: var(--white);">Bônus 1: Planilha de planejamento mensal</strong> editável</li>
-        <li><strong style="color: var(--white);">Bônus 2: 50 ideias de renda extra</strong> testadas</li>
-        <li><strong style="color: var(--white);">Bônus 3: Roteiro de negociação de dívidas</strong> que funciona</li>
-        <li><strong style="color: var(--white);">Bônus 4: Plano de 7 dias</strong> pra começar do zero</li>
-        <li><strong style="color: var(--white);">Bônus 5: Checklist mensal</strong> de finanças saudáveis</li>
-        <li><strong style="color: var(--white);">Atualizações vitalícias</strong> — novas versões, sem cobrança</li>
-      </ul>
+  <section style="background:#0F172A; color:#FFFFFF;">
+    <div style="max-width:1200px; margin:0 auto; padding:88px 24px 72px; display:flex; flex-direction:column; align-items:flex-start; gap:20px;">
+      <h2 style="margin:0; font-family:'Figtree', sans-serif; font-size:clamp(34px, 5vw, 64px); font-weight:900; letter-spacing:-0.045em; line-height:1; max-width:900px;">O dinheiro continua entrando e saindo do mesmo jeito. A diferença é que agora <span style="display:inline-block; background:#F5C542; color:#0F172A; padding:0 0.18em; transform:rotate(-1.2deg); border-radius:6px;">você sabe pra onde foi</span>.</h2>
+      <a href="#comprar" data-checkout style="display:inline-flex; align-items:center; gap:10px; border-radius:999px; background:#22C55E; padding:16px 26px; font-size:17px; font-weight:700; color:#052E16; text-decoration:none;" class="hv1">Começar agora por R$ 47 — pagamento único</a>
     </div>
+    <footer style="border-top:1px solid rgba(255,255,255,0.08);"><div style="max-width:1200px; margin:0 auto; padding:24px; display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; font-size:13px; color:#94A3B8;"><span>© Código da Virada. Todos os direitos reservados.</span><span style="display:flex; gap:16px; flex-wrap:wrap;"><a href="/politica-privacidade.html" style="color:#CBD5E1; text-decoration:none;">Política de Privacidade</a><a href="/termos-de-uso.html" style="color:#CBD5E1; text-decoration:none;">Termos de Uso</a><a href="#comprar" data-whats style="color:#CBD5E1; text-decoration:none;">Suporte no WhatsApp</a></span></div></footer>
   </section>
 
-  <!-- DEPOIMENTOS (placeholder — substituir quando tiver reais) -->
-  <section>
-    <div class="container">
-      <h2>O que estão dizendo</h2>
-      <p class="lead" style="font-size: 13px; color: var(--slate);">[ Substituir por depoimentos reais quando tiver os primeiros clientes ]</p>
-      <div class="testimonials">
-        <div class="testimonial">
-          <p>"Em 2 meses consegui ver que estava gastando R$ 480 por mês com coisas que nem lembrava. Cortei e consegui guardar pra primeira vez na vida."</p>
-          <div class="name">— Cliente exemplo</div>
-          <div class="role">Pequeno produtor rural</div>
-        </div>
-        <div class="testimonial">
-          <p>"Trabalho na lida o dia todo, não tenho paciência pra planilha gigante. O app é só lançar e pronto. A planilha eu olho no domingo."</p>
-          <div class="name">— Cliente exemplo</div>
-          <div class="role">Pecuarista</div>
-        </div>
-        <div class="testimonial">
-          <p>"Tinha 4 dívidas em parcelas. Lancei tudo no app, vi o total real e fiz um plano. Quitei a primeira em 3 meses."</p>
-          <div class="name">— Cliente exemplo</div>
-          <div class="role">Autônoma</div>
-        </div>
-      </div>
-    </div>
-  </section>
+  <a href="#comprar" data-whats data-whats-float title="Falar no WhatsApp" style="position:fixed; right:20px; bottom:20px; z-index:40; display:flex; align-items:center; gap:10px; border-radius:999px; background:#FFFFFF; color:#0F172A; border:1px solid #E5E9F0; padding:12px 18px 12px 14px; font-size:14px; font-weight:700; text-decoration:none; box-shadow:0 12px 32px rgba(15,23,42,0.18);" class="hv3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>Tirar dúvida</a>
+</div>
+<script>
+(function () {
+  // Links configuráveis
+  if (CHECKOUT_URL) document.querySelectorAll("a[data-checkout]").forEach(function (a) { a.href = CHECKOUT_URL; });
+  var whats = WHATSAPP.replace(/\D/g, "");
+  document.querySelectorAll("a[data-whats]").forEach(function (a) {
+    if (whats) a.href = "https://wa.me/" + whats + "?text=" + encodeURIComponent("Oi! Tenho uma dúvida sobre o Código da Virada.");
+    else if (a.hasAttribute("data-whats-float")) a.style.display = "none";
+  });
 
-  <!-- PREÇO + COMPRAR -->
-  <section id="comprar">
-    <div class="container">
-      <h2>Investimento</h2>
-      <p class="lead">Menos de uma pizza por mês durante 1 ano. Pague uma vez, use pra sempre.</p>
-      <div class="price-box">
-        <span class="old">De R$ 197</span>
-        <div class="now">R$ 47<span class="cents">,00</span></div>
-        <p class="install">ou 5x de R$ 9,90</p>
-        <ul>
-          <li>App vitalício no celular</li>
-          <li>Planilha profissional pra Google Planilhas</li>
-          <li>eBook + 5 bônus</li>
-          <li>Atualizações grátis pra sempre</li>
-          <li>Garantia de 7 dias incondicional</li>
-        </ul>
-        <!-- TROCAR pelo link real do checkout Hotmart -->
-        <a href="https://pay.hotmart.com/SEU_CHECKOUT_AQUI" class="cta">QUERO COMPRAR AGORA →</a>
-        <span class="cta-sub">Pagamento 100% seguro via Hotmart</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- GARANTIA -->
-  <section>
-    <div class="container">
-      <div class="guarantee">
-        <h2 style="margin-bottom: 12px;">Garantia incondicional de 7 dias</h2>
-        <p>Comprou, instalou, usou e <strong>não gostou por qualquer motivo</strong>? Manda um email e a Hotmart devolve 100% do seu dinheiro nos primeiros 7 dias. Sem perguntas, sem burocracia.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- FAQ -->
-  <section>
-    <div class="container">
-      <h2>Perguntas frequentes</h2>
-      <div class="faq">
-        <details>
-          <summary>Funciona em iPhone e Android?</summary>
-          <p>Sim. É um app web (PWA) que se instala como aplicativo nos dois sistemas. No iPhone: abre no Safari → compartilhar → adicionar à tela. No Android: abre no Chrome → instalar app.</p>
-        </details>
-        <details>
-          <summary>Preciso de internet pra usar?</summary>
-          <p>Não. Depois do primeiro login, o app funciona offline. Você só precisa de internet pra exportar a planilha pro Google Planilhas.</p>
-        </details>
-        <details>
-          <summary>Meus dados ficam onde?</summary>
-          <p>No seu celular. Não enviamos pra nenhum servidor. Você é dono dos seus dados. Quando exporta pra planilha, ela vai pra <strong>sua</strong> conta Google — não pra nossa.</p>
-        </details>
-        <details>
-          <summary>Tem mensalidade?</summary>
-          <p>Não. Você paga uma vez e usa pra sempre. As atualizações também são grátis.</p>
-        </details>
-        <details>
-          <summary>Como recebo depois da compra?</summary>
-          <p>Imediato. Assim que a Hotmart confirma o pagamento, seu email já é liberado automaticamente. Você recebe o link, entra com sua conta Google e pronto.</p>
-        </details>
-        <details>
-          <summary>E se eu comprar e não gostar?</summary>
-          <p>Tem 7 dias pra pedir reembolso. A Hotmart devolve 100% do valor. Sem perguntas.</p>
-        </details>
-        <details>
-          <summary>Serve pra quem trabalha por conta (autônomo / produtor)?</summary>
-          <p>Serve. O app separa "casa" e "empresa", então quem mistura conta pessoal com profissional consegue ver os dois lados sem confundir.</p>
-        </details>
-        <details>
-          <summary>Preciso saber de Excel ou ser bom com tecnologia?</summary>
-          <p>Não. O app foi feito pra quem nunca usou planilha. É lançar igual zap: data, valor, descrição. A planilha bonita aparece sozinha.</p>
-        </details>
-      </div>
-    </div>
-  </section>
-
-  <!-- CTA FINAL -->
-  <section style="text-align: center;">
-    <div class="container">
-      <h2>O dinheiro continua entrando e saindo do mesmo jeito.</h2>
-      <p class="lead">A diferença é que agora <strong style="color: var(--gold);">você sabe pra onde foi</strong>.</p>
-      <a href="#comprar" class="cta">COMEÇAR AGORA POR R$ 47 →</a>
-    </div>
-  </section>
-
-  <footer>
-    <div class="container">
-      <p>© Código da Virada. Todos os direitos reservados.</p>
-      <p style="margin-top: 8px;">
-        <a href="/politica-privacidade.html">Política de Privacidade</a> ·
-        <a href="/termos-de-uso.html">Termos de Uso</a> ·
-        <a href="mailto:contato@SEUDOMINIO.com.br">Suporte</a>
-      </p>
-    </div>
-  </footer>
+  // Temporizador por visitante: começa na primeira visita e fica salvo no aparelho
+  if (!(HORAS_OFERTA > 0)) { document.querySelectorAll("[data-oferta]").forEach(function (el) { el.style.display = "none"; }); return; }
+  function deadline() {
+    var key = "virada-oferta-fim";
+    try {
+      var saved = Number(localStorage.getItem(key));
+      if (saved && saved > Date.now()) return saved;
+      var end = Date.now() + HORAS_OFERTA * 3600 * 1000;
+      localStorage.setItem(key, String(end));
+      return end;
+    } catch (e) { return Date.now() + HORAS_OFERTA * 3600 * 1000; }
+  }
+  var pad = function (n) { return String(n).padStart(2, "0"); };
+  var els = { h: document.querySelectorAll('[data-count="h"]'), m: document.querySelectorAll('[data-count="m"]'), s: document.querySelectorAll('[data-count="s"]') };
+  function tick() {
+    var rest = Math.max(0, deadline() - Date.now());
+    var v = { h: pad(Math.floor(rest / 3600000)), m: pad(Math.floor((rest % 3600000) / 60000)), s: pad(Math.floor((rest % 60000) / 1000)) };
+    for (var k in els) els[k].forEach(function (el) { el.textContent = v[k]; });
+  }
+  tick(); setInterval(tick, 1000);
+})();
+</script>
+<script src="/vendas-hero.js" defer></script>
 </body>
 </html>

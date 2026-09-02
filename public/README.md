@@ -13,9 +13,9 @@ Tudo aqui é servido na raiz do site (ex.: `public/vendas.html` → `/vendas.htm
 ## Páginas HTML soltas (estáticas)
 | Arquivo | O que é |
 |---|---|
-| `vendas.html` | Página de vendas estática |
+| `vendas.html` + `vendas-hero.js` | Página de vendas (Landing Vendas v2 do Claude Design). **Gerada** por `node scripts/build-vendas.mjs` — não editar à mão, exceto o bloco `CONFIG` no `<head>` (`CHECKOUT_URL`, `WHATSAPP`, `HORAS_OFERTA`) |
 | `planilha-preview.html` | Prévia visual da planilha premium |
-| `politica-privacidade.html`, `termos-de-uso.html` | Obrigatórios das plataformas |
+| `politica-privacidade.html`, `termos-de-uso.html` | Obrigatórios da Kiwify/Cakto (linkados no rodapé da landing). Placeholders `[SEU NOME OU CNPJ]` e `[SUA CIDADE — Estado]` a preencher |
 | `manifest.webmanifest` | Manifesto do PWA |
 
 > Os PDFs em `downloads/` são saída do build — pra mudar o conteúdo, edite os `.md`
