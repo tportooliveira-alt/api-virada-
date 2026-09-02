@@ -1,41 +1,22 @@
-===========================================================
-   APP VIRADA — COMO ABRIR NO SEU PC (Windows)
-===========================================================
+PASTA CANONICA DO VIRADA APP
+============================
 
-Faça uma vez:
+Este e o unico lugar onde o app deve ser editado:
+  C:\Users\Thiago Porto\codigo-da-virada\api-virada-
 
-1) Instale o Node.js
-   - Entre em:  https://nodejs.org
-   - Baixe o botão verde "LTS" e instale (Avançar, Avançar, Concluir).
+Repo: https://github.com/tportooliveira-alt/api-virada-
 
-2) Extraia esta pasta
-   - Botão direito no arquivo .tar.gz -> "Extrair tudo".
+COMO RODAR
+  npm run dev        -> http://localhost:3001
 
------------------------------------------------------------
-Para ABRIR o app:
+A porta 3001 esta FIXA de proposito. O login/exportacao do Google
+so funciona em origens registradas no cliente OAuth (projeto
+"virada-app", cliente "Cliente Web 1"):
+  http://localhost:3000
+  http://localhost:3001
+  https://app.progetoprontoia.tech
+Rodar em outra porta = erro 400 origin_mismatch.
 
-3) Entre na pasta extraída e dê 2 CLIQUES em:
-        INICIAR-VIRADA.bat
-
-   - Na PRIMEIRA vez ele instala tudo (demora alguns minutos e
-     precisa de internet). Nas próximas é rápido.
-   - Quando o navegador abrir em  http://localhost:3000  , pronto!
-   - Na tela de login clique em "Entrar como Dev" para entrar.
-
-Para PARAR: feche a janela preta (o terminal).
-Para abrir de novo: só dar 2 cliques no INICIAR-VIRADA.bat.
-
------------------------------------------------------------
-Para MEXER no design:
-
-4) Instale o VS Code (grátis):  https://code.visualstudio.com
-5) Abra esta pasta no VS Code.
-   Arquivos do visual:
-     - app/globals.css           (cores e fundo)
-     - tailwind.config.ts        (paleta de cores)
-     - components/               (botões, cards, menu)
-     - app/app/**/page.tsx       (as telas)
-     - public/vendas.html        (página de vendas)
-
-Dúvida? É só me chamar aqui que eu te ajudo.
-===========================================================
+NAO TRABALHE EM COPIAS DENTRO DE Downloads.
+Em 02/09/2026 a versao que estava sendo editada vivia em
+Downloads\APP-VIRADA (3)\APP-VIRADA e foi trazida de volta pra ca.
