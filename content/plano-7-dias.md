@@ -12,7 +12,7 @@ Sete dias. Uma ação por dia. Pequenas vitórias que se acumulam.
 
 **O que fazer:**
 
-1. Pegue uma folha ou abra uma planilha.
+1. Abra o Virada App em **Lançar**.
 2. Liste tudo que você tem (saldo em conta, poupança, investimentos, dinheiro em espécie).
 3. Liste todas as dívidas com:
    - Nome do credor

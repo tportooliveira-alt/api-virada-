@@ -1,0 +1,34 @@
+:root {
+  --font-body: "Onest", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Figtree", "Onest", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Escala — mínimo 12px em qualquer tela (público amplo) */
+  --text-xs: 12px;   /* legendas, eyebrow, tabelas densas */
+  --text-sm: 13px;   /* meta, botões pequenos */
+  --text-base: 14px; /* corpo padrão */
+  --text-md: 15px;   /* corpo destacado, botão principal */
+  --text-lg: 18px;   /* título de seção */
+  --text-xl: 20px;   /* número em card */
+  --text-2xl: 24px;  /* título de tela (celular) */
+  --text-3xl: 26px;  /* título de tela (desktop) */
+  --text-4xl: 44px;  /* saldo no hero */
+
+  --leading-tight: 1.1;
+  --leading-snug: 1.3;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-black: 800;
+
+  --tracking-tight: -0.02em;
+  --tracking-tighter: -0.03em;
+  --tracking-caps: 0.14em;   /* eyebrows em caixa alta */
+  --tracking-caps-sm: 0.06em; /* cabeçalhos de tabela */
+
+  --numeric: tabular-nums; /* font-variant-numeric em todo valor em R$ */
+}

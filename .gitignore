@@ -50,6 +50,7 @@ data/membros.json
 .tmp-mobile/
 
 # Configs de IDE local
-.claude/
+.claude/*
+!.claude/skills/
 
 .vercel

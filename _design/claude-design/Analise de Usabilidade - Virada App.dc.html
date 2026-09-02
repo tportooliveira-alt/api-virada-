@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Figtree:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; min-height:100%; }
+  body { font-family:"Onest", ui-sans-serif, system-ui, sans-serif; color:#0F172A; background:#F4F6FA; -webkit-font-smoothing:antialiased; text-wrap:pretty; }
+  a { color:#047857; } a:hover { color:#065F46; }
+  button { font-family:inherit; }
+</style>
+</helmet>
+<div data-screen-label="Análise de usabilidade" style="max-width:1040px; margin:0 auto; padding:48px 28px 80px; display:flex; flex-direction:column; gap:40px;">
+  <header style="display:flex; flex-direction:column; gap:14px;">
+    <p style="margin:0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.14em; color:#B45309;">Código da Virada · app</p>
+    <h1 style="margin:0; font-family:'Figtree', sans-serif; font-size:40px; font-weight:800; letter-spacing:-0.03em; line-height:1.05;">Qualquer pessoa consegue usar?</h1>
+    <p style="margin:0; font-size:17px; line-height:26px; color:#475569; max-width:720px;">Revisão de facilidade de uso feita lendo o código das telas Entrar, Início, Lançar, Planilha e Conta. O público do produto é amplo (quem compra um e-book de finanças), então o critério é: uma pessoa sem intimidade com apps consegue lançar um gasto, entender o saldo e achar as coisas sem ajuda.</p>
+  </header>
+
+  <section style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+    <div style="border-radius:16px; background:#0F172A; color:#FFFFFF; padding:22px 24px;">
+      <p style="margin:0; font-size:12px; color:#94A3B8;">Veredito</p>
+      <p style="margin:8px 0 0; font-family:'Figtree', sans-serif; font-size:30px; font-weight:800; letter-spacing:-0.02em; line-height:1.1;">Base boa, acabamento trava</p>
+      <p style="margin:10px 0 0; font-size:13px; line-height:19px; color:#94A3B8;">Login em 1 clique, linguagem simples e menu de 4 itens acertam. O que atrapalha são detalhes de formulário, texto pequeno e páginas sem caminho.</p>
+    </div>
+    <sc-for list="{{ counts }}" as="c" hint-placeholder-count="3">
+      <div style="border-radius:16px; border:1px solid #E5E9F0; background:#FFFFFF; padding:22px 24px; display:flex; flex-direction:column; justify-content:space-between; gap:10px;">
+        <span style="{{ c.badge }}">{{ c.label }}</span>
+        <p style="margin:0; font-family:'Figtree', sans-serif; font-size:44px; font-weight:800; letter-spacing:-0.03em; line-height:1;">{{ c.n }}</p>
+        <p style="margin:0; font-size:13px; line-height:18px; color:#64748B;">{{ c.desc }}</p>
+      </div>
+    </sc-for>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:16px;">
+    <div>
+      <h2 style="margin:0; font-size:22px; font-weight:700; letter-spacing:-0.01em;">O caminho de quem acabou de comprar</h2>
+      <p style="margin:6px 0 0; font-size:14px; color:#64748B;">Onde cada etapa ajuda ou atrapalha.</p>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+      <sc-for list="{{ journey }}" as="j" hint-placeholder-count="5">
+        <div style="border-radius:14px; border:1px solid #E5E9F0; background:#FFFFFF; padding:16px 18px; display:flex; flex-direction:column; gap:10px; min-width:0;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <span style="display:grid; place-items:center; height:26px; width:26px; border-radius:8px; background:#0F172A; color:#FFFFFF; font-size:12px; font-weight:700;">{{ j.n }}</span>
+            <span style="{{ j.dotStyle }}"></span>
+          </div>
+          <p style="margin:0; font-size:15px; font-weight:700;">{{ j.title }}</p>
+          <p style="margin:0; font-size:13px; line-height:19px; color:#475569;">{{ j.note }}</p>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:#64748B;">
+      <span style="display:flex; align-items:center; gap:6px;"><span style="height:10px; width:10px; border-radius:999px; background:#22C55E;"></span>Flui bem</span>
+      <span style="display:flex; align-items:center; gap:6px;"><span style="height:10px; width:10px; border-radius:999px; background:#F5C542;"></span>Atrito</span>
+      <span style="display:flex; align-items:center; gap:6px;"><span style="height:10px; width:10px; border-radius:999px; background:#EF4444;"></span>Trava</span>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:16px;">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0; font-size:22px; font-weight:700; letter-spacing:-0.01em;">Achados</h2>
+        <p style="margin:6px 0 0; font-size:14px; color:#64748B;">Ordenados por impacto. Cada um diz o que acontece, por que pesa para uma pessoa comum e como resolver.</p>
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+          <button onClick="{{ f.onClick }}" style="{{ f.style }}">{{ f.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <sc-for list="{{ findings }}" as="f" hint-placeholder-count="6">
+        <article style="border-radius:16px; border:1px solid #E5E9F0; background:#FFFFFF; padding:20px 22px; display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(0, 1fr); gap:12px 28px; align-items:start;">
+          <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="{{ f.badge }}">{{ f.sev }}</span>
+              <span style="font-size:12px; font-weight:600; color:#64748B;">{{ f.screen }}</span>
+            </div>
+            <h3 style="margin:0; font-size:17px; font-weight:700; letter-spacing:-0.01em; line-height:1.3;">{{ f.title }}</h3>
+            <p style="margin:0; font-size:14px; line-height:21px; color:#475569;">{{ f.what }}</p>
+            <p style="margin:0; font-size:12px; line-height:18px; color:#94A3B8; font-family:ui-monospace, SFMono-Regular, Menlo, monospace;">{{ f.where }}</p>
+          </div>
+          <div style="border-radius:12px; background:#F0FDF4; border:1px solid #BBF7D0; padding:14px 16px; display:flex; flex-direction:column; gap:6px;">
+            <p style="margin:0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#15803D;">Como resolver</p>
+            <p style="margin:0; font-size:14px; line-height:21px; color:#14532D;">{{ f.fix }}</p>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
+    <div style="border-radius:16px; border:1px solid #E5E9F0; background:#FFFFFF; padding:22px 24px; display:flex; flex-direction:column; gap:12px;">
+      <h2 style="margin:0; font-size:18px; font-weight:700;">O que já funciona bem</h2>
+      <ul style="margin:0; padding:0 0 0 18px; font-size:14px; line-height:22px; color:#334155; display:flex; flex-direction:column; gap:4px;">
+        <li>Entrar com Google em um toque, sem senha nem código de ativação.</li>
+        <li>Vocabulário do Início é humano: "Em caixa", "Entradas", "Gastos", "O caixa está respirando".</li>
+        <li>Lançar em poucos toques: valor, categoria com um toque, confirmar. Descrição opcional.</li>
+        <li>Menu com só 4 itens e botão de ação principal grande.</li>
+        <li>Funciona offline e os dados ficam no celular — bem explicado na tela Conta.</li>
+        <li>Estados vazios dizem o que fazer ("Comece pelo botão Lançar").</li>
+      </ul>
+    </div>
+    <div style="border-radius:16px; background:#0F172A; color:#FFFFFF; padding:22px 24px; display:flex; flex-direction:column; gap:12px;">
+      <h2 style="margin:0; font-size:18px; font-weight:700;">Por onde começar (1 semana)</h2>
+      <ol style="margin:0; padding:0 0 0 18px; font-size:14px; line-height:22px; color:#CBD5E1; display:flex; flex-direction:column; gap:6px;">
+        <li><strong style="color:#FFFFFF;">Campo de valor</strong> aceitando vírgula, com máscara R$.</li>
+        <li><strong style="color:#FFFFFF;">Dívidas e Metas</strong> acessíveis pelo menu ou por atalhos no Início.</li>
+        <li><strong style="color:#FFFFFF;">Nomes das abas</strong> sempre visíveis; texto mínimo 12px, corpo 14px.</li>
+        <li><strong style="color:#FFFFFF;">Tokens de cor</strong> do design system no lugar das classes do tema escuro.</li>
+        <li><strong style="color:#FFFFFF;">Renomear</strong> menu "Planilha" → "Relatórios" e "Estornar" → "Desfazer".</li>
+      </ol>
+      <p style="margin:4px 0 0; font-size:12px; line-height:18px; color:#94A3B8;">Os itens 3 e 4 saem quase de graça ao adotar o design system entregue junto com esta análise.</p>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { filter: "todos" };
+
+  renderVals() {
+    const SEV = {
+      critico: { label: "Crítico", bg: "#FEF2F2", fg: "#B91C1C", bd: "#FECACA" },
+      importante: { label: "Importante", bg: "#FFFBEB", fg: "#B45309", bd: "#FDE68A" },
+      melhoria: { label: "Melhoria", bg: "#F1F5F9", fg: "#334155", bd: "#E2E8F0" }
+    };
+    const badge = (s) => `display:inline-flex; align-items:center; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; background:${SEV[s].bg}; color:${SEV[s].fg}; border:1px solid ${SEV[s].bd};`;
+
+    const all = [
+      { sev: "critico", screen: "Lançar", title: "Digitar o valor com vírgula dá erro", what: "O campo é type=\"number\". No teclado brasileiro a pessoa digita \"35,90\", o navegador descarta o valor e aparece \"Informe um valor válido\" — sem explicar o quê. É o primeiro passo de qualquer lançamento.", where: "app/app/lancar/page.tsx · <input type=\"number\" placeholder=\"0,00\">", fix: "Trocar para type=\"text\" inputMode=\"decimal\" com máscara \"R$ 0,00\" enquanto digita. parseCurrencyInput já aceita vírgula — só o campo bloqueia." },
+      { sev: "critico", screen: "Navegação", title: "Dívidas e Metas não têm caminho até elas", what: "As telas /app/dividas e /app/metas existem, mas nenhum menu ou botão leva até elas. Na aba Planilha dá para excluir uma dívida ou meta, mas não para criar. A pessoa lê \"Dívidas em aberto: 0\" e não descobre onde cadastrar.", where: "components/BottomNav.tsx (4 itens) · nenhum href para /app/dividas ou /app/metas", fix: "Atalhos \"Cadastrar dívida\" e \"Criar meta\" no Início e na aba correspondente da tela Planilha, ou um 5º item de menu \"Mais\"." },
+      { sev: "critico", screen: "Planilha", title: "No celular as abas viram só emoji", what: "Abaixo de 640px o nome da aba some (hidden sm:inline) e sobram 🔴 📈 🗓️. Quem não conhece o app precisa adivinhar que 🔴 é Dívidas. É a tela mais densa do produto e a navegação dela fica cega.", where: "app/app/evolucao/page.tsx · TABS + className=\"hidden sm:inline\"", fix: "Mostrar sempre o texto, em uma faixa rolável horizontal; trocar emoji por ícones Lucide (mesmo conjunto do menu)." },
+      { sev: "critico", screen: "Planilha · Menu", title: "Texto de 10–11px em tabelas, filtros e menu", what: "Cabeçalhos, chips, rótulos de filtro e KPIs usam text-[10px] e text-[11px]; o menu inferior usa 11px. Para público amplo (inclusive 45+) isso exige zoom e gera erro de toque.", where: "evolucao/page.tsx (KPI, ProTable, Chip, filtros) · BottomNav.tsx text-[11px]", fix: "Escala mínima: 12px legenda, 14px corpo, 16px campos. Tabelas viram cards empilhados no celular em vez de tabela rolável." },
+      { sev: "importante", screen: "Todas", title: "Tema claro pela metade: textos lavados e bordas invisíveis", what: "O app virou claro via overrides .virada-light, mas dezenas de classes do tema escuro ficaram: text-emerald-300 (links \"Novo\", \"Conectar\", valores), bg-white/5 (fundo de linhas), border-white/10 (bordas dos botões inativos em Lançar). No fundo claro elas somem.", where: "globals.css .virada-light · inicio, lancar, evolucao, aprender", fix: "Substituir pelas variáveis do design system (--color-text-positive, --surface-muted, --border-default). Uma passada de busca-e-troca resolve a maioria." },
+      { sev: "importante", screen: "Início · Planilha · Conta", title: "\"Planilha\" significa duas coisas", what: "O menu \"Planilha\" abre tabelas dentro do app. Já \"Planilha por trás → Conectar\" e \"Exportar minha planilha\" falam do Google Planilhas. A pessoa clica em Planilha esperando o Google e cai em filtros e abas.", where: "AppShell pageMeta · BottomNav · inicio/page.tsx seção \"Planilha por trás\"", fix: "Menu passa a \"Relatórios\" (ou \"Histórico\"). A palavra \"Planilha\" fica só para o Google Planilhas, sempre com o ícone do Google ao lado." },
+      { sev: "importante", screen: "Início → Lançar", title: "Botão promete voz, tela não tem voz", what: "\"Lançar agora\" traz um ícone de microfone e a tela Lançar é só formulário. O componente VoiceOrTextInput existe no código mas não é usado. Quem toca esperando falar se frustra no primeiro uso.", where: "components/QuickLaunchCard.tsx (Mic) · VoiceOrTextInput.tsx sem import em lancar/page.tsx", fix: "Ou liga o VoiceOrTextInput no topo de Lançar (\"Falar\" / \"Digitar\"), ou tira o microfone do botão. Não prometer o que não existe." },
+      { sev: "importante", screen: "Lançar", title: "Só dá para lançar com a data de hoje", what: "A data é fixa em new Date(). Quem lembra à noite do almoço de ontem, ou quer lançar a conta de luz paga na semana passada, não consegue — e o mês fecha errado.", where: "lancar/page.tsx · date: new Date().toISOString().split(\"T\")[0]", fix: "Linha \"Quando?\" com três opções: Hoje · Ontem · Outra data (abre o seletor). Hoje continua sendo o padrão." },
+      { sev: "importante", screen: "Planilha", title: "Jargão: Estornar, Natureza, Escopo, Origem, abas CSV", what: "\"Estornar\" é termo de banco; \"Natureza\" e \"Escopo\" são nomes internos; \"Origem: app\" não diz nada para quem usa; \"abas CSV locais\" no Início é técnico.", where: "TxRow (Estornar) · cabeçalhos ProTable · inicio/page.tsx", fix: "Desfazer · Tipo de gasto (Essencial / Por impulso) · Casa ou Empresa · esconder \"Origem\"; no Início: \"Todos os seus lançamentos ficam guardados aqui no celular\"." },
+      { sev: "importante", screen: "Planilha", title: "Excluir e desfazer são ícones de 14px sem nome", what: "Na tabela rolável, as ações por linha são dois ícones minúsculos que só ganham sentido no hover (title). No celular não existe hover e o dedo erra fácil; a confirmação \"Sim / Não\" tem 10px.", where: "evolucao/page.tsx · TxRow · h-3.5 w-3.5", fix: "Um botão \"⋯\" por linha abrindo folha com \"Desfazer lançamento\" e \"Excluir\" por extenso, com confirmação de 44px de altura." },
+      { sev: "melhoria", screen: "Lançar · Planilha", title: "Emojis como ícones em uma parte, Lucide na outra", what: "Categorias e abas usam emoji (🛒 ⚡ 📤); menu, cards e botões usam Lucide. Emoji muda de desenho por aparelho (Samsung, iPhone, Xiaomi) e quebra a leitura de \"mesmo app\".", where: "lancar/page.tsx EXPENSE_CATS · evolucao TABS", fix: "Ícones Lucide para tudo (ShoppingCart, Zap, Car…). O design system já lista o mapeamento por categoria." },
+      { sev: "melhoria", screen: "Entrar", title: "Mensagens técnicas chegam ao cliente", what: "\"NEXT_PUBLIC_GOOGLE_CLIENT_ID não está configurado\", \"HTTP 500\", \"Login Google ainda não inicializou\" podem aparecer na tela de login. Além disso, o card é escuro sobre fundo claro e \"Ainda nao comprou?\" está sem acento.", where: "components/AuthGate.tsx · NeedsLogin", fix: "Uma mensagem humana (\"Não deu para entrar agora. Tente de novo em alguns segundos.\") e o detalhe técnico só no console. Card no mesmo tema claro do app." },
+      { sev: "melhoria", screen: "Planilha · Conta", title: "Dois lugares para conectar o Google", what: "O botão \"Exportar minha planilha\" aparece na tela Planilha e na tela Conta, com textos diferentes (\"Sincronizar com 1 clique\" nas duas, mas explicações distintas).", where: "evolucao/page.tsx · aprender/page.tsx · GoogleSyncButton", fix: "Deixar a conexão em Conta e, nas outras telas, só o estado (\"Planilha atualizada há 2h · Abrir\") com um link para Conta." },
+      { sev: "melhoria", screen: "Lançar", title: "Depois de confirmar, nada acontece além de um aviso", what: "O formulário limpa e mostra \"✓ Gasto registrado!\". Não há \"Desfazer\" para um erro de digitação nem um atalho para ver o saldo atualizado — a pessoa precisa achar o Início sozinha.", where: "lancar/page.tsx · setSuccess", fix: "Aviso com dois botões: \"Desfazer\" (5 s) e \"Ver no Início\". Manter o foco no campo Valor para o próximo lançamento." },
+      { sev: "melhoria", screen: "Planilha · Conta", title: "Confirmações de dois jeitos", what: "Excluir lançamento confirma inline (\"Excluir? Sim / Não\"); excluir dívida, meta e \"Apagar todos os dados\" usam o alerta nativo do navegador, que no PWA parece outro app.", where: "TxRow · window.confirm em evolucao e aprender", fix: "Um único componente de confirmação (folha inferior no celular, diálogo no desktop) — está no design system como Dialog." }
+    ];
+
+    const f = this.state.filter;
+    const findings = all.filter((x) => f === "todos" || x.sev === f).map((x) => ({ ...x, sev: SEV[x.sev].label, badge: badge(x.sev) }));
+
+    const count = (s) => all.filter((x) => x.sev === s).length;
+    const counts = [
+      { label: "Crítico", n: String(count("critico")), desc: "Impedem ou quebram a tarefa principal.", badge: badge("critico") },
+      { label: "Importante", n: String(count("importante")), desc: "Confundem ou cansam; a pessoa termina, mas com esforço.", badge: badge("importante") },
+      { label: "Melhoria", n: String(count("melhoria")), desc: "Polimento que deixa o app mais confiável.", badge: badge("melhoria") }
+    ];
+
+    const filters = [["todos", "Todos"], ["critico", "Críticos"], ["importante", "Importantes"], ["melhoria", "Melhorias"]].map(([key, label]) => ({
+      label,
+      style: `border:1px solid ${f === key ? "#0F172A" : "#E2E8F0"}; background:${f === key ? "#0F172A" : "#FFFFFF"}; color:${f === key ? "#FFFFFF" : "#475569"}; border-radius:999px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer;`,
+      onClick: () => this.setState({ filter: key })
+    }));
+
+    const dot = (c) => `height:12px; width:12px; border-radius:999px; background:${c};`;
+    const journey = [
+      { n: "1", title: "Comprar e receber o link", note: "Webhook libera o e-mail sozinho. Sem código para digitar.", dotStyle: dot("#22C55E") },
+      { n: "2", title: "Entrar com Google", note: "Um toque. Só trava se o popup for bloqueado — e a mensagem é técnica.", dotStyle: dot("#F5C542") },
+      { n: "3", title: "Ver o Início", note: "Saldo e cards claros. Textos verde-claro somem no fundo branco.", dotStyle: dot("#F5C542") },
+      { n: "4", title: "Lançar um gasto", note: "Vírgula no valor dá erro; não dá para escolher a data; microfone não existe.", dotStyle: dot("#EF4444") },
+      { n: "5", title: "Entender e exportar", note: "Abas só com emoji, letras de 10px, e \"Planilha\" com dois sentidos.", dotStyle: dot("#EF4444") }
+    ];
+
+    return { counts, journey, filters, findings };
+  }
+}
+</script>
+</body>
+</html>

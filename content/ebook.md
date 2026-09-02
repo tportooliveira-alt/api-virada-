@@ -4,29 +4,21 @@
 
 ---
 
-## Aviso importante
-
-Este material é informativo e educacional. Não é consultoria financeira personalizada, recomendação de investimento ou garantia de resultado. Os exemplos são ilustrativos. O que está aqui funciona — mas só funciona se você aplicar.
-
-A virada financeira não é mágica. É método somado a disciplina. Este livro te entrega o método. A disciplina é com você.
-
----
-
 ## Introdução
 
 Se você está lendo isso, é porque algo dentro de você sabe que algo precisa mudar.
 
 Talvez você ganhe pouco. Talvez ganhe bem e mesmo assim o dinheiro suma. Talvez tenha vergonha de abrir o aplicativo do banco. Talvez sinta que trabalha muito e não tem nada pra mostrar.
 
-Eu vou te dizer uma coisa logo de cara: a culpa não é toda sua.
-
-A escola não te ensinou educação financeira. Sua família talvez também não soubesse. O sistema é desenhado pra que você pague juros, e não pra que você os receba. A inflação some com o seu salário enquanto você dorme.
+Eu vou te dizer uma coisa logo de cara: a culpa não é toda sua. A escola não te ensinou educação financeira. Sua família talvez também não soubesse. O sistema é desenhado pra que você pague juros, e não pra que você os receba.
 
 Mas tem uma boa notícia: as regras existem, e quem aprende a jogar pelas regras certas, vence.
 
-Este livro tem 7 capítulos curtos. Cada um resolve uma parte do problema. No final de cada um, você faz um exercício prático. Não pula.
+Este livro tem 5 capítulos curtos. Cada um resolve uma parte do problema. No final de cada um, você faz um exercício prático — e faz **dentro do Virada App**, que veio junto com este material. Nada de folha solta que se perde: o que você lança no app vira a sua planilha, sozinha.
 
 Em uma semana você vai ter feito mais pela sua vida financeira do que muita gente faz em uma década.
+
+> **Antes de começar:** instale o app no celular (menu Conta → Instalar no celular) e entre com a mesma conta Google da compra. Leva 1 minuto.
 
 ---
 
@@ -38,7 +30,7 @@ Você não consegue mudar o que não enxerga. Por isso o primeiro passo é simpl
 
 ### O Inventário em 4 Quadrantes
 
-Pegue uma folha. Divida em quatro:
+Pense na sua vida financeira em quatro partes:
 
 **1. O QUE EU TENHO** — Dinheiro em conta, poupança, investimentos, dinheiro em espécie.
 
@@ -51,11 +43,15 @@ Pegue uma folha. Divida em quatro:
 - Variáveis necessárias: gás, gasolina, remédios
 - Variáveis ajustáveis: streaming, delivery, lazer, presentes
 
+No app, os quadrantes 2, 3 e 4 têm lugar certo: **Dívidas**, **Entradas** e **Gastos**. E cada gasto ainda pede uma escolha — *Essencial* ou *Por impulso*. É essa escolha que vai te mostrar, no fim do mês, onde está o vazamento.
+
 ### Calcule o seu número mágico
 
 Receitas − Despesas = Sobra (ou Falta) Mensal
 
 Se for negativo, você está afundando todo mês. Se for positivo mas pequeno, está sobrevivendo. Se for maior que 20% da renda, você tem base.
+
+O app faz essa conta por você o tempo todo: é o número grande na tela **Início**, "Em caixa neste mês". Em **Relatórios** você vê quanto por cento do que entrou sobrou.
 
 ### Os três tipos de dívida
 
@@ -63,11 +59,11 @@ Se for negativo, você está afundando todo mês. Se for positivo mas pequeno, e
 - **Médias** (1,5% a 5%): empréstimo pessoal, financiamento de carro.
 - **Saudáveis** (abaixo de 1%): financiamento imobiliário próprio, crédito subsidiado.
 
-### Exercício do capítulo
+### Exercício do capítulo — no app
 
-1. Faça o inventário em 4 quadrantes em papel ou planilha.
-2. Some todas as dívidas e classifique cada uma.
-3. Calcule sua sobra (ou falta) mensal.
+1. Abra **Lançar** e registre tudo que entrou e saiu nos últimos 7 dias. Use "Ontem" e "Outra data" para não deixar nada de fora.
+2. Abra **Relatórios → Dívidas** e cadastre cada dívida: nome, valor total, parcela e prioridade (tóxica = alta).
+3. Volte ao **Início** e leia o número "Em caixa neste mês".
 4. Escreva em uma frase: "minha situação financeira hoje é ___."
 
 ---
@@ -78,19 +74,19 @@ Quem não tem método trabalha contra si mesmo. Vamos criar um sistema simples.
 
 ### O calendário financeiro de uma página
 
-Pegue uma folha ou abra a agenda do celular. Marque:
+Pegue a agenda do celular. Marque:
 
 - Dia 1 a 5: data de salário/principais entradas
 - Dia 5 a 10: pagamento das contas fixas (aluguel, condomínio, luz, água, internet)
 - Dia 10 a 20: dia de mercado da quinzena
 - Dia 20 a 25: revisão da fatura do cartão antes do fechamento
-- Último dia útil: revisão da semana e transferência para reserva
+- Último dia útil: revisão do mês no app (Relatórios → Por mês) e transferência para reserva
 
 Quando tudo tem dia certo, nada vence em atraso.
 
 ### A regra dos três bolsos
 
-Divida sua renda em três contas (mesmo banco, contas separadas, ou usando "cofrinhos"):
+Divida sua renda em três partes (mesmo banco, contas separadas, ou usando "cofrinhos"):
 
 - **Bolso 1 — Contas obrigatórias** (50%): aluguel, mercado, luz, água, internet, transporte
 - **Bolso 2 — Dívidas e reserva** (30%): pagamento de dívidas + reserva (na fase de virada, vai a 40%)
@@ -105,11 +101,11 @@ Quando o salário cai, automatize:
 
 O que não tem função, vira gasto invisível.
 
-### Exercício do capítulo
+### Exercício do capítulo — no app
 
-1. Monte seu calendário financeiro em uma página.
-2. Decida com quais contas você vai operar os três bolsos.
-3. Configure pelo menos uma transferência automática no dia do salário.
+1. Monte seu calendário financeiro na agenda do celular.
+2. Decida com quais contas você vai operar os três bolsos e configure pelo menos uma transferência automática no dia do salário.
+3. Se você mistura dinheiro de casa com dinheiro do trabalho, passe a lançar cada gasto marcando **Casa** ou **Empresa**. Em Relatórios você vê os dois lados separados.
 
 ---
 
@@ -147,19 +143,21 @@ A regra é simples: corte os grandes ralos primeiro. Os 7 grandes ralos do brasi
 2. Carro (combustível, parcela, manutenção, IPVA)
 3. Mercado mal feito (impulso, marca cara, desperdício)
 4. Energia elétrica não otimizada
-5. Assinaturas zumbis (Netflix, Spotify, apps que você nem usa)
+5. Assinaturas zumbis (streaming, apps que você nem usa)
 6. Delivery
 7. Compras por impulso
 
+Os ralos 3, 6 e 7 aparecem sozinhos no app: é o total **Por impulso** em Relatórios. Esse número é o seu alvo do mês.
+
 ### A regra das 72 horas
 
-Para qualquer compra acima de R$ 200 que não esteja na sua lista, espere 72 horas. 73% das vontades passam.
+Para qualquer compra acima de R$ 200 que não esteja na sua lista, espere 72 horas. A maioria das vontades passa.
 
-### Exercício do capítulo
+### Exercício do capítulo — no app
 
-1. Escolha sua estratégia: avalanche ou bola de neve.
+1. Escolha sua estratégia: avalanche ou bola de neve. Em **Relatórios → Dívidas**, marque a dívida escolhida como prioridade **alta**.
 2. Cancele todas as assinaturas que você não usou nas últimas 4 semanas.
-3. Ligue para pelo menos UMA dívida e pergunte qual o melhor desconto possível à vista.
+3. Ligue para pelo menos UMA dívida e pergunte qual o melhor desconto possível à vista. Quando negociar, mude o status dela para **negociando**; quando pagar, para **quitada**.
 
 ---
 
@@ -171,17 +169,19 @@ Cortar gasto tem teto. Aumentar renda não tem.
 
 **Resultado em 7 dias** (precisa de dinheiro AGORA):
 - Desapego: venda eletrônicos, roupas, móveis, livros parados em casa.
-- Plataformas: Uber, iFood, GetNinjas, faxina, jardinagem.
+- Plataformas: aplicativos de transporte e entrega, serviços por demanda, faxina, jardinagem.
 - Serviços no bairro: passar cachorro, cuidar de criança/idoso, pequenos consertos.
 
 **Resultado em 30 dias** (estabilidade):
-- Freelance digital: design (Canva), redação, edição de vídeo (CapCut), aulas online, tradução.
+- Freelance digital: design, redação, edição de vídeo, aulas online, tradução.
 - Revenda inteligente: roupas em atacado, cosméticos, importados.
 - Conteúdo digital: páginas no Instagram/TikTok sem aparecer (curadoria de receitas, frases, dicas).
 
 **Resultado em 90 dias** (escala):
 - Especialização vendável: o que você sabe fazer melhor que a maioria? Vira curso, mentoria, consultoria.
 - Pequeno negócio local validado: pré-venda antes de qualquer investimento.
+
+(As 50 ideias completas estão no bônus "50 Ideias de Renda Extra".)
 
 ### A regra de ouro da renda extra na virada
 
@@ -193,11 +193,11 @@ Toda renda extra dos próximos 6 a 12 meses vai assim:
 
 Sem desvio.
 
-### Exercício do capítulo
+### Exercício do capítulo — no app
 
 1. Liste 5 itens parados em casa que você pode vender essa semana.
 2. Escolha UM caminho de renda extra (7, 30 ou 90 dias).
-3. Defina quanto você quer gerar de renda extra nos próximos 30 dias.
+3. Cada real que entrar desse caminho, lance em **Lançar → Entrada** na categoria **Renda extra**. No fim do mês, Relatórios → Entradas mostra quanto a renda extra representou do total.
 
 ---
 
@@ -214,15 +214,13 @@ Sem reserva, qualquer emergência te joga de volta no cartão de crédito. O cic
 - Autônomo, MEI, freelancer: 9 a 12 meses
 - Setor instável (turismo, eventos): 12 meses
 
+Seu "mês de despesas" está no app: é o total de **Gastos** em Relatórios, filtrado por mês.
+
 ### Onde guardar?
 
-Liquidez diária + segurança + render acima da poupança.
+Três regras, nessa ordem: poder sacar no mesmo dia, segurança, render mais que a poupança. Na prática isso significa Tesouro Selic ou um CDB de liquidez diária que pague 100% do CDI — qualquer banco digital ou corretora gratuita oferece.
 
-- **Tesouro Selic** — o mais recomendado. Acessível por qualquer corretora a partir de R$ 100.
-- **CDB de liquidez diária com 100% do CDI** — em bancos digitais (Nubank, C6, BTG, Inter).
-- **Conta remunerada automática** — Nubank, Inter, PicPay, C6.
-
-Fuja: poupança, fundos com taxa alta, criptomoedas, ações (não combinam com reserva).
+Fuja: poupança, fundos com taxa alta, criptomoedas, ações. Não combinam com reserva.
 
 ### O efeito psicológico
 
@@ -234,84 +232,33 @@ Quando você tem reserva:
 
 Reserva é liberdade comprada antecipadamente.
 
-### Exercício do capítulo
+### E depois da reserva?
 
-1. Calcule sua reserva alvo.
-2. Abra conta numa corretora (XP, Rico, NuInvest, Inter, BTG, Toro — todas gratuitas).
+Aí sim começa a fase de construir: investir com regularidade, em produtos simples, pensando em anos. Esse é assunto para outro material — este livro termina onde a maioria das pessoas nunca chega: no vermelho para trás e com reserva na frente.
+
+### Exercício do capítulo — no app
+
+1. Calcule sua reserva alvo (meses × total de Gastos do mês).
+2. Em **Relatórios → Metas**, crie a meta **Reserva de emergência** com esse valor. Ela vai subir a cada aporte que você lançar.
 3. Configure transferência automática mensal de qualquer valor — mesmo que seja R$ 50. O hábito importa mais que a quantia.
 
 ---
 
-## Capítulo 6 — Direção: construindo uma vida financeira mais segura
+## Seus primeiros 7 dias com o app
 
-Saiu do vermelho. Tem reserva. E agora?
+Conhecimento sem ação é entretenimento. O bônus "Plano de 7 Dias" detalha cada dia; aqui vai o mapa:
 
-Agora você começa a construir.
+| Dia | O que fazer | Onde, no app |
+| --- | --- | --- |
+| 1 | Raio-X: lance a semana inteira e cadastre as dívidas | Lançar · Relatórios → Dívidas |
+| 2 | Calendário de contas na agenda | (agenda do celular) |
+| 3 | Corte um desperdício | Relatórios → filtro **Impulso** |
+| 4 | Escolha UMA dívida e ligue | Dívidas → prioridade alta → negociando |
+| 5 | Uma ação de renda extra | Lançar → Entrada → Renda extra |
+| 6 | Primeiro valor para a reserva | Relatórios → Metas → Reserva |
+| 7 | Revise o mês e conecte a planilha | Relatórios → Por mês · Conta → Conectar Google Planilhas |
 
-### O poder dos juros compostos
-
-R$ 300 por mês a 10% ao ano por 30 anos = mais de R$ 670 mil. Comece cedo importa mais que aportar muito. Mas se você está começando "tarde", começar HOJE importa mais que perfeição.
-
-### Os 3 primeiros tipos de investimento (em ordem)
-
-1. **Renda fixa conservadora**: Tesouro IPCA+, CDBs de bancos médios, LCIs e LCAs (isentas de IR).
-2. **Fundos imobiliários (FIIs)**: pagam dividendos mensais. Comece com 2 ou 3 fundos sólidos (KNCR11, MXRF11, HGLG11).
-3. **Ações de empresas sólidas / ETF**: para dinheiro que pode ficar 5+ anos. Comece com BOVA11.
-
-### Quanto preciso para viver de renda passiva?
-
-Renda mensal desejada × 200 = patrimônio alvo.
-
-Quer R$ 5 mil/mês? Precisa de R$ 1 milhão investido a 0,5% ao mês.
-
-Parece muito? Veja:
-- R$ 500/mês a 10%/ano por 30 anos = R$ 1,13 milhão.
-- R$ 1.000/mês a 10%/ano por 25 anos = R$ 1,33 milhão.
-
-### Os 7 pecados do investidor iniciante
-
-1. Investir o que não pode perder.
-2. Seguir dicas de WhatsApp.
-3. Tentar ficar rico rápido (cripto, day trade, opções).
-4. Fundos com taxa acima de 1,5% ao ano.
-5. Previdência privada com taxa de carregamento.
-6. Imóvel de aluguel como primeiro investimento.
-7. Parar de aportar quando o mercado cai.
-
-### Exercício do capítulo
-
-1. Defina seu objetivo de longo prazo em uma frase.
-2. Faça o primeiro aporte, mesmo que pequeno.
-3. Configure aporte automático mensal.
-
----
-
-## Capítulo 7 — Plano de 7 dias
-
-Conhecimento sem ação é entretenimento. Pegue 7 dias da sua vida e aplique:
-
-**Dia 1 — Raio-x financeiro**
-Faça o inventário em 4 quadrantes. Sem fugir.
-
-**Dia 2 — Calendário de contas**
-Marque na agenda: salário, contas fixas, fatura, dia de mercado, dia de revisão.
-
-**Dia 3 — Corte um desperdício**
-Cancele assinaturas não usadas. Renegocie internet/telefone. Audite o cartão.
-
-**Dia 4 — Escolha uma dívida**
-Pegue UMA dívida e ligue. Peça desconto. Não aceite o primeiro número.
-
-**Dia 5 — Faça uma ação de renda extra**
-Anuncie 5 itens no OLX, ofereça um serviço no grupo do bairro, mande proposta de freelance.
-
-**Dia 6 — Separe o primeiro valor para reserva**
-Mesmo que seja R$ 50. Conta separada. Hábito importa mais que volume.
-
-**Dia 7 — Monte o plano do mês**
-Defina 3 metas para os próximos 30 dias. Anote. Coloque na geladeira.
-
-(Mais detalhes no bônus "Plano de 7 Dias".)
+No dia 7, com um toque em **Conectar**, tudo isso vira uma planilha completa no seu Google Drive — nove abas, gráficos, fluxo de caixa. Você não montou nada. Só lançou.
 
 ---
 
@@ -333,3 +280,7 @@ O dinheiro é um péssimo mestre. Mas é um excelente servo.
 Aprenda a dominá-lo agora.
 
 — Fim
+
+---
+
+*Este material é informativo e educacional. Não é consultoria financeira personalizada, recomendação de investimento ou garantia de resultado. O método funciona — se você aplicar.*

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; min-height:100%; }
+  body { font-family:"Onest", ui-sans-serif, system-ui, sans-serif; color:#0F172A; background:#EEF2F6; -webkit-font-smoothing:antialiased; }
+  a { color:#047857; } a:hover { color:#065F46; }
+  button { font-family:inherit; }
+</style>
+</helmet>
+<div data-screen-label="Planilha redesign" style="min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:28px 24px 40px; gap:16px;">
+  <div style="width:100%; max-width:1400px; display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+    <div>
+      <p style="margin:0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.14em; color:#B45309;">Google Planilhas · exportação do app</p>
+      <h1 style="margin:6px 0 0; font-size:24px; font-weight:700; letter-spacing:-0.02em;">Virada Financeira — novo layout</h1>
+      <p style="margin:6px 0 0; font-size:14px; color:#64748B;">Prévia de como a planilha gerada pelo app fica com o <code style="font-family:inherit; background:#FFFFFF; border:1px solid #E5E9F0; border-radius:6px; padding:1px 6px; font-size:13px;">styles.ts</code> novo. Dados reais da sincronização de 17/06/2026.</p>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <span style="display:inline-flex; align-items:center; gap:8px; border-radius:999px; border:1px solid #E5E9F0; background:#FFFFFF; padding:6px 12px; font-size:12px; font-weight:600; color:#334155;"><span style="height:12px; width:12px; border-radius:4px; background:#0F172A;"></span>Ink #0F172A</span>
+      <span style="display:inline-flex; align-items:center; gap:8px; border-radius:999px; border:1px solid #E5E9F0; background:#FFFFFF; padding:6px 12px; font-size:12px; font-weight:600; color:#334155;"><span style="height:12px; width:12px; border-radius:4px; background:#22C55E;"></span>Verde #22C55E</span>
+      <span style="display:inline-flex; align-items:center; gap:8px; border-radius:999px; border:1px solid #E5E9F0; background:#FFFFFF; padding:6px 12px; font-size:12px; font-weight:600; color:#334155;"><span style="height:12px; width:12px; border-radius:4px; background:#F5C542;"></span>Âmbar #F5C542</span>
+      <span style="display:inline-flex; align-items:center; gap:8px; border-radius:999px; border:1px solid #E5E9F0; background:#FFFFFF; padding:6px 12px; font-size:12px; font-weight:600; color:#334155;"><span style="height:12px; width:12px; border-radius:4px; background:#F1F5F9; border:1px solid #CBD5E1;"></span>Slate 50–700</span>
+    </div>
+  </div>
+
+  <div style="width:100%; max-width:1400px; border-radius:14px; border:1px solid #D9DEE7; background:#FFFFFF; box-shadow:0 1px 2px rgba(15,23,42,0.05), 0 16px 40px rgba(15,23,42,0.08); overflow:hidden; display:flex; flex-direction:column;">
+    <div style="display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid #E5E9F0;">
+      <span style="display:grid; place-items:center; height:32px; width:26px; border-radius:6px; background:#22C55E; color:#052E16;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"></path><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path></svg>
+      </span>
+      <div style="min-width:0;">
+        <p style="margin:0; font-size:15px; font-weight:600;">Virada Financeira — local@virada.app</p>
+        <p style="margin:2px 0 0; font-size:12px; color:#64748B;">Sincronizada pelo app · áreas principais protegidas</p>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:stretch; border-bottom:1px solid #E5E9F0; background:#F8FAFC; font-size:11px; color:#64748B;">
+      <div style="width:40px; flex-shrink:0; border-right:1px solid #E5E9F0;"></div>
+      <sc-for list="{{ colHeads }}" as="c" hint-placeholder-count="12">
+        <div style="display:grid; place-items:center; height:22px; border-right:1px solid #E5E9F0; flex-shrink:0; {{ c.style }}">{{ c.l }}</div>
+      </sc-for>
+    </div>
+
+    <div style="overflow-x:auto; background:#FFFFFF;">
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; flex-direction:column; width:max-content; min-width:100%; padding-bottom:24px;">
+          <div style="display:flex; height:52px;"><div style="width:40px; flex-shrink:0; display:grid; place-items:center; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;">1</div><div style="width:1296px; background:#0F172A; color:#FFFFFF; display:flex; align-items:flex-end; padding:0 18px 2px; font-size:18px; font-weight:700; letter-spacing:-0.01em;">CÓDIGO DA VIRADA • BASE FINANCEIRA CLARA E ESTRUTURADA</div></div>
+          <div style="display:flex; height:24px;"><div style="width:40px; flex-shrink:0; display:grid; place-items:center; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;">2</div><div style="width:1296px; background:#0F172A; color:#94A3B8; display:flex; align-items:flex-start; padding:0 18px; font-size:11px; border-bottom:2px solid #22C55E;">Atualizado em 17/06/2026, 20:59:18</div></div>
+          <div style="display:flex; height:24px;"><div style="width:40px; flex-shrink:0; display:flex; flex-direction:column; font-size:9px; color:#94A3B8; border-right:1px solid #E5E9F0;"><span style="height:12px; display:grid; place-items:center;">3</span><span style="height:12px; display:grid; place-items:center;">4</span></div></div>
+          <div style="display:flex; height:22px;">
+            <div style="width:40px; flex-shrink:0; display:grid; place-items:center; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;">5</div>
+            <div style="width:324px; border:1px solid #E5E9F0; border-bottom:0; display:flex; align-items:flex-end; padding:0 14px; font-size:10px; font-weight:700; color:#64748B; letter-spacing:0.04em;">ENTRADAS DO PERÍODO</div>
+            <div style="width:324px; border:1px solid #E5E9F0; border-bottom:0; border-left:0; display:flex; align-items:flex-end; padding:0 14px; font-size:10px; font-weight:700; color:#64748B; letter-spacing:0.04em;">SAÍDAS DO PERÍODO</div>
+            <div style="width:324px; border:1px solid #86EFAC; border-bottom:0; background:#DCFCE7; display:flex; align-items:flex-end; padding:0 14px; font-size:10px; font-weight:700; color:#15803D; letter-spacing:0.04em;">SALDO ATUAL</div>
+            <div style="width:324px; border:1px solid #E5E9F0; border-bottom:0; border-left:0; display:flex; align-items:flex-end; padding:0 14px; font-size:10px; font-weight:700; color:#64748B; letter-spacing:0.04em;">LANÇAMENTOS</div>
+          </div>
+          <div style="display:flex; height:52px;">
+            <div style="width:40px; flex-shrink:0; display:grid; place-items:center; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;">6</div>
+            <div style="width:324px; border:1px solid #E5E9F0; border-top:0; display:flex; align-items:flex-start; padding:4px 14px; font-size:26px; font-weight:700; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; color:#0F172A;">R$ 27.855,00</div>
+            <div style="width:324px; border:1px solid #E5E9F0; border-top:0; border-left:0; display:flex; align-items:flex-start; padding:4px 14px; font-size:26px; font-weight:700; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; color:#0F172A;">R$ 12.231,00</div>
+            <div style="width:324px; border:1px solid #86EFAC; border-top:0; background:#DCFCE7; display:flex; align-items:flex-start; padding:4px 14px; font-size:26px; font-weight:700; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; color:#15803D;">R$ 15.624,00</div>
+            <div style="width:324px; border:1px solid #E5E9F0; border-top:0; border-left:0; display:flex; align-items:flex-start; padding:4px 14px; font-size:26px; font-weight:700; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; color:#334155;">72</div>
+          </div>
+          <div style="display:flex; height:24px;"><div style="width:40px; flex-shrink:0; display:flex; flex-direction:column; font-size:9px; color:#94A3B8; border-right:1px solid #E5E9F0;"><span style="height:12px; display:grid; place-items:center;">7</span><span style="height:12px; display:grid; place-items:center;">8</span></div></div>
+          <div style="display:flex; height:28px;">
+            <div style="width:40px; flex-shrink:0; display:grid; place-items:center; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;">9</div>
+            <div style="width:552px; display:flex; align-items:flex-end; padding:0 12px 2px; font-size:13px; font-weight:700;">Top categorias de gasto</div>
+            <div style="width:96px;"></div>
+            <div style="width:648px; display:flex; align-items:flex-end; padding:0 12px 2px; font-size:13px; font-weight:700;">Comparativo mensal</div>
+          </div>
+          <div style="display:flex; height:24px;">
+            <div style="width:40px; flex-shrink:0; display:grid; place-items:center; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;">10</div>
+            <div style="width:552px; display:flex; align-items:flex-start; padding:0 12px; font-size:10px; color:#64748B; border-bottom:1px solid #E5E9F0;">As dez categorias com maior saída financeira no período sincronizado.</div>
+            <div style="width:96px;"></div>
+            <div style="width:648px; display:flex; align-items:flex-start; padding:0 12px; font-size:10px; color:#64748B; border-bottom:1px solid #E5E9F0;">Leitura mensal de entradas, saídas e resultado para enxergar tendência.</div>
+          </div>
+          <div style="display:flex; height:26px;">
+            <div style="width:40px; flex-shrink:0; display:grid; place-items:center; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;">11</div>
+            <div style="width:132px; background:#F1F5F9; border:1px solid #E5E9F0; border-bottom:1px solid #CBD5E1; display:grid; place-items:center; font-size:10px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.04em;">Categoria</div>
+            <div style="width:96px; background:#F1F5F9; border:1px solid #E5E9F0; border-left:0; border-bottom:1px solid #CBD5E1; display:grid; place-items:center; font-size:10px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.04em;">Total</div>
+            <div style="width:324px; display:flex; align-items:center; padding:0 10px; gap:6px;"><span style="font-size:10px; color:#94A3B8;">participação</span></div>
+            <div style="width:96px;"></div>
+            <div style="width:132px; background:#F1F5F9; border:1px solid #E5E9F0; border-bottom:1px solid #CBD5E1; display:grid; place-items:center; font-size:10px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.04em;">Mês</div>
+            <div style="width:96px; background:#F1F5F9; border:1px solid #E5E9F0; border-left:0; border-bottom:1px solid #CBD5E1; display:grid; place-items:center; font-size:10px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.04em;">Entradas</div>
+            <div style="width:96px; background:#F1F5F9; border:1px solid #E5E9F0; border-left:0; border-bottom:1px solid #CBD5E1; display:grid; place-items:center; font-size:10px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.04em;">Saídas</div>
+            <div style="width:132px; background:#F1F5F9; border:1px solid #E5E9F0; border-left:0; border-bottom:1px solid #CBD5E1; display:grid; place-items:center; font-size:10px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.04em;">Resultado</div>
+            <div style="width:192px; display:flex; align-items:center; padding:0 10px;"><span style="font-size:10px; color:#94A3B8;">resultado do mês</span></div>
+          </div>
+          <sc-for list="{{ dashRows }}" as="r" hint-placeholder-count="10">
+            <div style="display:flex; height:22px; font-size:11px;">
+              <div style="width:40px; flex-shrink:0; display:grid; place-items:center; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;">{{ r.n }}</div>
+              <div style="width:132px; border:1px solid #E5E9F0; border-top:0; display:flex; align-items:center; padding:0 8px; background:{{ r.bg }};">{{ r.cat }}</div>
+              <div style="width:96px; border:1px solid #E5E9F0; border-top:0; border-left:0; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; font-variant-numeric:tabular-nums; background:{{ r.bg }};">{{ r.total }}</div>
+              <div style="width:324px; display:flex; align-items:center; padding:0 10px;"><div style="height:8px; border-radius:2px; background:{{ r.color }}; width:{{ r.barW }};"></div></div>
+              <div style="width:96px;"></div>
+              <div style="width:132px; border:1px solid #E5E9F0; border-top:0; display:flex; align-items:center; padding:0 8px; font-weight:600; color:#15803D; background:{{ r.bg }};">{{ r.mes }}</div>
+              <div style="width:96px; border:1px solid #E5E9F0; border-top:0; border-left:0; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; font-variant-numeric:tabular-nums; background:{{ r.bg }};">{{ r.ent }}</div>
+              <div style="width:96px; border:1px solid #E5E9F0; border-top:0; border-left:0; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; font-variant-numeric:tabular-nums; background:{{ r.bg }};">{{ r.sai }}</div>
+              <div style="width:132px; border:1px solid #E5E9F0; border-top:0; border-left:0; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; font-variant-numeric:tabular-nums; font-weight:600; color:#15803D; background:{{ r.bg }};">{{ r.res }}</div>
+              <div style="width:192px; display:flex; align-items:center; padding:0 10px;"><div style="height:8px; border-radius:2px; background:#22C55E; width:{{ r.resW }};"></div></div>
+            </div>
+          </sc-for>
+          <div style="display:flex; height:12px;"><div style="width:40px; flex-shrink:0; display:grid; place-items:center; font-size:9px; color:#94A3B8; border-right:1px solid #E5E9F0;">22</div></div>
+          <div style="display:flex; height:232px;">
+            <div style="width:40px; flex-shrink:0; display:flex; flex-direction:column; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;"><span style="height:23px; display:grid; place-items:center;">23</span><span style="height:23px; display:grid; place-items:center;">24</span><span style="height:23px; display:grid; place-items:center;">25</span><span style="height:23px; display:grid; place-items:center;">26</span><span style="height:23px; display:grid; place-items:center;">27</span><span style="height:23px; display:grid; place-items:center;">28</span><span style="height:23px; display:grid; place-items:center;">29</span><span style="height:23px; display:grid; place-items:center;">30</span><span style="height:23px; display:grid; place-items:center;">31</span><span style="height:23px; display:grid; place-items:center;">32</span></div>
+            <div style="width:552px; height:220px; margin:4px 0 0 2px; border:1px solid #E5E9F0; border-radius:4px; background:#FFFFFF; display:flex; align-items:center; gap:20px; padding:16px 20px;">
+              <svg viewBox="0 0 140 140" style="width:170px; height:170px; flex-shrink:0;">
+                <sc-for list="{{ pieSlices }}" as="s" hint-placeholder-count="6"><path d="{{ s.d }}" fill="{{ s.color }}" stroke="#FFFFFF" stroke-width="1.5"></path></sc-for>
+                <circle cx="70" cy="70" r="40" fill="#FFFFFF"></circle>
+              </svg>
+              <div style="flex:1; display:grid; grid-template-columns:1fr 1fr; gap:4px 14px;">
+                <sc-for list="{{ legend }}" as="l" hint-placeholder-count="10">
+                  <div style="display:flex; align-items:center; gap:6px; font-size:10px; color:#334155;"><span style="height:8px; width:8px; border-radius:2px; flex-shrink:0; background:{{ l.color }};"></span><span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ l.name }}</span><span style="color:#94A3B8;">{{ l.pct }}</span></div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="width:94px;"></div>
+            <div style="width:648px; height:220px; margin-top:4px; border:1px solid #E5E9F0; border-radius:4px; background:#FFFFFF; padding:16px 20px 10px; display:flex; flex-direction:column; gap:8px;">
+              <div style="flex:1; display:flex; align-items:flex-end; gap:14px; border-bottom:1px solid #E5E9F0;">
+                <sc-for list="{{ monthBars }}" as="m" hint-placeholder-count="6">
+                  <div style="flex:1; display:flex; align-items:flex-end; justify-content:center; gap:3px; height:100%;">
+                    <div style="width:18px; border-radius:2px 2px 0 0; background:#22C55E; height:{{ m.inH }};"></div>
+                    <div style="width:18px; border-radius:2px 2px 0 0; background:#EF4444; height:{{ m.outH }};"></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex; gap:14px;">
+                <sc-for list="{{ monthBars }}" as="m" hint-placeholder-count="6"><div style="flex:1; text-align:center; font-size:10px; color:#64748B;">{{ m.label }}</div></sc-for>
+              </div>
+              <div style="display:flex; justify-content:center; gap:16px; font-size:10px; color:#475569;"><span style="display:flex; align-items:center; gap:5px;"><span style="height:8px; width:8px; border-radius:2px; background:#22C55E;"></span>Entradas</span><span style="display:flex; align-items:center; gap:5px;"><span style="height:8px; width:8px; border-radius:2px; background:#EF4444;"></span>Saídas</span></div>
+            </div>
+          </div>
+          <div style="display:flex; height:28px;">
+            <div style="width:40px; flex-shrink:0; display:grid; place-items:center; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;">33</div>
+            <div style="width:1296px; display:flex; align-items:flex-end; padding:0 12px 2px; font-size:13px; font-weight:700;">Dívidas em aberto e pressão de caixa</div>
+          </div>
+          <div style="display:flex; height:24px;">
+            <div style="width:40px; flex-shrink:0; display:grid; place-items:center; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;">34</div>
+            <div style="width:1296px; display:flex; align-items:flex-start; padding:0 12px; font-size:10px; color:#64748B; border-bottom:1px solid #E5E9F0;">Gráfico de barras para visualizar rapidamente onde está o maior peso financeiro.</div>
+          </div>
+          <div style="display:flex; height:232px;">
+            <div style="width:40px; flex-shrink:0; display:flex; flex-direction:column; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;"><span style="height:23px; display:grid; place-items:center;">35</span><span style="height:23px; display:grid; place-items:center;">36</span><span style="height:23px; display:grid; place-items:center;">37</span><span style="height:23px; display:grid; place-items:center;">38</span><span style="height:23px; display:grid; place-items:center;">39</span><span style="height:23px; display:grid; place-items:center;">40</span><span style="height:23px; display:grid; place-items:center;">41</span><span style="height:23px; display:grid; place-items:center;">42</span><span style="height:23px; display:grid; place-items:center;">43</span><span style="height:23px; display:grid; place-items:center;">44</span></div>
+            <div style="width:552px; height:220px; margin:6px 0 0 2px; border:1px solid #E5E9F0; border-radius:4px; background:#FFFFFF; padding:16px 20px 12px; display:flex; flex-direction:column; gap:6px;">
+              <p style="margin:0; font-size:10px; font-weight:600; color:#475569;">Saldo acumulado</p>
+              <svg viewBox="0 0 480 150" style="width:100%; height:150px;" preserveAspectRatio="none">
+                <line x1="0" y1="149" x2="480" y2="149" stroke="#E5E9F0"></line>
+                <line x1="0" y1="75" x2="480" y2="75" stroke="#F1F5F9"></line>
+                <line x1="0" y1="1" x2="480" y2="1" stroke="#F1F5F9"></line>
+                <polyline points="{{ linePoints }}" fill="none" stroke="#1D4ED8" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></polyline>
+              </svg>
+              <div style="display:flex; justify-content:space-between; font-size:10px; color:#64748B;"><span>jan</span><span>fev</span><span>mar</span><span>abr</span><span>mai</span><span>jun</span></div>
+            </div>
+            <div style="width:94px;"></div>
+            <div style="width:648px; height:220px; margin-top:6px; border:1px solid #E5E9F0; border-radius:4px; background:#FFFFFF; padding:16px 20px 12px; display:flex; flex-direction:column; gap:7px;">
+              <p style="margin:0; font-size:10px; font-weight:600; color:#475569;">Em aberto por dívida</p>
+              <sc-for list="{{ debtBars }}" as="d" hint-placeholder-count="6">
+                <div style="display:flex; align-items:center; gap:10px; font-size:10px;">
+                  <span style="width:120px; flex-shrink:0; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ d.name }}</span>
+                  <div style="flex:1; height:12px; background:#F1F5F9; border-radius:2px; overflow:hidden;"><div style="height:100%; background:#EF4444; border-radius:2px; width:{{ d.w }};"></div></div>
+                  <span style="width:84px; text-align:right; font-variant-numeric:tabular-nums; color:#0F172A; font-weight:600;">{{ d.val }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isData }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; width:max-content; min-width:100%; padding-bottom:24px;">
+          <div style="width:40px; flex-shrink:0; display:flex; flex-direction:column; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;">
+            <span style="height:38px; display:grid; place-items:center;">1</span>
+            <sc-for list="{{ dataRows }}" as="r" hint-placeholder-count="14"><span style="height:24px; display:grid; place-items:center;">{{ r.n }}</span></sc-for>
+          </div>
+          <div style="display:flex; flex-direction:column;">
+            <div style="display:flex; height:38px; background:#F1F5F9; border-bottom:1px solid #CBD5E1; font-size:10px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.04em;">
+              <sc-for list="{{ dataHeaders }}" as="h" hint-placeholder-count="7">
+                <div style="display:grid; place-items:center; border-right:1px solid #E5E9F0; width:{{ h.w }};">{{ h.label }}</div>
+              </sc-for>
+            </div>
+            <sc-for list="{{ dataRows }}" as="r" hint-placeholder-count="14">
+              <div style="display:flex; height:24px; font-size:11px; color:#0F172A; border-bottom:1px solid #E5E9F0; background:{{ r.bg }};">
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="7">
+                  <div style="{{ c.style }}">{{ c.text }}</div>
+                </sc-for>
+              </div>
+            </sc-for>
+            <sc-if value="{{ dataTruncated }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; align-items:center; height:24px; padding:0 10px; font-size:10px; color:#94A3B8;">{{ dataTruncatedText }}</div>
+            </sc-if>
+          </div>
+          <div style="display:flex; flex-direction:column; width:416px; font-size:11px;">
+            <div style="height:38px; background:#0F172A; color:#FFFFFF; display:flex; align-items:center; padding:0 12px; font-weight:700; font-size:11px;">{{ panelTitle }}</div>
+            <div style="height:24px; display:flex; align-items:center; padding:0 12px; font-size:10px; color:#64748B; border-bottom:1px solid #E5E9F0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ panelHint }}</div>
+            <div style="height:24px;"></div>
+            <sc-for list="{{ panelKpis }}" as="k" hint-placeholder-count="4">
+              <div style="display:flex; height:24px; border-bottom:1px solid #E5E9F0;">
+                <div style="width:124px; background:#F8FAFC; border-left:3px solid #22C55E; display:flex; align-items:center; padding:0 10px; font-size:10px; font-weight:700; color:#475569;">{{ k.label }}</div>
+                <div style="flex:1; display:flex; align-items:center; padding:0 12px; font-weight:700; border-right:1px solid #E5E9F0; font-variant-numeric:tabular-nums;">{{ k.value }}</div>
+              </div>
+            </sc-for>
+            <div style="height:48px;"></div>
+            <div style="height:24px; background:#0F172A; color:#FFFFFF; display:flex; align-items:center; padding:0 12px; font-weight:700; font-size:11px;">Como ler esta aba</div>
+            <sc-for list="{{ panelNotes }}" as="nt" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; padding:6px 12px; min-height:24px; border-bottom:1px solid #E5E9F0; border-right:1px solid #E5E9F0; font-weight:600;">{{ nt.text }}</div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isAjuda }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; min-width:100%; padding-bottom:24px;">
+          <div style="width:40px; flex-shrink:0; display:flex; flex-direction:column; font-size:10px; color:#94A3B8; border-right:1px solid #E5E9F0;">
+            <span style="height:80px; display:grid; place-items:center;">1</span>
+            <span style="height:21px; display:grid; place-items:center;">2</span>
+            <sc-for list="{{ helpSteps }}" as="h" hint-placeholder-count="5"><span style="height:28px; display:grid; place-items:center;">{{ h.r1 }}</span><span style="height:62px; display:grid; place-items:center;">{{ h.r2 }}</span></sc-for>
+          </div>
+          <div style="display:flex; flex-direction:column; flex:1; min-width:696px;">
+            <div style="height:80px; background:#0F172A; color:#FFFFFF; display:flex; align-items:center; padding:0 18px; font-size:18px; font-weight:700; border-bottom:2px solid #22C55E;">CÓDIGO DA VIRADA • COMO USAR ESTA PLANILHA</div>
+            <div style="height:21px;"></div>
+            <sc-for list="{{ helpSteps }}" as="h" hint-placeholder-count="5">
+              <div style="display:flex; height:90px;">
+                <div style="width:56px; flex-shrink:0; background:#22C55E; color:#0F172A; display:grid; place-items:center; font-size:15px; font-weight:700;">{{ h.n }}</div>
+                <div style="flex:1; display:flex; flex-direction:column; border-top:1px solid #E5E9F0; border-right:1px solid #E5E9F0; border-bottom:1px solid #E5E9F0;">
+                  <div style="height:28px; display:flex; align-items:flex-end; padding:0 14px; font-size:13px; font-weight:700;">{{ h.title }}</div>
+                  <div style="flex:1; display:flex; align-items:flex-start; padding:4px 14px; font-size:11px; line-height:16px; color:#475569;">{{ h.body }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:2px; padding:6px 10px; border-top:1px solid #E5E9F0; background:#F8FAFC; overflow-x:auto;">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="9">
+        <button onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="width:100%; max-width:1400px; display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px;">
+    <div style="border-radius:12px; border:1px solid #E5E9F0; background:#FFFFFF; padding:14px 16px;">
+      <p style="margin:0; font-size:12px; font-weight:700;">Cabeçalho escuro</p>
+      <p style="margin:4px 0 0; font-size:12px; line-height:18px; color:#64748B;">Banner e painéis laterais em Ink com linha verde, igual ao hero do app. Sai o verde-escuro com borda dourada.</p>
+    </div>
+    <div style="border-radius:12px; border:1px solid #E5E9F0; background:#FFFFFF; padding:14px 16px;">
+      <p style="margin:0; font-size:12px; font-weight:700;">KPIs como cartões</p>
+      <p style="margin:4px 0 0; font-size:12px; line-height:18px; color:#64748B;">Rótulo pequeno, número grande alinhado à esquerda, borda fina. Só o Saldo recebe cor (verde positivo, vermelho negativo).</p>
+    </div>
+    <div style="border-radius:12px; border:1px solid #E5E9F0; background:#FFFFFF; padding:14px 16px;">
+      <p style="margin:0; font-size:12px; font-weight:700;">Tabelas mais leves</p>
+      <p style="margin:4px 0 0; font-size:12px; line-height:18px; color:#64748B;">Cabeçalho cinza-claro em caixa alta, zebra branco/slate-50, bordas slate-200. Status, tipo e progresso com cor via formatação condicional.</p>
+    </div>
+    <div style="border-radius:12px; border:1px solid #E5E9F0; background:#FFFFFF; padding:14px 16px;">
+      <p style="margin:0; font-size:12px; font-weight:700;">Sem espaço morto</p>
+      <p style="margin:4px 0 0; font-size:12px; line-height:18px; color:#64748B;">Linhas separadoras do Dashboard reduzidas a 12px; colunas vazias ao lado das tabelas recebem barras de participação; gráficos ocupam a largura toda.</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: "dashboard" };
+
+  fmt(v) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+
+  data() {
+    if (this._d) return this._d;
+    // Lançamentos jan–fev/2026 (24 de 72), direto da planilha sincronizada em 17/06/2026
+    const L = [
+      ["01/01/2026", "Saída", "Educação", "Educação", 81, "Pix", "impulso"], ["02/01/2026", "Entrada", "Salário", "Freela", 1507, "", ""],
+      ["04/01/2026", "Entrada", "Freela", "Venda", 1530, "", ""], ["04/01/2026", "Saída", "Água", "Água", 98, "Dinheiro", "essencial"],
+      ["06/01/2026", "Entrada", "Venda", "Bônus", 1553, "", ""], ["07/01/2026", "Saída", "Farmácia", "Farmácia", 115, "Débito", "essencial"],
+      ["10/01/2026", "Saída", "Pet", "Pet", 132, "Crédito", "impulso"], ["13/01/2026", "Saída", "Combustível", "Combustível", 149, "Boleto", "essencial"],
+      ["16/01/2026", "Saída", "Streaming", "Streaming", 166, "Pix", "essencial"], ["19/01/2026", "Saída", "Restaurante", "Restaurante", 183, "Dinheiro", "impulso"],
+      ["22/01/2026", "Saída", "Roupas", "Roupas", 200, "Débito", "essencial"], ["25/01/2026", "Saída", "Mercado", "Mercado", 217, "Crédito", "essencial"],
+      ["01/02/2026", "Saída", "Energia", "Energia", 112, "Pix", "impulso"], ["02/02/2026", "Entrada", "Salário", "Venda", 1514, "", ""],
+      ["04/02/2026", "Entrada", "Freela", "Bônus", 1537, "", ""], ["04/02/2026", "Saída", "Transporte", "Transporte", 129, "Dinheiro", "essencial"],
+      ["06/02/2026", "Entrada", "Venda", "Aluguel recebido", 1560, "", ""], ["07/02/2026", "Saída", "Aluguel", "Aluguel", 146, "Débito", "essencial"],
+      ["10/02/2026", "Saída", "Saúde", "Saúde", 163, "Crédito", "impulso"], ["13/02/2026", "Saída", "Delivery", "Delivery", 180, "Boleto", "essencial"],
+      ["16/02/2026", "Saída", "Lazer", "Lazer", 197, "Pix", "essencial"], ["19/02/2026", "Saída", "Cartão", "Cartão", 214, "Dinheiro", "impulso"],
+      ["22/02/2026", "Saída", "Internet", "Internet", 231, "Débito", "essencial"], ["25/02/2026", "Saída", "Educação", "Educação", 248, "Crédito", "essencial"]
+    ];
+    const receitas = [
+      ["02/01/2026", "Salário", "Freela", 1507], ["04/01/2026", "Freela", "Venda", 1530], ["06/01/2026", "Venda", "Bônus", 1553],
+      ["02/02/2026", "Salário", "Venda", 1514], ["04/02/2026", "Freela", "Bônus", 1537], ["06/02/2026", "Venda", "Aluguel recebido", 1560],
+      ["02/03/2026", "Salário", "Bônus", 1521], ["04/03/2026", "Freela", "Aluguel recebido", 1544], ["06/03/2026", "Venda", "Salário", 1567],
+      ["02/04/2026", "Salário", "Aluguel recebido", 1528], ["04/04/2026", "Freela", "Salário", 1551], ["06/04/2026", "Venda", "Freela", 1574],
+      ["02/05/2026", "Salário", "Salário", 1535], ["04/05/2026", "Freela", "Freela", 1558], ["06/05/2026", "Venda", "Venda", 1581],
+      ["02/06/2026", "Salário", "Freela", 1542], ["04/06/2026", "Freela", "Venda", 1565], ["06/06/2026", "Venda", "Bônus", 1588]
+    ].map((r) => [r[0], r[1], r[2], r[3], "casa", "app"]);
+    const dividas = [
+      ["Cartão Nubank", "10/07/2026", "alta", "aberta", 400, 3200, 3200], ["Empréstimo", "05/07/2026", "alta", "negociando", 600, 8000, 8000],
+      ["Cheque especial", "20/06/2026", "média", "aberta", 1500, 1500, 1500], ["Financiamento carro", "15/07/2026", "média", "aberta", 900, 25000, 25000],
+      ["Loja", "01/08/2026", "baixa", "aberta", 100, 600, 600], ["Antiga quitada", "01/01/2026", "baixa", "quitada", 500, 500, 0]
+    ];
+    const metas = [
+      ["Reserva de emergência", "reserva", 12000, 4500, 7500, 0.375], ["Quitar cartão", "dívida", 3200, 1200, 2000, 0.375],
+      ["Viagem", "meta", 6000, 6000, 0, 1], ["Notebook", "compra", 4000, 800, 3200, 0.2]
+    ];
+    const resumo = [
+      ["jan./2026", 4590, 1341, 3249, 3249, 0.708, 12], ["fev./2026", 4611, 1620, 2991, 6240, 0.649, 12], ["mar./2026", 4632, 1899, 2733, 8973, 0.59, 12],
+      ["abr./2026", 4653, 2178, 2475, 11448, 0.532, 12], ["mai./2026", 4674, 2457, 2217, 13665, 0.474, 12], ["jun./2026", 4695, 2736, 1959, 15624, 0.417, 12]
+    ];
+    // Fluxo diário derivado dos lançamentos (mesma regra do builder)
+    const byDate = new Map();
+    L.forEach((r) => { const c = byDate.get(r[0]) ?? { i: 0, e: 0 }; if (r[1] === "Entrada") c.i += r[4]; else c.e += r[4]; byDate.set(r[0], c); });
+    let run = 0;
+    const fluxo = [...byDate.entries()].map(([d, v]) => { const res = v.i - v.e; run += res; return [d, v.i, v.e, res, run]; });
+
+    this._d = {
+      lancamentos: { headers: ["Data", "Tipo", "Descrição", "Categoria", "Valor", "Pagamento", "Natureza", "Escopo", "Origem"], widths: [96, 88, 198, 132, 108, 108, 108, 98, 92], types: ["date", "type", "text", "text", "money", "text", "text", "text", "text"], rows: L.map((r) => [...r, "casa", "app"]), total: 72,
+        panel: ["Leitura rápida", "Visão consolidada dos lançamentos que alimentam todas as outras abas.", [["Total lançado", "72"], ["Entradas", "R$ 27.855,00"], ["Saídas", "R$ 12.231,00"], ["Período", "01/01/2026 até 25/06/2026"]], ["Esta aba é a linha do tempo geral do app.", "Use filtros por categoria, tipo e escopo para investigar vazamentos.", "A planilha é gerada automaticamente para preservar a estrutura.", "Se algo estiver faltando, ajuste no app e sincronize de novo."]] },
+      receitas: { headers: ["Data", "Descrição", "Categoria", "Valor", "Escopo", "Origem"], widths: [96, 198, 132, 108, 98, 92], types: ["date", "text", "text", "money", "text", "text"], rows: receitas, total: 18,
+        panel: ["Resumo de receitas", "Entradas isoladas para acompanhar fôlego, frequência e maior fonte.", [["Qtde de entradas", "18"], ["Total recebido", "R$ 27.855,00"], ["Maior entrada", "R$ 1.588,00"], ["Última entrada", "06/06/2026"]], ["Receitas mostram só o que entrou, sem misturar despesas.", "Use para enxergar sazonalidade e renda extra.", "Quando precisar conferir um mês, filtre por data.", "O valor total desta aba alimenta o Dashboard."]] },
+      despesas: { headers: ["Data", "Descrição", "Categoria", "Valor", "Pagamento", "Natureza", "Escopo"], widths: [96, 198, 132, 108, 108, 108, 98], types: ["date", "text", "text", "money", "text", "text", "text"], rows: L.filter((r) => r[1] === "Saída").map((r) => [r[0], r[2], r[3], r[4], r[5], r[6], "casa"]), total: 54,
+        panel: ["Resumo de despesas", "Saídas com foco em controle, ticket médio e identificação de excesso.", [["Qtde de saídas", "54"], ["Total gasto", "R$ 12.231,00"], ["Maior despesa", "R$ 372,00"], ["Última saída", "25/06/2026"]], ["Aqui ficam só as saídas financeiras do período.", "Use pagamento e natureza para separar essencial de impulso.", "A categoria ajuda a enxergar para onde o dinheiro está indo.", "Toda atualização vem do app, não da planilha manual."]] },
+      dividas: { headers: ["Nome", "Vencimento", "Prioridade", "Status", "Parcela", "Valor total", "Em aberto"], widths: [194, 98, 98, 98, 98, 108, 108], types: ["text", "date", "text", "status", "money", "money", "money"], rows: dividas, total: 6,
+        panel: ["Painel de dívidas", "Dívidas em uma visão de prioridade, aberto e ritmo de negociação.", [["Qtde de dívidas", "6"], ["Total em aberto", "R$ 38.300,00"], ["Quitadas", "1"], ["Prioridade mais crítica", "Alta"]], ["Comece pelas dívidas mais urgentes ou caras.", "Status ajuda a enxergar o que ainda pressiona o caixa.", "Quitadas continuam registradas para manter histórico.", "O gráfico do Dashboard usa esta base."]] },
+      metas: { headers: ["Meta", "Tipo", "Valor alvo", "Valor atual", "Faltando", "Progresso"], widths: [194, 108, 108, 108, 108, 98], types: ["text", "text", "money", "money", "money", "pct"], rows: metas, total: 4,
+        panel: ["Painel de metas", "Metas mostram direção financeira e progresso real acumulado.", [["Qtde de metas", "4"], ["Valor alvo", "R$ 25.200,00"], ["Valor atual", "R$ 12.500,00"], ["Melhor progresso", "Viagem (100,0%)"]], ["Metas ajudam a sair do modo só reação.", "Use para reserva, quitação, compras planejadas ou objetivo anual.", "O progresso é exibido em percentual para facilitar leitura.", "Quanto mais perto de 100%, mais verde a célula fica."]] },
+      fluxo: { headers: ["Data", "Entradas", "Saídas", "Resultado do dia", "Saldo acumulado"], widths: [96, 108, 108, 116, 116], types: ["date", "money", "money", "posneg", "posneg"], rows: fluxo, total: 66,
+        panel: ["Pulso do caixa", "Mostra o comportamento diário do resultado e do saldo acumulado.", [["Dias com movimento", "66"], ["Melhor dia", "R$ 1.588,00"], ["Pior dia", "-R$ 372,00"], ["Saldo final", "R$ 15.624,00"]], ["O fluxo evidencia quando o caixa respirou e quando apertou.", "Resultado do dia é entrada menos saída naquela data.", "Saldo acumulado mostra tendência, não só evento isolado.", "É uma das abas mais úteis para tomada de decisão."]] },
+      resumo: { headers: ["Mês", "Entradas", "Saídas", "Resultado", "Saldo acumulado", "Economia", "Lançamentos"], widths: [96, 108, 108, 116, 116, 92, 98], types: ["month", "money", "money", "posneg", "posneg", "pctplain", "int"], rows: resumo, total: 6,
+        panel: ["Fechamento mensal", "Consolidação mês a mês para comparar evolução e disciplina financeira.", [["Meses no histórico", "6"], ["Melhor mês", "01/2026 (R$ 3.249,00)"], ["Pior mês", "06/2026 (R$ 1.959,00)"], ["Economia média", "56%"]], ["Use esta aba para comparar meses, não só dias.", "Resultado positivo indica sobra; negativo indica aperto.", "Economia mede quanto sobrou em relação ao que entrou.", "Ela sustenta o comparativo mensal do Dashboard."]] }
+    };
+    return this._d;
+  }
+
+  cellStyle(type, v, w) {
+    const base = `width:${w}px; flex-shrink:0; border-right:1px solid #E5E9F0; display:flex; align-items:center; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; `;
+    const center = "justify-content:center; ";
+    const num = "font-variant-numeric:tabular-nums; ";
+    if (type === "date") return base + center + "color:#334155;";
+    if (type === "month") return base + center + "font-weight:700; color:#15803D;";
+    if (type === "money") return base + center + num + "font-weight:700; color:#15803D;";
+    if (type === "int") return base + center + num + "color:#334155;";
+    if (type === "pctplain") return base + center + num + "font-weight:700; color:#15803D;";
+    if (type === "posneg") return base + center + num + (v < 0 ? "font-weight:700; background:#FEF2F2; color:#EF4444;" : v > 0 ? "font-weight:700; background:#DCFCE7; color:#15803D;" : "color:#334155;");
+    if (type === "type") return base + center + "font-weight:700; font-size:10px; " + (v === "Entrada" ? "background:#DCFCE7; color:#15803D;" : "background:#F1F5F9; color:#334155;");
+    if (type === "status") return base + center + "font-weight:700; font-size:10px; " + (v === "aberta" ? "background:#FEF2F2; color:#EF4444;" : v === "negociando" ? "background:#FFFBEB; color:#B45309;" : "background:#DCFCE7; color:#15803D;");
+    if (type === "pct") { const bg = v >= 0.75 ? "#DCFCE7" : v >= 0.35 ? "#FFFBEB" : "#FEF2F2"; const fg = v >= 0.75 ? "#15803D" : v >= 0.35 ? "#B45309" : "#EF4444"; return base + center + num + `font-weight:700; background:${bg}; color:${fg};`; }
+    return base + "padding:0 8px;";
+  }
+
+  cellText(type, v) {
+    if (type === "money" || type === "posneg") return this.fmt(v);
+    if (type === "pct" || type === "pctplain") return (v * 100).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+    return String(v ?? "");
+  }
+
+  renderVals() {
+    const tab = this.state.tab;
+    const COLORS = ["#22C55E", "#F5C542", "#3B82F6", "#EF4444", "#A855F7", "#F97316", "#06B6D4", "#EC4899", "#84CC16", "#14B8A6"];
+    const fmt = (v) => this.fmt(v);
+    const D = this.data();
+
+    const cats = [["Educação", 960], ["Água", 906], ["Farmácia", 852], ["Internet", 828], ["Mercado", 786], ["Cartão", 777], ["Roupas", 735], ["Lazer", 726], ["Energia", 715], ["Restaurante", 684]];
+    const months = [["01/2026", 4590, 1341, 3249], ["02/2026", 4611, 1620, 2991], ["03/2026", 4632, 1899, 2733], ["04/2026", 4653, 2178, 2475], ["05/2026", 4674, 2457, 2217], ["06/2026", 4695, 2736, 1959]];
+    const maxCat = cats[0][1], maxRes = Math.max(...months.map((m) => m[3]));
+    const dashRows = cats.map(([cat, total], i) => {
+      const m = months[i];
+      return { n: 12 + i, bg: i % 2 ? "#F8FAFC" : "#FFFFFF", cat, total: fmt(total), color: COLORS[i], barW: `${(total / maxCat) * 100}%`, mes: m ? m[0] : "", ent: m ? fmt(m[1]) : "", sai: m ? fmt(m[2]) : "", res: m ? fmt(m[3]) : "", resW: m ? `${(m[3] / maxRes) * 100}%` : "0%" };
+    });
+
+    const totalCat = cats.reduce((s, c) => s + c[1], 0);
+    const R = 64, CX = 70, CY = 70; let start = -Math.PI / 2;
+    const pieSlices = cats.map(([name, v], i) => {
+      const angle = (v / totalCat) * 2 * Math.PI;
+      const x1 = CX + R * Math.cos(start), y1 = CY + R * Math.sin(start); start += angle;
+      const x2 = CX + R * Math.cos(start), y2 = CY + R * Math.sin(start);
+      return { d: `M ${CX} ${CY} L ${x1} ${y1} A ${R} ${R} 0 ${angle > Math.PI ? 1 : 0} 1 ${x2} ${y2} Z`, color: COLORS[i] };
+    });
+    const legend = cats.map(([name, v], i) => ({ name, color: COLORS[i], pct: `${Math.round((v / totalCat) * 100)}%` }));
+    const maxM = Math.max(...months.map((m) => m[1]));
+    const monthBars = months.map((m) => ({ label: m[0].slice(0, 2) + "/" + m[0].slice(5), inH: `${(m[1] / maxM) * 100}%`, outH: `${(m[2] / maxM) * 100}%` }));
+    const saldo = []; let acc = 0; months.forEach((m) => { acc += m[3]; saldo.push(acc); });
+    const maxS = Math.max(...saldo);
+    const linePoints = saldo.map((s, i) => `${(i / (saldo.length - 1)) * 470 + 5},${148 - (s / maxS) * 140}`).join(" ");
+    const maxDebt = Math.max(...D.dividas.rows.map((r) => r[6]));
+    const debtBars = D.dividas.rows.map((r) => ({ name: r[0], val: fmt(r[6]), w: `${(r[6] / maxDebt) * 100}%` }));
+
+    const cfg = D[tab];
+    let dataHeaders = [], dataRows = [], panelTitle = "", panelHint = "", panelKpis = [], panelNotes = [], dataTruncated = false, dataTruncatedText = "";
+    if (cfg) {
+      dataHeaders = cfg.headers.map((label, i) => ({ label, w: `${cfg.widths[i]}px` }));
+      dataRows = cfg.rows.map((r, i) => ({ n: i + 2, bg: i % 2 ? "#F8FAFC" : "#FFFFFF", cells: r.map((v, j) => ({ text: this.cellText(cfg.types[j], v), style: this.cellStyle(cfg.types[j], v, cfg.widths[j]) })) }));
+      panelTitle = `${cfg.panel[0]} • Código da Virada`; panelHint = cfg.panel[1];
+      panelKpis = cfg.panel[2].map(([label, value]) => ({ label, value }));
+      panelNotes = cfg.panel[3].map((text) => ({ text }));
+      dataTruncated = cfg.rows.length < cfg.total;
+      dataTruncatedText = `… mostrando ${cfg.rows.length} de ${cfg.total} linhas`;
+    }
+
+    const helpSteps = [
+      ["Sincronize pelo app sempre que lançar algo", "A planilha foi desenhada para ser reflexo fiel do aplicativo. Edite no app e sincronize para manter tudo consistente."],
+      ["Comece pelo Dashboard", "Ele concentra entradas, saídas, saldo, lançamentos, categorias de gasto e uma leitura mensal do desempenho."],
+      ["Use as abas especializadas para investigar", "Receitas, Despesas, Dívidas, Metas, Fluxo de Caixa e Resumo Mensal ajudam a responder perguntas específicas sem poluir a visão geral."],
+      ["Não quebre a estrutura manualmente", "As áreas principais estão bloqueadas para manter fórmulas, hierarquia visual e leitura profissional. Se quiser alterar dados, faça isso pelo app."],
+      ["Se a planilha antiga estiver feia ou incompleta, recrie", "Basta desconectar a planilha atual no app e sincronizar de novo para gerar uma versão nova com o layout atualizado."]
+    ].map(([title, body], i) => ({ n: i + 1, title, body, r1: 3 + i * 2, r2: 4 + i * 2 }));
+
+    let colHeads;
+    if (tab === "dashboard") colHeads = [132, 96, 96, 132, 96, 96, 132, 96, 96, 132, 96, 96].map((w, i) => ({ style: `width:${w}px;`, l: String.fromCharCode(65 + i) }));
+    else if (cfg) colHeads = [...cfg.widths.map((w, i) => ({ style: `width:${w}px;`, l: String.fromCharCode(65 + i) })), { style: "width:124px;", l: "J" }, { style: "width:146px;", l: "K" }, { style: "width:146px;", l: "L" }];
+    else colHeads = [{ style: "width:56px;", l: "A" }, { style: "flex:1;", l: "B" }];
+
+    const tabDefs = [["dashboard", "Dashboard"], ["lancamentos", "Lançamentos"], ["receitas", "Receitas"], ["despesas", "Despesas"], ["dividas", "Dívidas"], ["metas", "Metas"], ["fluxo", "Fluxo de Caixa"], ["resumo", "Resumo Mensal"], ["ajuda", "Como usar"]];
+    const tabs = tabDefs.map(([key, label]) => ({
+      label,
+      style: `border:0; border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600; white-space:nowrap; cursor:pointer; ${key === tab ? "background:#0F172A; color:#FFFFFF;" : "background:transparent; color:#334155;"}`,
+      onClick: () => this.setState({ tab: key })
+    }));
+
+    return {
+      isDashboard: tab === "dashboard", isData: !!cfg, isAjuda: tab === "ajuda",
+      colHeads, dashRows, pieSlices, legend, monthBars, linePoints, debtBars,
+      dataHeaders, dataRows, dataTruncated, dataTruncatedText, panelTitle, panelHint, panelKpis, panelNotes, helpSteps, tabs
+    };
+  }
+}
+</script>
+</body>
+</html>

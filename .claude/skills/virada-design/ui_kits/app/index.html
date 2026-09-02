@@ -1,0 +1,82 @@
+<!-- @dsCard group="Virada App" viewport="1280x820" name="Início" subtitle="Tela inicial v2 — hero com saldo, análise de gastos, últimos lançamentos" -->
+<!-- @startingPoint section="Virada App" subtitle="Tela Início do app (desktop + celular)" viewport="1280x820" -->
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Virada App — Início</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0}body{font-family:var(--font-body);color:var(--text-primary);background:var(--bg-page);-webkit-font-smoothing:antialiased}
+.shell{display:flex;flex-direction:column;gap:16px;max-width:var(--content-max);margin:0 auto;padding:16px 16px 100px}
+.side{display:none}.nav-b{display:grid}
+@media(min-width:1024px){.shell{flex-direction:row;align-items:flex-start;gap:28px;padding:20px 24px 40px}.side{display:flex;position:sticky;top:20px;width:var(--sidebar-w);flex-shrink:0;flex-direction:column;min-height:calc(100vh - 40px);border-radius:var(--radius-xl);border:1px solid var(--border-default);background:var(--surface-muted);padding:20px}.nav-b{display:none}}
+.side .brand{display:flex;align-items:center;gap:12px}.side .brand img{width:38px;height:38px;border-radius:10px}.side nav{margin-top:28px;display:grid;gap:4px}.side nav a{display:flex;align-items:center;gap:12px;border-radius:var(--radius-md);padding:10px 12px;font-size:var(--text-base);font-weight:500;color:var(--text-secondary);text-decoration:none}.side nav a:hover{background:var(--color-ink-200);color:var(--text-primary)}.side nav a.on{background:var(--surface-brand-soft);color:var(--color-green-800);font-weight:600}
+.side .note{margin-top:auto;border-radius:var(--radius-lg);border:1px solid var(--border-default);background:var(--surface-card);padding:14px}.side .note p{margin:0}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;gap:20px}
+.eyebrow{margin:0;font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:var(--tracking-caps);color:var(--text-accent)}
+h1{margin:6px 0 0;font-size:var(--text-3xl);font-weight:700;letter-spacing:var(--tracking-tight);line-height:1.15}.sub{margin:6px 0 0;font-size:var(--text-base);color:var(--text-muted)}
+.month{display:inline-flex;align-items:center;gap:8px;border-radius:999px;border:1px solid var(--border-default);padding:8px 14px;font-size:var(--text-sm);font-weight:500;color:var(--color-ink-700);background:var(--surface-muted);white-space:nowrap}
+.hero{border-radius:var(--radius-2xl);background:var(--surface-inverse);color:var(--text-on-inverse);padding:var(--hero-pad);display:flex;flex-direction:column;gap:24px}
+.hero .big{margin:6px 0 0;font-family:var(--font-display);font-size:clamp(32px,6vw,var(--text-4xl));font-weight:800;letter-spacing:var(--tracking-tighter);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hero .pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 14px;font-size:var(--text-sm);font-weight:600;background:rgba(34,197,94,.14);color:var(--color-green-300);white-space:nowrap}.hero .pill i{width:8px;height:8px;border-radius:999px;background:var(--color-green-500)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.stat{border-radius:var(--radius-lg);background:var(--surface-inverse-muted);padding:14px 16px;min-width:0}.stat p{margin:0}.stat .l{font-size:var(--text-xs);color:var(--text-on-inverse-muted);display:flex;align-items:center;gap:6px}.stat .v{margin-top:6px;font-family:var(--font-display);font-size:var(--text-xl);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}.stat .h{margin-top:4px;font-size:var(--text-xs);color:var(--color-ink-500)}
+.cta{display:flex;min-height:var(--control-h-lg);align-items:center;justify-content:center;gap:10px;border-radius:var(--radius-lg);background:var(--brand-primary);padding:12px 20px;font-size:var(--text-md);font-weight:700;color:var(--brand-on-primary);text-decoration:none}.cta:hover{background:var(--brand-primary-hover)}.cta span{font-weight:500;color:var(--color-green-800)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px;align-items:start}
+.card{border-radius:var(--radius-xl);border:1px solid var(--border-default);background:var(--surface-card);padding:var(--card-pad);box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:18px;min-width:0}
+h2{margin:4px 0 0;font-size:var(--text-lg);font-weight:700;letter-spacing:-.01em}
+.seg{display:flex;gap:2px;padding:4px;border-radius:var(--radius-md);background:var(--surface-sunken)}.seg button{flex:1;border:0;border-radius:7px;padding:7px 0;font:600 var(--text-xs) var(--font-body);color:var(--text-muted);background:transparent;cursor:pointer}.seg button.on{background:#fff;color:var(--text-primary);box-shadow:var(--shadow-segment)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}.chip{border-radius:999px;padding:6px 12px;font:600 var(--text-xs) var(--font-body);border:1px solid var(--border-default);background:#fff;color:var(--text-secondary);cursor:pointer}.chip.on{border-color:var(--color-ink-900);background:var(--surface-inverse);color:#fff}
+.trio{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}.trio div{border-radius:var(--radius-md);padding:10px 12px;min-width:0}.trio p{margin:0}.trio .k{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}.trio .v{margin-top:4px;font-size:var(--text-base);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.donut{display:flex;align-items:center;gap:20px;flex-wrap:wrap}.legend{flex:1;min-width:160px;display:flex;flex-direction:column;gap:8px}.legend div{display:flex;align-items:center;gap:10px;font-size:var(--text-sm);color:var(--color-ink-700)}.legend i{height:10px;width:10px;border-radius:3px;flex-shrink:0}.legend span:nth-child(2){flex:1}.legend .m{font-size:var(--text-xs);color:var(--text-faint);font-variant-numeric:tabular-nums}.legend b{width:38px;text-align:right;font-variant-numeric:tabular-nums}
+.rank{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--surface-sunken);padding-top:18px}.rank .t{margin:0;font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted)}.rank .r{display:flex;justify-content:space-between;font-size:var(--text-sm);margin-bottom:6px;color:var(--color-ink-700)}.rank .r strong{font-variant-numeric:tabular-nums;color:var(--text-primary)}.bar{height:6px;border-radius:999px;background:var(--surface-sunken);overflow:hidden}.bar div{height:100%;border-radius:999px}
+.tag{font-size:10px;font-weight:700;letter-spacing:.06em;border-radius:999px;background:var(--color-red-100);padding:2px 8px;color:var(--text-negative);margin-left:8px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--surface-sunken)}.row .ini{display:grid;place-items:center;height:36px;width:36px;flex-shrink:0;border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:700;background:var(--surface-sunken);color:var(--text-secondary)}.row .ini.p{background:var(--state-positive-bg);color:var(--state-positive-fg)}.row .t{font-size:var(--text-base);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row .m{font-size:var(--text-xs);color:var(--text-muted);margin-top:2px}.row strong{flex-shrink:0;font-variant-numeric:tabular-nums}.row strong.p{color:var(--text-positive)}
+.link{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm);font-weight:600;color:var(--text-link);text-decoration:none}
+.sheet{border-radius:var(--radius-xl);border:1px solid var(--border-default);background:var(--surface-accent-soft);padding:20px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.sheet .ic{display:grid;place-items:center;height:40px;width:40px;flex-shrink:0;border-radius:var(--radius-md);background:var(--color-amber-100);color:var(--color-amber-800)}.sheet .b{display:inline-flex;align-items:center;gap:6px;border-radius:var(--radius-md);border:1px solid var(--border-accent);background:#fff;padding:9px 14px;font-size:var(--text-sm);font-weight:600;color:var(--color-amber-800);text-decoration:none}
+.nav-b{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:40;grid-template-columns:repeat(4,1fr);gap:4px;width:calc(100% - 20px);max-width:440px;border-radius:var(--radius-xl);border:1px solid var(--border-default);background:rgba(255,255,255,.96);padding:6px;box-shadow:var(--shadow-float);backdrop-filter:var(--blur-nav)}.nav-b a{display:grid;min-height:52px;place-items:center;gap:2px;border-radius:11px;padding:6px;font-size:var(--text-xs);font-weight:500;color:var(--text-muted);text-decoration:none}.nav-b a.on{background:var(--surface-brand-soft);font-weight:700;color:var(--color-green-800)}
+svg.lucide{width:18px;height:18px}
+</style></head><body>
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><img src="../../assets/icon-192.png" alt=""><div><p style="margin:0;font-size:var(--text-md);font-weight:700">Virada App</p><p style="margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)">Fluxo de caixa no celular</p></div></div>
+    <nav><a class="on" href="#"><i data-lucide="gauge"></i>Início</a><a href="#"><i data-lucide="pen-line"></i>Lançar</a><a href="#"><i data-lucide="table"></i>Relatórios</a><a href="#"><i data-lucide="settings"></i>Conta</a><a href="#"><i data-lucide="smartphone"></i>Instalar app</a></nav>
+    <div class="note"><p style="font-size:var(--text-sm);font-weight:600">Dados no seu celular</p><p style="margin-top:4px;font-size:var(--text-xs);line-height:18px;color:var(--text-muted)">Seus lançamentos ficam guardados aqui. Sincronize com Google Planilhas quando quiser.</p></div>
+  </aside>
+  <div class="main">
+    <header style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><p class="eyebrow">Fluxo de caixa no celular</p><h1>Resumo financeiro</h1><p class="sub">Caixa, gastos, resultado e últimos lançamentos.</p></div><span class="month"><i data-lucide="calendar" style="width:15px;height:15px"></i>Setembro de 2026</span></header>
+    <section class="hero">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap"><div><p style="margin:0;font-size:var(--text-base);color:var(--text-on-inverse-muted)">Olá. Em caixa neste mês</p><p class="big">R$ 1.260,80</p></div><span class="pill"><i></i>Positivo · O caixa está respirando.</span></div>
+      <div class="stats"><div class="stat"><p class="l"><i data-lucide="arrow-up" style="width:14px;height:14px;color:var(--color-green-400)"></i>Entradas</p><p class="v" style="color:var(--color-green-400)">R$ 3.420,00</p><p class="h">Tudo que entrou neste mês.</p></div><div class="stat"><p class="l"><i data-lucide="arrow-down" style="width:14px;height:14px;color:var(--color-red-300)"></i>Gastos</p><p class="v">R$ 2.159,20</p><p class="h">Compras e custos lançados.</p></div><div class="stat"><p class="l">Lançamentos no mês</p><p class="v">11</p><p class="h">2 por impulso.</p></div></div>
+      <a class="cta" href="#"><i data-lucide="pen-line"></i>Lançar agora <span>— leva 10 segundos</span></a>
+    </section>
+    <div class="grid">
+      <section class="card">
+        <div><p class="eyebrow">Análise de gastos</p><h2>Pra onde está indo seu dinheiro?</h2></div>
+        <div class="seg"><button class="on">Mês</button><button>30d</button><button>7d</button><button>Ano</button><button>Tudo</button></div>
+        <div class="chips"><button class="chip on">Todos</button><button class="chip">Essencial</button><button class="chip">Impulso</button></div>
+        <div class="trio"><div style="background:var(--color-green-50)"><p class="k" style="color:var(--text-positive)">Entradas</p><p class="v" style="color:var(--color-green-800)">R$ 3.420,00</p></div><div style="background:var(--state-negative-bg)"><p class="k" style="color:var(--text-negative)">Saídas</p><p class="v" style="color:#991B1B">R$ 2.159,20</p></div><div style="background:var(--state-info-bg)"><p class="k" style="color:var(--text-secondary)">Saldo</p><p class="v" style="color:var(--state-info-fg)">R$ 1.260,80</p></div></div>
+        <div class="donut">
+          <svg viewBox="0 0 140 140" style="width:150px;height:150px;flex-shrink:0"><g id="pie"></g><circle cx="70" cy="70" r="46" fill="#fff"></circle><text x="70" y="66" text-anchor="middle" font-size="9" font-weight="600" fill="#94A3B8" letter-spacing="1">SAÍDAS</text><text x="70" y="82" text-anchor="middle" font-size="12" font-weight="700" fill="#0F172A" font-family="Figtree, Onest, sans-serif">R$ 2.159,20</text></svg>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="rank" id="rank"><p class="t">Maior gasto do período</p></div>
+      </section>
+      <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+        <section class="card" style="gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px"><h2 style="margin:0">Últimos lançamentos</h2><a class="link" href="#">Novo <i data-lucide="arrow-right" style="width:15px;height:15px"></i></a></div>
+          <div id="rows"></div>
+        </section>
+        <section class="sheet"><div style="display:flex;align-items:center;gap:14px;min-width:0"><span class="ic"><i data-lucide="table"></i></span><div style="min-width:0"><p class="eyebrow" style="letter-spacing:.1em">Planilha Google</p><p style="margin:4px 0 0;font-size:var(--text-base);line-height:20px;color:var(--color-ink-700)">Base completa em abas: lançamentos, metas, dívidas, pontos e logs.</p></div></div><a class="b" href="#">Conectar <i data-lucide="arrow-right" style="width:15px;height:15px"></i></a></section>
+      </div>
+    </div>
+  </div>
+  <nav class="nav-b"><a class="on" href="#"><i data-lucide="gauge"></i>Início</a><a href="#"><i data-lucide="pen-line"></i>Lançar</a><a href="#"><i data-lucide="table"></i>Relatórios</a><a href="#"><i data-lucide="settings"></i>Conta</a></nav>
+</div>
+<script>
+const cats=[["Moradia",950],["Mercado",498.9],["Transporte",204.9],["Compras",199.9],["Contas",99.9],["Saúde",87.6],["Delivery",78.9],["Insumos",64]];const total=cats.reduce((s,c)=>s+c[1],0);const fmt=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+let a=-Math.PI/2;const R=64,C=70;document.getElementById("pie").innerHTML=cats.map((c,i)=>{const ang=c[1]/total*2*Math.PI;const x1=C+R*Math.cos(a),y1=C+R*Math.sin(a);a+=ang;const x2=C+R*Math.cos(a),y2=C+R*Math.sin(a);return '<path d="M 70 70 L '+x1+' '+y1+' A 64 64 0 '+(ang>Math.PI?1:0)+' 1 '+x2+' '+y2+' Z" fill="var(--chart-'+(i+1)+')" stroke="#fff" stroke-width="2"/>'}).join("");
+document.getElementById("legend").innerHTML=cats.slice(0,6).map((c,i)=>'<div><i style="background:var(--chart-'+(i+1)+')"></i><span>'+c[0]+'</span><span class="m">'+fmt(c[1])+'</span><b>'+Math.round(c[1]/total*100)+'%</b></div>').join("");
+document.getElementById("rank").innerHTML+=cats.slice(0,5).map((c,i)=>'<div><div class="r"><span>'+c[0]+(i===0?'<span class="tag">MAIOR</span>':'')+'</span><strong>'+fmt(c[1])+'</strong></div><div class="bar"><div style="width:'+(c[1]/total*100)+'%;background:var(--chart-'+(i+1)+')"></div></div></div>').join("");
+const rows=[["S","Salário","01 de set. · Salário · Casa","+R$ 2.900,00",1],["R","Freela de sábado","01 de set. · Renda extra · Empresa","+R$ 520,00",1],["M","Aluguel","01 de set. · Moradia · Casa","−R$ 950,00",0],["M","Compra do mês","01 de set. · Mercado · Casa","−R$ 412,40",0],["C","Tênis em promoção","01 de set. · Compras · Casa","−R$ 199,90",0],["T","Gasolina","01 de set. · Transporte · Casa","−R$ 180,00",0]];
+document.getElementById("rows").innerHTML=rows.map(r=>'<div class="row"><span style="display:flex;align-items:center;gap:12px;min-width:0"><span class="ini'+(r[4]?' p':'')+'">'+r[0]+'</span><span style="min-width:0"><div class="t">'+r[1]+'</div><div class="m">'+r[2]+'</div></span></span><strong class="'+(r[4]?'p':'')+'">'+r[3]+'</strong></div>').join("");
+lucide.createIcons();
+</script>
+</body></html>

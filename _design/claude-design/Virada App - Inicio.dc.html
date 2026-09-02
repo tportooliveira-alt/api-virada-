@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  html, body { margin:0; padding:0; min-height:100%; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color:#0F172A; -webkit-font-smoothing:antialiased;
+    background-image: linear-gradient(140deg, rgba(34,197,94,0.12), transparent 28%), linear-gradient(220deg, rgba(245,197,66,0.1), transparent 26%), linear-gradient(180deg, #F7FBFF 0%, #EAF5FF 52%, #E6F1FF 100%);
+    background-attachment: fixed;
+  }
+  a { color:#059669; } a:hover { color:#10B981; }
+  button { font-family: inherit; }
+</style>
+</helmet>
+<div data-screen-label="Início" style="max-width:1280px; margin:0 auto; display:flex; align-items:flex-start; gap:24px; padding:16px 24px 24px; {{ shellOverride }}">
+  <sc-if value="{{ showSidebar }}" hint-placeholder-val="{{ true }}">
+    <aside style="position:sticky; top:16px; width:288px; flex-shrink:0; display:flex; flex-direction:column; min-height:calc(100vh - 32px); border-radius:8px; border:1px solid rgba(15,23,42,0.14); background:#FFFFFF; padding:16px; box-shadow:0 14px 36px rgba(15,23,42,0.14);">
+      <div>
+        <div style="display:flex; height:44px; width:44px; align-items:center; justify-content:center; border-radius:8px; background:#10B981; color:#020617;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" x2="4" y1="22" y2="15"></line></svg>
+        </div>
+        <h2 style="margin:16px 0 0; font-size:20px; font-weight:600; color:#0F172A;">Virada App</h2>
+        <p style="margin:8px 0 0; font-size:14px; line-height:24px; color:#475569;">Fluxo de caixa no celular. Dados seus, planilha sua.</p>
+      </div>
+      <nav style="margin-top:28px; display:grid; gap:6px;">
+        <a href="#" style="display:flex; align-items:center; gap:12px; border-radius:6px; padding:10px 12px; font-size:14px; background:#10B981; color:#020617; text-decoration:none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m12 14 4-4"></path><path d="M3.34 19a10 10 0 1 1 17.32 0"></path></svg>
+          Início
+        </a>
+        <a href="#" style="display:flex; align-items:center; gap:12px; border-radius:6px; padding:10px 12px; font-size:14px; color:#475569; text-decoration:none;" style-hover="background:rgba(15,23,42,0.04); color:#0F172A;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+          Lançar
+        </a>
+        <a href="#" style="display:flex; align-items:center; gap:12px; border-radius:6px; padding:10px 12px; font-size:14px; color:#475569; text-decoration:none;" style-hover="background:rgba(15,23,42,0.04); color:#0F172A;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 3v18"></path><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path></svg>
+          Planilha
+        </a>
+        <a href="#" style="display:flex; align-items:center; gap:12px; border-radius:6px; padding:10px 12px; font-size:14px; color:#475569; text-decoration:none;" style-hover="background:rgba(15,23,42,0.04); color:#0F172A;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          Conta
+        </a>
+        <a href="#" style="border-radius:6px; padding:10px 12px; font-size:14px; color:#475569; text-decoration:none;" style-hover="background:rgba(15,23,42,0.04); color:#0F172A;">Instalar app</a>
+      </nav>
+      <div style="margin-top:auto; border-radius:8px; border:1px solid rgba(16,185,129,0.2); background:rgba(16,185,129,0.05); padding:16px;">
+        <p style="margin:0; font-size:14px; font-weight:600; color:#6EE7B7;">Dados no seu celular</p>
+        <p style="margin:4px 0 0; font-size:12px; line-height:20px; color:#475569;">Seus lançamentos ficam guardados aqui. Sincronize com Google Planilhas quando quiser.</p>
+      </div>
+    </aside>
+  </sc-if>
+  <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:16px;">
+    <header style="border-bottom:1px solid rgba(15,23,42,0.14); padding-bottom:16px;">
+      <span style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.22em; color:#F5C542;">Fluxo de caixa no celular</span>
+      <h1 style="margin:4px 0 0; font-size:30px; font-weight:600; line-height:1.2; color:#0F172A;">Resumo financeiro</h1>
+      <p style="margin:4px 0 0; font-size:14px; line-height:24px; color:#475569;">Caixa, gastos, resultado e últimos lançamentos.</p>
+    </header>
+    <main style="display:flex; flex-direction:column; gap:20px;">
+      <section style="border-radius:8px; border:1px solid rgba(15,23,42,0.14); background:rgba(255,255,255,0.045); padding:20px; box-shadow:0 10px 26px rgba(15,23,42,0.1);">
+        <p style="margin:0; font-size:14px; color:#475569;">{{ helloText }}</p>
+        <h2 style="margin:8px 0 0; font-size:30px; font-weight:600; line-height:1.2; color:#0F172A;">Seu caixa do mês</h2>
+        <p style="margin:8px 0 0; font-size:14px; line-height:24px; color:#475569;">Veja o que entrou, o que saiu e o resultado sem abrir a planilha completa.</p>
+      </section>
+      <section style="display:grid; gap:12px; grid-template-columns:repeat(4, minmax(0,1fr)); {{ gridOverride }}">
+        <article style="border-radius:8px; border:1px solid rgba(16,185,129,0.35); background:rgba(16,185,129,0.08); padding:16px; box-shadow:0 10px 26px rgba(15,23,42,0.1);">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+            <p style="margin:0; font-size:14px; color:#475569;">Em caixa</p>
+            <span style="display:grid; height:36px; width:36px; flex-shrink:0; place-items:center; border-radius:6px; background:rgba(16,185,129,0.15); color:#6EE7B7;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg>
+            </span>
+          </div>
+          <strong style="display:block; margin-top:12px; font-size:24px; font-weight:600; color:#0F172A;">{{ emCaixa }}</strong>
+          <p style="margin:8px 0 0; min-height:40px; font-size:14px; line-height:20px; color:#334155;">Entradas menos gastos do mês.</p>
+        </article>
+        <article style="border-radius:8px; border:1px solid rgba(16,185,129,0.35); background:rgba(16,185,129,0.08); padding:16px; box-shadow:0 10px 26px rgba(15,23,42,0.1);">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+            <p style="margin:0; font-size:14px; color:#475569;">Entradas</p>
+            <span style="display:grid; height:36px; width:36px; flex-shrink:0; place-items:center; border-radius:6px; background:rgba(16,185,129,0.15); color:#6EE7B7;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01"></path><path d="M18 12h.01"></path></svg>
+            </span>
+          </div>
+          <strong style="display:block; margin-top:12px; font-size:24px; font-weight:600; color:#0F172A;">{{ entradas }}</strong>
+          <p style="margin:8px 0 0; min-height:40px; font-size:14px; line-height:20px; color:#334155;">Tudo que entrou neste mês.</p>
+        </article>
+        <article style="border-radius:8px; border:1px solid rgba(15,23,42,0.14); background:rgba(255,255,255,0.045); padding:16px; box-shadow:0 10px 26px rgba(15,23,42,0.1);">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+            <p style="margin:0; font-size:14px; color:#475569;">Gastos</p>
+            <span style="display:grid; height:36px; width:36px; flex-shrink:0; place-items:center; border-radius:6px; background:rgba(148,163,184,0.1); color:#475569;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path><path d="M14 8H8"></path><path d="M16 12H8"></path><path d="M13 16H8"></path></svg>
+            </span>
+          </div>
+          <strong style="display:block; margin-top:12px; font-size:24px; font-weight:600; color:#0F172A;">{{ gastos }}</strong>
+          <p style="margin:8px 0 0; min-height:40px; font-size:14px; line-height:20px; color:#334155;">Compras e custos lançados.</p>
+        </article>
+        <article style="border-radius:8px; border:1px solid rgba(16,185,129,0.35); background:rgba(16,185,129,0.08); padding:16px; box-shadow:0 10px 26px rgba(15,23,42,0.1);">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+            <p style="margin:0; font-size:14px; color:#475569;">Resultado</p>
+            <span style="display:grid; height:36px; width:36px; flex-shrink:0; place-items:center; border-radius:6px; background:rgba(16,185,129,0.15); color:#6EE7B7;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"></path><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path></svg>
+            </span>
+          </div>
+          <strong style="display:block; margin-top:12px; font-size:24px; font-weight:600; color:#0F172A;">{{ resultado }}</strong>
+          <p style="margin:8px 0 0; min-height:40px; font-size:14px; line-height:20px; color:#334155;">{{ resultadoHelper }}</p>
+        </article>
+      </section>
+      <section style="border-radius:8px; border:1px solid rgba(16,185,129,0.25); background:rgba(16,185,129,0.1); padding:20px; box-shadow:0 10px 26px rgba(15,23,42,0.1);">
+        <p style="margin:0; font-size:14px; font-weight:600; color:#6EE7B7;">Lançamento rápido</p>
+        <h2 style="margin:12px 0 0; font-size:24px; font-weight:600; color:#0F172A;">Registre uma compra ou entrada</h2>
+        <p style="margin:8px 0 0; font-size:14px; line-height:24px; color:#475569;">O celular mostra o essencial. A planilha completa fica organizada por trás.</p>
+        <a href="#" style="margin-top:20px; display:flex; min-height:56px; align-items:center; justify-content:center; gap:12px; border-radius:6px; background:#10B981; padding:12px 20px; font-weight:600; color:#020617; text-decoration:none; transition:background .15s;" style-hover="background:#34D399;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>
+          Lançar agora
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+        </a>
+      </section>
+      <section style="border-radius:8px; border:1px solid rgba(15,23,42,0.14); background:rgba(255,255,255,0.045); padding:20px; box-shadow:0 10px 26px rgba(15,23,42,0.1);">
+        <div style="margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:16px;">
+          <div>
+            <p style="margin:0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.18em; color:#FBBF24;">Análise de gastos</p>
+            <h2 style="margin:4px 0 0; font-size:20px; font-weight:600; color:#0F172A;">Pra onde está indo seu dinheiro?</h2>
+          </div>
+        </div>
+        <sc-if value="{{ chartEmptyAll }}" hint-placeholder-val="{{ false }}">
+          <div style="border-radius:12px; border:1px solid rgba(15,23,42,0.14); background:#F8FAFC; padding:24px; text-align:center; font-size:14px; color:#475569;">Nenhum lançamento ainda. Toque em <strong style="color:#0F172A;">Lançar</strong>.</div>
+        </sc-if>
+        <sc-if value="{{ chartHasAny }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px;">
+              <div style="border-radius:12px; background:rgba(16,185,129,0.1); padding:12px; text-align:center;">
+                <p style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:#34D399;">Entradas</p>
+                <p style="margin:4px 0 0; font-size:14px; font-weight:700; color:#6EE7B7;">{{ chartInc }}</p>
+              </div>
+              <div style="border-radius:12px; background:rgba(239,68,68,0.1); padding:12px; text-align:center;">
+                <p style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:#F87171;">Saídas</p>
+                <p style="margin:4px 0 0; font-size:14px; font-weight:700; color:#FCA5A5;">{{ chartExp }}</p>
+              </div>
+              <div style="{{ saldoBoxStyle }}">
+                <p style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:#94A3B8;">Saldo</p>
+                <p style="{{ saldoValStyle }}">{{ chartBal }}</p>
+              </div>
+            </div>
+            <div style="display:flex; gap:4px; border-radius:12px; border:1px solid #CBD5E1; background:#E2E8F0; padding:4px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+              <sc-for list="{{ periodBtns }}" as="b" hint-placeholder-count="5">
+                <button onClick="{{ b.onClick }}" style="{{ b.style }}">{{ b.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex; gap:4px; border-radius:12px; border:1px solid #CBD5E1; background:#E2E8F0; padding:4px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+              <sc-for list="{{ natureBtns }}" as="b" hint-placeholder-count="3">
+                <button onClick="{{ b.onClick }}" style="{{ b.style }}">{{ b.label }}</button>
+              </sc-for>
+            </div>
+            <sc-if value="{{ chartNoCategory }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0; text-align:center; font-size:14px; color:#475569;">Nenhum gasto neste período.</p>
+            </sc-if>
+            <sc-if value="{{ chartHasCategory }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; flex-direction:column; gap:16px;">
+                <div style="display:flex; align-items:center; gap:16px;">
+                  <svg viewBox="0 0 140 140" style="height:128px; width:128px; flex-shrink:0;">
+                    <sc-for list="{{ pieSlices }}" as="s" hint-placeholder-count="4">
+                      <path d="{{ s.d }}" fill="{{ s.color }}" stroke="#E2E8F0" stroke-width="2"></path>
+                    </sc-for>
+                    <circle cx="70" cy="70" r="36" fill="#F8FAFC"></circle>
+                  </svg>
+                  <div style="flex:1; display:flex; flex-direction:column; gap:6px; min-width:0;">
+                    <sc-for list="{{ legendRows }}" as="l" hint-placeholder-count="6">
+                      <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="height:8px; width:8px; flex-shrink:0; border-radius:999px; background:{{ l.color }};"></span>
+                        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:#64748B;">{{ l.name }}</span>
+                        <span style="flex-shrink:0; font-size:12px; font-weight:700; color:#0F172A;">{{ l.pct }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  <p style="margin:0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#475569;">💸 Pra onde foi</p>
+                  <div style="display:flex; flex-direction:column; gap:6px;">
+                    <sc-for list="{{ bars }}" as="bar" hint-placeholder-count="5">
+                      <div style="display:flex; align-items:center; gap:6px;">
+                        <div style="height:18px; border-radius:4px; opacity:0.85; flex-shrink:0; width:{{ bar.wPct }}; background:{{ bar.color }};"></div>
+                        <span style="font-size:10px; color:#94A3B8; white-space:nowrap;">{{ bar.label }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:8px; border-radius:12px; border:1px solid rgba(15,23,42,0.14); background:#F8FAFC; padding:12px;">
+                  <p style="margin:0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#475569;">Maior gasto do período</p>
+                  <sc-for list="{{ ranking }}" as="r" hint-placeholder-count="5">
+                    <div>
+                      <div style="margin-bottom:4px; display:flex; justify-content:space-between; font-size:12px;">
+                        <span style="display:flex; align-items:center; gap:4px; color:#334155;">
+                          <sc-if value="{{ r.isFirst }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px; border-radius:4px; background:rgba(239,68,68,0.2); padding:0 4px; color:#F87171;">MAIOR</span></sc-if>
+                          {{ r.name }}
+                        </span>
+                        <span style="font-weight:600; color:#0F172A;">{{ r.val }}</span>
+                      </div>
+                      <div style="height:6px; width:100%; overflow:hidden; border-radius:999px; background:#E2E8F0;">
+                        <div style="height:100%; border-radius:999px; transition:width .3s; width:{{ r.pct }}; background:{{ r.color }};"></div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+      </section>
+      <section style="border-radius:8px; border:1px solid rgba(15,23,42,0.14); background:rgba(255,255,255,0.045); padding:20px; box-shadow:0 10px 26px rgba(15,23,42,0.1);">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+          <div>
+            <p style="margin:0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.18em; color:#F5C542;">Planilha por trás</p>
+            <h2 style="margin:8px 0 0; font-size:24px; font-weight:600; color:#0F172A;">Base completa</h2>
+          </div>
+          <a href="#" style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:#6EE7B7; text-decoration:none;">
+            Conectar
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+          </a>
+        </div>
+        <p style="margin:12px 0 0; font-size:14px; line-height:24px; color:#475569;">Os dados completos já estão organizados em abas CSV locais: lançamentos, metas, dívidas, pontos e logs.</p>
+      </section>
+      <section style="border-radius:8px; border:1px solid rgba(15,23,42,0.14); background:rgba(255,255,255,0.045); padding:20px; box-shadow:0 10px 26px rgba(15,23,42,0.1);">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+          <h2 style="margin:0; font-size:24px; font-weight:600; color:#0F172A;">Últimos lançamentos</h2>
+          <a href="#" style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:#6EE7B7; text-decoration:none;">
+            Novo
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+          </a>
+        </div>
+        <div style="margin-top:16px; display:grid; gap:12px;">
+          <sc-if value="{{ noLatest }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0; border-radius:6px; background:rgba(15,23,42,0.04); padding:16px; font-size:14px; color:#475569;">Nenhum lançamento ainda. Comece pelo botão Lançar.</p>
+          </sc-if>
+          <sc-for list="{{ latest }}" as="item" hint-placeholder-count="6">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; border-radius:6px; background:rgba(15,23,42,0.04); padding:16px;">
+              <div style="min-width:0;">
+                <p style="margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px; font-weight:600; color:#0F172A;">{{ item.label }}</p>
+                <p style="margin:4px 0 0; font-size:12px; color:#475569;">{{ item.meta }}</p>
+              </div>
+              <strong style="flex-shrink:0; color:{{ item.valColor }};">{{ item.val }}</strong>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </main>
+  </div>
+  <sc-if value="{{ showBottomNav }}" hint-placeholder-val="{{ false }}">
+    <nav style="position:fixed; bottom:8px; left:50%; transform:translateX(-50%); z-index:40; display:grid; grid-template-columns:repeat(4,1fr); gap:6px; width:calc(100% - 12px); max-width:448px; border-radius:8px; border:1px solid rgba(15,23,42,0.14); background:rgba(255,255,255,0.95); padding:6px; box-shadow:0 14px 36px rgba(15,23,42,0.14); backdrop-filter:blur(8px);">
+      <a href="#" style="display:grid; min-height:48px; place-items:center; gap:4px; border-radius:6px; padding:6px; font-size:11px; background:#10B981; font-weight:600; color:#020617; text-decoration:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"></path><path d="M3.34 19a10 10 0 1 1 17.32 0"></path></svg>
+        Início
+      </a>
+      <a href="#" style="display:grid; min-height:48px; place-items:center; gap:4px; border-radius:6px; padding:6px; font-size:11px; color:#475569; text-decoration:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+        Lançar
+      </a>
+      <a href="#" style="display:grid; min-height:48px; place-items:center; gap:4px; border-radius:6px; padding:6px; font-size:11px; color:#475569; text-decoration:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"></path><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path></svg>
+        Planilha
+      </a>
+      <a href="#" style="display:grid; min-height:48px; place-items:center; gap:4px; border-radius:6px; padding:6px; font-size:11px; color:#475569; text-decoration:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        Conta
+      </a>
+    </nav>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;layout&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;desktop&quot;, &quot;celular&quot;], &quot;default&quot;: &quot;desktop&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Visualização&quot; },
+  &quot;comDados&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Visualização&quot; },
+  &quot;nomeUsuario&quot;: { &quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Conteúdo&quot; }
+}">
+class Component extends DCLogic {
+  state = { period: "mes", nature: "all" };
+
+  fmt(v) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+  fmtDate(iso) { return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(new Date(iso + "T00:00:00")); }
+
+  demoData() {
+    if (this._d) return this._d;
+    const now = new Date();
+    const iso = (t) => `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+    // dm: recua "off" dias mas nunca sai do mês atual (pra demo sempre ter dados no filtro "Mês")
+    const dm = (off) => { const t = new Date(now); t.setDate(Math.max(1, now.getDate() - off)); return iso(t); };
+    const dp = (off) => { const t = new Date(now); t.setDate(now.getDate() - off); return iso(t); };
+    this._d = {
+      expenses: [
+        { id: "e1", description: "Aluguel", category: "Moradia", value: 950, date: dm(5), nature: "essencial", scope: "casa" },
+        { id: "e2", description: "Compra do mês", category: "Mercado", value: 412.4, date: dm(4), nature: "essencial", scope: "casa" },
+        { id: "e3", description: "Internet", category: "Contas", value: 99.9, date: dm(4), nature: "essencial", scope: "casa" },
+        { id: "e4", description: "Gasolina", category: "Transporte", value: 180, date: dm(3), nature: "essencial", scope: "casa" },
+        { id: "e5", description: "Pizza no domingo", category: "Delivery", value: 78.9, date: dm(2), nature: "impulso", scope: "casa" },
+        { id: "e6", description: "Farmácia", category: "Saúde", value: 87.6, date: dm(1), nature: "essencial", scope: "casa" },
+        { id: "e7", description: "Feira", category: "Mercado", value: 86.5, date: dm(1), nature: "essencial", scope: "casa" },
+        { id: "e8", description: "Tênis em promoção", category: "Compras", value: 199.9, date: dm(0), nature: "impulso", scope: "casa" },
+        { id: "e9", description: "Embalagens", category: "Insumos", value: 64, date: dm(0), nature: "essencial", scope: "empresa" },
+        { id: "e10", description: "Conserto da moto", category: "Transporte", value: 320, date: dp(38), nature: "essencial", scope: "casa" }
+      ],
+      incomes: [
+        { id: "i1", description: "Salário", category: "Salário", value: 2900, date: dm(6), scope: "casa" },
+        { id: "i2", description: "Freela de sábado", category: "Renda extra", value: 520, date: dm(2), scope: "empresa" },
+        { id: "i3", description: "Salário", category: "Salário", value: 2900, date: dp(36), scope: "casa" }
+      ]
+    };
+    return this._d;
+  }
+
+  filterPeriod(items, period) {
+    const now = Date.now();
+    return items.filter((i) => {
+      const d = new Date(i.date + "T00:00:00").getTime();
+      if (period === "7d") return now - d <= 7 * 864e5;
+      if (period === "30d") return now - d <= 30 * 864e5;
+      if (period === "mes") { const dt = new Date(i.date + "T00:00:00"); const n = new Date(); return dt.getMonth() === n.getMonth() && dt.getFullYear() === n.getFullYear(); }
+      if (period === "ano") return new Date(i.date + "T00:00:00").getFullYear() === new Date().getFullYear();
+      return true;
+    });
+  }
+
+  renderVals() {
+    const COLORS = ["#22C55E", "#F5C542", "#3B82F6", "#EF4444", "#A855F7", "#F97316", "#06B6D4", "#EC4899", "#84CC16", "#14B8A6", "#6366F1", "#D97706"];
+    const comDados = this.props.comDados ?? true;
+    const layout = this.props.layout ?? "desktop";
+    const isMobile = layout === "celular";
+    const nome = (this.props.nomeUsuario ?? "").trim();
+    const all = comDados ? this.demoData() : { expenses: [], incomes: [] };
+
+    const monthOf = (list) => this.filterPeriod(list, "mes");
+    const incomeMonth = monthOf(all.incomes).reduce((s, i) => s + i.value, 0);
+    const expenseMonth = monthOf(all.expenses).reduce((s, e) => s + e.value, 0);
+    const balanceMonth = incomeMonth - expenseMonth;
+
+    const { period, nature } = this.state;
+    let fExp = this.filterPeriod(all.expenses, period);
+    if (nature !== "all") fExp = fExp.filter((e) => e.nature === nature);
+    const fInc = this.filterPeriod(all.incomes, period);
+    const totalExp = fExp.reduce((s, e) => s + e.value, 0);
+    const totalInc = fInc.reduce((s, i) => s + i.value, 0);
+    const balance = totalInc - totalExp;
+
+    const map = {};
+    for (const e of fExp) map[e.category] = (map[e.category] ?? 0) + e.value;
+    const byCategory = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8)
+      .map(([name, value], i) => ({ name, value, color: COLORS[i % COLORS.length] }));
+
+    // Pizza
+    const R = 60, CX = 70, CY = 70;
+    let start = -Math.PI / 2;
+    const nonZero = byCategory.filter((d) => d.value > 0);
+    const pieSlices = [];
+    if (nonZero.length === 1) {
+      pieSlices.push({ d: `M ${CX} ${CY - R} A ${R} ${R} 0 1 1 ${CX - 0.01} ${CY - R} Z`, color: nonZero[0].color });
+    } else {
+      for (const d of byCategory) {
+        const angle = totalExp > 0 ? (d.value / totalExp) * 2 * Math.PI : 0;
+        const x1 = CX + R * Math.cos(start), y1 = CY + R * Math.sin(start);
+        start += angle;
+        const x2 = CX + R * Math.cos(start), y2 = CY + R * Math.sin(start);
+        if (angle > 0.01) pieSlices.push({ d: `M ${CX} ${CY} L ${x1} ${y1} A ${R} ${R} 0 ${angle > Math.PI ? 1 : 0} 1 ${x2} ${y2} Z`, color: d.color });
+      }
+    }
+
+    // Barras
+    const maxVal = byCategory.length ? Math.max(...byCategory.map((d) => d.value)) : 0;
+    const bars = byCategory.map((d) => {
+      const pct = totalExp > 0 ? ((d.value / totalExp) * 100).toFixed(0) : "0";
+      const nm = d.name.length > 10 ? d.name.slice(0, 9) + "…" : d.name;
+      return { wPct: `${maxVal > 0 ? Math.max((d.value / maxVal) * 70, 1) : 1}%`, color: d.color, label: `${pct}% ${nm}` };
+    });
+
+    const btnBase = "flex:1; border-radius:8px; padding:6px 0; font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; ";
+    const periodBtns = [["mes", "Mês"], ["30d", "30d"], ["7d", "7d"], ["ano", "Ano"], ["all", "Tudo"]].map(([key, label]) => ({
+      label,
+      style: btnBase + (period === key ? "border:1px solid #10B981; background:#10B981; color:#020617; box-shadow:0 1px 2px rgba(0,0,0,0.05);" : "border:1px solid #CBD5E1; background:#FFFFFF; color:#1E293B;"),
+      onClick: () => this.setState({ period: key })
+    }));
+    const natureBtns = [["all", "Todos"], ["essencial", "Essencial"], ["impulso", "Impulso"]].map(([key, label]) => ({
+      label,
+      style: btnBase + (nature === key ? "border:1px solid #FBBF24; background:#FBBF24; color:#020617; box-shadow:0 1px 2px rgba(0,0,0,0.05);" : "border:1px solid #CBD5E1; background:#FFFFFF; color:#1E293B;"),
+      onClick: () => this.setState({ nature: key })
+    }));
+
+    const latest = [
+      ...all.expenses.map((it) => ({ ...it, label: it.description, v: -it.value })),
+      ...all.incomes.map((it) => ({ ...it, label: it.description, v: it.value }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date) || Math.abs(b.v) - Math.abs(a.v)).slice(0, 6)
+      .map((it) => ({
+        label: it.label,
+        meta: `${this.fmtDate(it.date)} · ${it.category} · ${it.scope === "empresa" ? "Empresa" : "Casa"}`,
+        val: this.fmt(it.v),
+        valColor: it.v >= 0 ? "#6EE7B7" : "#FDA4AF"
+      }));
+
+    return {
+      showSidebar: !isMobile,
+      showBottomNav: isMobile,
+      shellOverride: isMobile ? "max-width:430px; flex-direction:column; gap:12px; padding:12px 12px 108px;" : "",
+      gridOverride: isMobile ? "grid-template-columns:1fr;" : "",
+      helloText: `Olá${nome ? `, ${nome}` : ""}.`,
+      emCaixa: this.fmt(balanceMonth),
+      entradas: this.fmt(incomeMonth),
+      gastos: this.fmt(expenseMonth),
+      resultado: balanceMonth >= 0 ? "Positivo" : "Negativo",
+      resultadoHelper: balanceMonth >= 0 ? "O caixa está respirando." : "Gasto maior que entrada.",
+      chartEmptyAll: all.expenses.length === 0 && all.incomes.length === 0,
+      chartHasAny: all.expenses.length > 0 || all.incomes.length > 0,
+      chartInc: this.fmt(totalInc),
+      chartExp: this.fmt(totalExp),
+      chartBal: this.fmt(balance),
+      saldoBoxStyle: `border-radius:12px; padding:12px; text-align:center; background:${balance >= 0 ? "rgba(59,130,246,0.1)" : "rgba(249,115,22,0.1)"};`,
+      saldoValStyle: `margin:4px 0 0; font-size:14px; font-weight:700; color:${balance >= 0 ? "#93C5FD" : "#FDBA74"};`,
+      periodBtns, natureBtns,
+      chartNoCategory: byCategory.length === 0,
+      chartHasCategory: byCategory.length > 0,
+      pieSlices,
+      legendRows: byCategory.slice(0, 6).map((d) => ({ name: d.name, color: d.color, pct: `${totalExp > 0 ? ((d.value / totalExp) * 100).toFixed(0) : 0}%` })),
+      bars,
+      ranking: byCategory.slice(0, 5).map((d, i) => ({ name: d.name, val: this.fmt(d.value), pct: `${totalExp > 0 ? (d.value / totalExp) * 100 : 0}%`, color: d.color, isFirst: i === 0 })),
+      latest,
+      noLatest: latest.length === 0
+    };
+  }
+}
+</script>
+</body>
+</html>

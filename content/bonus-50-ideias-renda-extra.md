@@ -4,7 +4,7 @@ Lista organizada por categoria. Comece pela que faz mais sentido pra sua realida
 
 ---
 
-## 🟢 Renda Rápida (resultado em 7 dias)
+## Renda Rápida (resultado em 7 dias)
 
 1. **Desapego de eletrônicos** — celular antigo, tablet, notebook, console parado. OLX, Mercado Livre, Marketplace.
 2. **Desapego de roupas e calçados** — peças sem uso há mais de 6 meses. Enjoei, brechó local, OLX.
@@ -19,7 +19,7 @@ Lista organizada por categoria. Comece pela que faz mais sentido pra sua realida
 
 ---
 
-## 🔵 Serviços Locais (resultado em 1 a 4 semanas)
+## Serviços Locais (resultado em 1 a 4 semanas)
 
 11. **Faxina e diárias** — GetNinjas, Parafuzo, indicação no condomínio.
 12. **Cuidador de pets** — DogHero, Petlove, anúncio no bairro.
@@ -35,7 +35,7 @@ Lista organizada por categoria. Comece pela que faz mais sentido pra sua realida
 
 ---
 
-## 🟡 Revenda Inteligente (com pouco capital)
+## Revenda Inteligente (com pouco capital)
 
 22. **Revenda de roupas** compradas em atacados (Bom Retiro, Brás).
 23. **Revenda de cosméticos** com fornecedores como Mundial Mix, Beleza na Web.
@@ -49,7 +49,7 @@ Lista organizada por categoria. Comece pela que faz mais sentido pra sua realida
 
 ---
 
-## 🟣 Digital Simples (sem aparecer ou aparecendo)
+## Digital Simples (sem aparecer ou aparecendo)
 
 31. **Designer iniciante no Canva** — logos, posts, banners, currículos. Workana, Fiverr, GetNinjas.
 32. **Redator freelance** — textos para blogs, legendas, descrições de produto.
@@ -66,7 +66,7 @@ Lista organizada por categoria. Comece pela que faz mais sentido pra sua realida
 
 ---
 
-## 🟠 Habilidades Que Podem Virar Renda
+## Habilidades Que Podem Virar Renda
 
 43. **Aulas particulares** — matemática, idiomas, instrumento musical, qualquer matéria escolar.
 44. **Aulas online via Zoom** — concentre-se num nicho específico.
@@ -76,9 +76,9 @@ Lista organizada por categoria. Comece pela que faz mais sentido pra sua realida
 
 ---
 
-## 🔴 Crescimento de Longo Prazo
+## Crescimento de Longo Prazo
 
-48. **Curso online próprio** — empacote o que você já sabe e venda em Cakto, Hotmart, Kiwify.
+48. **Curso online próprio** — empacote o que você já sabe e venda em uma plataforma de cursos.
 49. **E-book próprio** — sobre algo que você domina e que resolve uma dor real.
 50. **Pequeno negócio local validado** — com pré-venda antes de qualquer investimento.
 

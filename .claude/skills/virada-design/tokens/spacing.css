@@ -1,0 +1,29 @@
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  --radius-sm: 6px;    /* pílulas de tabela, chips pequenos */
+  --radius-md: 10px;   /* botões, campos, itens de menu */
+  --radius-lg: 12px;   /* blocos internos, botão principal */
+  --radius-xl: 16px;   /* cards */
+  --radius-2xl: 18px;  /* hero */
+  --radius-pill: 999px;
+
+  --control-h-sm: 36px;
+  --control-h-md: 44px;  /* alvo mínimo de toque */
+  --control-h-lg: 52px;  /* ação principal */
+  --touch-min: 44px;
+
+  --sidebar-w: 248px;
+  --content-max: 1240px;
+  --bottom-nav-h: 64px;
+  --card-pad: 22px;
+  --hero-pad: 28px;
+}

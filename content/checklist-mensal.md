@@ -4,7 +4,7 @@ Use no último dia útil de cada mês. Tempo estimado: 30 a 45 minutos. Faça em
 
 ---
 
-## 📥 RENDA
+## RENDA
 
 - [ ] Quanto entrou de salário/renda principal este mês?
 - [ ] Quanto entrou de renda extra?
@@ -15,7 +15,7 @@ Use no último dia útil de cada mês. Tempo estimado: 30 a 45 minutos. Faça em
 
 ---
 
-## 📤 GASTOS
+## GASTOS
 
 - [ ] Total gasto em despesas fixas obrigatórias: R$ ____
 - [ ] Total gasto em despesas variáveis necessárias: R$ ____
@@ -29,7 +29,7 @@ Use no último dia útil de cada mês. Tempo estimado: 30 a 45 minutos. Faça em
 
 ---
 
-## 💳 DÍVIDAS
+## DÍVIDAS
 
 - [ ] Saldo total das dívidas no início do mês: R$ ____
 - [ ] Saldo total das dívidas no final do mês: R$ ____
@@ -43,7 +43,7 @@ Use no último dia útil de cada mês. Tempo estimado: 30 a 45 minutos. Faça em
 
 ---
 
-## 🚀 RENDA EXTRA
+## RENDA EXTRA
 
 - [ ] Quanto gerei de renda extra este mês: R$ ____
 - [ ] O quê gerou esse valor (quais ações)?
@@ -54,7 +54,7 @@ Use no último dia útil de cada mês. Tempo estimado: 30 a 45 minutos. Faça em
 
 ---
 
-## 🛡️ RESERVA
+## RESERVA
 
 - [ ] Saldo da reserva no início do mês: R$ ____
 - [ ] Saldo da reserva no final do mês: R$ ____
@@ -67,7 +67,7 @@ Use no último dia útil de cada mês. Tempo estimado: 30 a 45 minutos. Faça em
 
 ---
 
-## 🧭 DIREÇÃO
+## DIREÇÃO
 
 - [ ] Cumpri as 3 metas que defini para este mês?
   - Meta 1: ☐ sim ☐ parcial ☐ não — Por quê?
@@ -88,7 +88,7 @@ Use no último dia útil de cada mês. Tempo estimado: 30 a 45 minutos. Faça em
 
 ---
 
-## 📅 PLANO DO PRÓXIMO MÊS
+## PLANO DO PRÓXIMO MÊS
 
 Defina 3 metas concretas para os próximos 30 dias:
 
@@ -102,7 +102,7 @@ Defina 1 meta de aprendizado:
 
 ---
 
-## 🟢 INDICADORES DE SAÚDE FINANCEIRA
+## INDICADORES DE SAÚDE FINANCEIRA
 
 Avalie cada item de 1 (péssimo) a 5 (excelente):
 
@@ -121,7 +121,7 @@ Avalie cada item de 1 (péssimo) a 5 (excelente):
 
 ---
 
-## 🔁 LEMBRETE FINAL
+## LEMBRETE FINAL
 
 A revisão mensal é o segredo que ninguém te conta. Em 12 meses você terá feito 12 ciclos de aprendizado.
 
