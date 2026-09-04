@@ -6,6 +6,7 @@ import { PropsWithChildren } from "react";
 import { BookOpen, CalendarDays, HandCoins, Smartphone } from "lucide-react";
 import { BottomNav, isActivePath, mainNavItems } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
+import { InstallNudge } from "@/components/InstallNudge";
 import { UpdateBanner } from "@/components/UpdateBanner";
 
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
@@ -109,6 +110,7 @@ export function AppShell({ children }: PropsWithChildren) {
       {/* Conteúdo principal */}
       <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
         <Header title={meta.title} subtitle={meta.subtitle} aside={pathname === "/app/inicio" ? <MonthChip /> : null} />
+        {pathname !== "/app/instalar" && <InstallNudge />}
         <main className="w-full min-w-0">{children}</main>
       </div>
 
