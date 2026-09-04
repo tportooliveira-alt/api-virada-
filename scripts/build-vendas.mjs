@@ -70,6 +70,56 @@ let html = template
 
 html = render(html, vals);
 
+// ── 3b. Blocos que o design não traz e a venda pede ──────────────────────
+// Vivem aqui, e não no .dc.html, para o arquivo do Claude Design seguir intacto
+// quando ele for reexportado.
+
+// Autoridade: quem está por trás. Sem rosto, comprador desconfiado não fecha.
+const AUTORIDADE = `
+    <div style="max-width:1200px; margin:0 auto; padding:56px 24px;">
+      <div style="max-width:760px; margin:0 auto; background:#FFFFFF; border:1px solid #E5E9F0; border-radius:20px; padding:32px;">
+        <p style="margin:0 0 6px; font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#B45309;">Quem fez</p>
+        <h2 style="margin:0 0 16px; font-size:26px; line-height:1.2; font-weight:800; letter-spacing:-.02em; color:#0F172A;">Meu nome é Thiago Porto</h2>
+        <p style="margin:0 0 12px; font-size:16px; line-height:1.7; color:#475569;">Fiz o Código da Virada porque me cansei de duas coisas: planilha que dá trabalho demais pra alimentar e ninguém mantém depois da primeira semana, e app de banco que só enxerga o que passa naquela conta &mdash; ignorando o dinheiro na mão, o Pix que caiu no outro banco, a venda de fim de semana.</p>
+        <p style="margin:0 0 12px; font-size:16px; line-height:1.7; color:#475569;">Eu precisava de uma coisa que funcionasse na rotina de verdade: rápida, no celular, e que no fim juntasse tudo numa planilha decente sem eu ter que montar nada.</p>
+        <p style="margin:0; font-size:16px; line-height:1.7; color:#475569;">Como não existia do jeito que eu queria, construí. Uso todo dia &mdash; e é o mesmo app que você recebe aqui.</p>
+      </div>
+    </div>
+`;
+
+// Ancoragem contra assinatura: a comparação que faz R$ 47 parecer simbólico.
+// Sem citar marca: preço de concorrente muda e vira propaganda enganosa.
+const ANCORAGEM = `
+    <div style="max-width:1200px; margin:0 auto; padding:0 24px 8px;">
+      <div style="max-width:760px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px;">
+        <div style="background:#F8FAFC; border:1px solid #E5E9F0; border-radius:16px; padding:20px;">
+          <p style="margin:0 0 8px; font-size:13px; font-weight:700; color:#64748B;">App de controle por assinatura</p>
+          <p style="margin:0 0 6px; font-size:24px; font-weight:800; color:#0F172A;">R$ 29 a R$ 39 <span style="font-size:15px; font-weight:600; color:#64748B;">/ mês</span></p>
+          <p style="margin:0; font-size:14px; line-height:1.6; color:#475569;">Mais de R$ 350 por ano. Parou de pagar, perdeu o acesso ao seu histórico.</p>
+        </div>
+        <div style="background:#DCFCE7; border:1px solid #86EFAC; border-radius:16px; padding:20px;">
+          <p style="margin:0 0 8px; font-size:13px; font-weight:700; color:#15803D;">Código da Virada</p>
+          <p style="margin:0 0 6px; font-size:24px; font-weight:800; color:#0F172A;">R$ 47 <span style="font-size:15px; font-weight:600; color:#15803D;">uma vez</span></p>
+          <p style="margin:0; font-size:14px; line-height:1.6; color:#166534;">Pra sempre, com atualiza&ccedil;&otilde;es gr&aacute;tis. E os dados ficam no seu celular e na sua conta Google.</p>
+        </div>
+      </div>
+    </div>
+`;
+
+// Promessa com prazo: a headline é dor ("não sabe pra onde foi"), e dor não é
+// promessa. O prazo entra no subtítulo, sem mexer no hero desenhado.
+html = html.replace(
+  "Um app que lança seus gastos em 10 segundos e uma planilha que se monta sozinha no seu Google Drive.",
+  "<strong style=\"color:#fff;\">Em uma semana você sabe pra onde foi seu dinheiro.</strong> Um app que lança seus gastos em 10 segundos e uma planilha que se monta sozinha no seu Google Drive.",
+);
+
+html = html.replace("<footer", AUTORIDADE + "<footer");
+{
+  const marca = '<section id="comprar"';
+  const i = html.indexOf(marca);
+  if (i !== -1) html = html.slice(0, i) + ANCORAGEM + html.slice(i);
+}
+
 const hoverCss = [...hoverRules].map(([css, cls]) => `  .${cls}:hover { ${css} }`).join("\n");
 
 // ── 4. Hero: compila os JSX com o tsc do projeto e junta com o React UMD ──
