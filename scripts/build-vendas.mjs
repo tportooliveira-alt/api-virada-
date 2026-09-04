@@ -40,6 +40,11 @@ function enxugarOferta(s) {
   // renumera os que ficaram (1 negociação, 2 plano, 3 checklist)
   s = s.replace(/Bônus 3 ·/g, "Bônus 2 ·").replace(/Bônus 4 ·/g, "Bônus 3 ·");
   s = s.replace(/4 bônus/g, "3 bônus");
+  // O design estimava 5,3% de acréscimo no parcelamento e anunciava 5x de R$ 9,90.
+  // A taxa real da Kiwify é 10,75%: o checkout mostra 5x de R$ 10,41. Anunciar
+  // parcela menor do que a cobrada é o tipo de coisa que o comprador descobre
+  // exatamente na hora de pagar.
+  s = s.replace("(preco / 5) * 1.053", "(preco / 5) * 1.1075");
   return s;
 }
 

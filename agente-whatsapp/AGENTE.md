@@ -41,7 +41,7 @@ saber o que a pessoa quer.
 
 **Código da Virada** — app de controle financeiro no celular + e-book com método +
 3 bônus. **R$ 47, pagamento único, sem mensalidade.** Preço cheio R$ 150.
-Também parcela em 5x de R$ 9,90.
+Também parcela em 5x de R$ 10,41 (o cartão tem acréscimo — à vista sai R$ 47).
 
 **O que a pessoa leva:**
 - App instalável no celular (Android e iPhone), funciona offline
