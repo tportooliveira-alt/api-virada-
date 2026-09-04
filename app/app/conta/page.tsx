@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { BookOpen, HandCoins, ListChecks, LogOut, Smartphone, Trash2 } from "lucide-react";
+import { BookOpen, CalendarCheck, HandCoins, Lightbulb, ListChecks, LogOut, Smartphone, Trash2 } from "lucide-react";
 import { GoogleSyncButton } from "@/components/GoogleSyncButton";
 import { getLocalUser, logOut } from "@/components/AuthGate";
 import { Sheet, SheetAction } from "@/components/ui/Sheet";
@@ -54,8 +54,10 @@ export default function ContaPage() {
           <p className="eyebrow">O que veio junto</p>
           {[
             { href: "/biblioteca/negociacao/index.html", Icon: HandCoins, titulo: "Negociar dívida", desc: "Calcula o desconto, escreve os scripts e gera a carta pro banco." },
-            { href: "/downloads/ebook-codigo-da-virada.pdf", Icon: BookOpen, titulo: "E-book", desc: "O método completo, em 7 capítulos." },
+            { href: "/downloads/ebook-codigo-da-virada.pdf", Icon: BookOpen, titulo: "E-book", desc: "O método completo, em 5 capítulos." },
             { href: "/biblioteca/plano-7-dias/index.html", Icon: ListChecks, titulo: "Plano de 7 dias", desc: "Uma ação por dia pra sair do lugar." },
+            { href: "/biblioteca/checklist/index.html", Icon: CalendarCheck, titulo: "Checklist mensal", desc: "A revisão de todo fim de mês, em 15 minutos." },
+            { href: "/downloads/bonus-50-ideias.pdf", Icon: Lightbulb, titulo: "50 ideias de renda extra", desc: "Para começar do zero, sem investir." },
           ].map(({ href, Icon, titulo, desc }) => (
             <a
               key={href}

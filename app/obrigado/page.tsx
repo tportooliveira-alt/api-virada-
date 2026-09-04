@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, CalendarCheck, CheckCircle2, HandCoins, ListChecks, MessageCircle } from "lucide-react";
+import { BookOpen, CalendarCheck, CheckCircle2, HandCoins, Lightbulb, ListChecks, MessageCircle } from "lucide-react";
 
 /**
  * Página de obrigado — para onde a plataforma manda quem acabou de pagar.
@@ -21,6 +21,7 @@ const EXTRAS = [
   { href: "/biblioteca/negociacao/index.html", icon: HandCoins, label: "Negociar dívida", desc: "Calcula o desconto justo e escreve a carta pro banco." },
   { href: "/downloads/plano-7-dias.pdf", icon: CalendarCheck, label: "Plano de 7 dias", desc: "Uma tarefa por dia, a primeira semana inteira." },
   { href: "/downloads/checklist-mensal.pdf", icon: ListChecks, label: "Checklist mensal", desc: "A revisão de 15 minutos que segura o mês." },
+  { href: "/downloads/bonus-50-ideias.pdf", icon: Lightbulb, label: "50 ideias de renda extra", desc: "Para começar do zero, sem investir." },
 ];
 
 export default function ObrigadoPage() {
