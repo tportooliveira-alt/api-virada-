@@ -157,28 +157,6 @@ export function AuthGate({ children }: PropsWithChildren) {
     document.head.appendChild(s);
   }, [authenticate, clientId]);
 
-  const ensureIdClient = useCallback(() => {
-    if (!clientId) {
-      setError("NEXT_PUBLIC_GOOGLE_CLIENT_ID não está configurado.");
-      return false;
-    }
-    const id = window.google?.accounts?.id;
-    if (!id) {
-      setError("Aguarde, carregando login Google…");
-      loadGisScript();
-      return false;
-    }
-    if (idInitialized.current) return true;
-    id.initialize({
-      client_id: clientId,
-      use_fedcm_for_prompt: false,
-      callback: (response) => {
-        void authenticate({ credential: response.credential });
-      },
-    });
-    idInitialized.current = true;
-    return true;
-  }, [authenticate, clientId, loadGisScript]);
 
   const startOAuthPopupFallback = useCallback(() => {
     const oauth2 = window.google?.accounts?.oauth2;
@@ -264,39 +242,12 @@ export function AuthGate({ children }: PropsWithChildren) {
   if (isPublic) return <>{children}</>;
 
   function handleSignIn() {
-    if (!ensureIdClient()) return;
-
     setError("");
-    setSubmitting(true);
-
-    let handled = false;
-    const onFallback = () => {
-      if (handled) return;
-      handled = true;
-      startOAuthPopupFallback();
-    };
-
-    // Se o prompt nem abrir (caso FedCM quebrado), cai no popup OAuth.
-    const timeoutId = window.setTimeout(onFallback, 1200);
-
-    window.google?.accounts?.id?.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
-        window.clearTimeout(timeoutId);
-        onFallback();
-      }
-    });
-
-    // Se o prompt abriu, o callback de credential assume o fluxo.
-    window.setTimeout(() => {
-      if (!handled) {
-        setSubmitting(false);
-      }
-    }, 2200);
-
-    // Fail-safe: evita botão travado se navegador bloquear prompt e popup.
-    window.setTimeout(() => {
-      setSubmitting(false);
-    }, 14000);
+    // Abre o popup do Google AGORA, no clique. Antes tentávamos o One Tap e só
+    // caíamos no popup depois de um setTimeout — e popup que não nasce do gesto
+    // do usuário é bloqueado pelo Safari e pelo Chrome. Era aí que o comprador
+    // via "não consegui abrir a janela do Google" e desistia.
+    startOAuthPopupFallback();
   }
 
   // ─── UIs ──────────────────────────────────────────────────────────────────

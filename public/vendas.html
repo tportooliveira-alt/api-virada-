@@ -354,11 +354,10 @@ window.OM_PLAYBACK = '{"mode":"loop"}';
   var els = { h: document.querySelectorAll('[data-count="h"]'), m: document.querySelectorAll('[data-count="m"]'), s: document.querySelectorAll('[data-count="s"]') };
   var timer;
   function tick() {
-    var rest = Math.max(0, deadline() - Date.now());
-    if (rest === 0) { // oferta venceu: tira a faixa em vez de deixar 00:00:00 parado
-      clearInterval(timer);
-      document.querySelectorAll("[data-oferta]").forEach(function (el) { el.style.display = "none"; });
-      return;
+    let rest = Math.max(0, deadline() - Date.now());
+    if (rest === 0) { // zerou: renova a janela em vez de travar em 00:00:00
+      try { localStorage.removeItem("virada-oferta-fim"); } catch (e) {}
+      rest = Math.max(0, deadline() - Date.now());
     }
     var v = { h: pad(Math.floor(rest / 3600000)), m: pad(Math.floor((rest % 3600000) / 60000)), s: pad(Math.floor((rest % 60000) / 1000)) };
     for (var k in els) els[k].forEach(function (el) { el.textContent = v[k]; });
