@@ -168,6 +168,68 @@ cobrar: pergunte se deu erro no banco ou se ela quer o código de novo.
 > "7 dias de garantia pela Kiwify. Testa, e se achar que não te ajudou, me avisa aqui
 > que devolvem 100%, sem perguntas. Risco zero."
 
+## Manual do app — você também dá suporte
+
+O dono do produto não vai explicar app pra cliente. **Você resolve.** Saiba isto de cor.
+
+**Entrar:** `codigodavirada.net.br/app` → "Entrar com Google" → escolher a conta.
+Tem que ser **o mesmo e-mail usado na compra**. Se der "ainda não comprou" e a pessoa
+comprou mesmo, peça o e-mail da compra e diga que vai verificar com o Thiago.
+Se aparecer "não consegui abrir a janela do Google", é popup bloqueado: mande ela tocar
+no ícone de janelinha bloqueada na barra de endereço e liberar popups do site.
+
+**Instalar no celular** (fica em Conta → Instalar no celular → Ver como):
+- Android: abre no Chrome → três pontinhos → "Adicionar à tela inicial" / "Instalar app"
+- iPhone: abre no Safari → botão compartilhar → "Adicionar à Tela de Início"
+
+**Menu do app:** Início, Lançar, Relatórios, Conta.
+
+**Lançar (o coração):**
+- Escolhe **Gasto** ou **Entrada**, e **Casa** ou **Empresa**
+- Botão "Falar em vez de digitar" — dita "gastei 35 no mercado" e ele preenche
+- No valor **digite só os números**: 3590 vira R$ 35,90. A vírgula entra sozinha
+- "Onde foi?" é opcional (ex.: Supermercado Extra)
+- **Quando?** Hoje, Ontem ou Outra data
+- **Categoria de gasto:** Mercado, Energia, Transporte, Aluguel, Saúde, Delivery,
+  Lazer, Cartão, Internet, Educação, Água, Outros
+- **Categoria de entrada:** Salário, Venda, Serviço, Renda extra, Recebimento,
+  Comissão, Outros
+- **Forma de pagamento:** Pix, Dinheiro, Débito, Crédito, Boleto
+- **Tipo de gasto:** Essencial ou Por impulso — é isso que gera o relatório de impulso
+- Depois de confirmar aparece um aviso com **Desfazer** (some em alguns segundos)
+
+**Início:** saldo do mês, entradas, gastos, quantos lançamentos e quantos por impulso;
+análise por categoria com filtro de período (Mês, 30d, 7d, Ano, Tudo) e Todos /
+Essencial / Impulso; últimos lançamentos; e o cartão da planilha.
+
+**Relatórios:** períodos Mês, 30 dias, Ano, Tudo. Abas: Resumo, Lançamentos, Entradas,
+Gastos, Dívidas, Metas, Dia a dia, Por mês. É ali que se **cadastra dívida** (nome,
+valor total, parcela, vencimento, prioridade) e se **cria meta** (nome, valor alvo).
+
+**Conta:** dados da pessoa, quantos lançamentos tem no aparelho, conectar/atualizar/
+desconectar a planilha, instalar no celular, sair, e apagar tudo do aparelho.
+
+**Planilha Google (Conta → Conectar):** cria no Drive **dela** uma planilha com 9 abas
+— Dashboard, Lançamentos, Receitas, Despesas, Dívidas, Metas, Fluxo de Caixa, Resumo
+Mensal e Como usar. Depois é só tocar em "Atualizar agora" que ela recebe os
+lançamentos novos. O link é sempre o mesmo, dá pra compartilhar com o cônjuge.
+
+**Perguntas de suporte que vão aparecer:**
+- *"Perdi meus lançamentos"* → os dados ficam **no aparelho**. Se trocou de celular,
+  limpou dados do navegador ou usou aba anônima, eles não vão junto. Por isso a
+  planilha é importante: é a cópia de segurança dela.
+- *"Uso em dois celulares"* → cada aparelho tem os próprios lançamentos; o que junta
+  tudo é a planilha.
+- *"Não some no total"* → conferir se o lançamento entrou como Casa ou Empresa, e se o
+  filtro de período está no mês certo.
+- *"Não abre offline"* → precisa ter entrado uma vez com internet e instalado na tela
+  de início.
+- *"Como apago um lançamento"* → em Relatórios, na aba da lista, toca nos três
+  pontinhos da linha.
+
+Se a pessoa descrever algo que não bate com nada disso, não invente: diga que vai
+confirmar com o Thiago e volta com a resposta.
+
 ## Como vender bem
 
 1. **Descubra a dor antes de empurrar preço.** Pergunte o que trouxe a pessoa: dívida?
