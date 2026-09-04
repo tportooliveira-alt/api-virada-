@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Figtree:wght@600;700;800&display=swap">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<meta name="theme-color" content="#ffffff">
+<title>Minha Biblioteca — O Código da Virada</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Código da Virada">
+<style>
+  :root {
+    --bg: #ffffff; --surface: #ffffff; --surface-2: #f8fafc;
+    --line: #e5e9f0; --text: #0f172a; --text-soft: #475569;
+    --text-mute: #94a3b8; --green: #22c55e; --green-dark: #15803d;
+    --green-soft: #dcfce7; --gold: #f5c542;
+    --gold-soft: #fffbeb; --blue: #3b82f6;
+    --red: #ef4444; --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg); color: var(--text);
+    font-family: Onest, 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.55; -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  body { padding: 24px 16px 100px; max-width: 1100px; margin: 0 auto; }
+
+  header { padding: 12px 4px 28px; }
+  .brand-line { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--green); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+  .brand-line .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  h1 { font-size: 36px; font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 12px; }
+  .subtitle { color: var(--text-soft); font-size: 16px; max-width: 600px; line-height: 1.5; }
+
+  .privacy-strip {
+    background: var(--green-soft); border: 1px solid var(--green);
+    border-radius: 11px; padding: 12px 14px; margin-top: 18px;
+    font-size: 13px; line-height: 1.5; color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .privacy-strip strong { color: var(--green); }
+
+  /* === BANNER CONTINUAR === */
+  .continue-banner {
+    background: linear-gradient(135deg, var(--green-soft) 0%, var(--surface) 100%);
+    border: 1px solid var(--green); border-radius: var(--radius);
+    padding: 16px 20px; margin-top: 18px;
+    display: none; align-items: center; gap: 14px; flex-wrap: wrap;
+    text-decoration: none; color: var(--text); cursor: pointer;
+    transition: all 0.2s;
+  }
+  .continue-banner.show { display: flex; }
+  .continue-banner:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(29,158,117,0.2); }
+  .continue-banner .icon { font-size: 32px; flex-shrink: 0; }
+  .continue-banner .info { flex: 1; min-width: 200px; }
+  .continue-banner .label { font-size: 11px; color: var(--green); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2px; }
+  .continue-banner .name { font-size: 16px; font-weight: 700; color: var(--text); }
+  .continue-banner .arrow { color: var(--green); font-size: 20px; font-weight: 700; }
+
+  /* === STATS ROW (3 cards lado a lado) === */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin: 24px 0 28px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px 18px;
+  }
+  .stat-card .lbl { font-size: 11px; color: var(--text-mute); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-card .val { font-size: 24px; font-weight: 800; color: var(--green); letter-spacing: -0.02em; }
+  .stat-card .val .total { color: var(--text-mute); font-size: 16px; font-weight: 600; }
+  .stat-card .sub { font-size: 12px; color: var(--text-soft); margin-top: 6px; line-height: 1.4; }
+  .stat-card.streak .val { color: var(--gold); }
+  .stat-card.streak.zero .val { color: var(--text-mute); }
+  .stat-card.engagement .val { color: var(--blue); }
+  .progress-bar { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; background: var(--green); transition: width 0.5s; }
+
+  .section-title {
+    font-size: 13px; color: var(--text-mute); font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    margin: 32px 0 14px; padding: 0 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title .icon { font-size: 16px; }
+
+  /* === GRID DE LIVROS === */
+  .books-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+  }
+  .book {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px; cursor: pointer;
+    transition: all 0.25s; text-decoration: none; color: inherit;
+    display: flex; flex-direction: column;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+  .book:hover { border-color: var(--green); transform: translateY(-4px); box-shadow: 0 18px 40px rgba(0,0,0,0.5); }
+  .book-cover-wrap {
+    width: 100%; aspect-ratio: 3/4; border-radius: 10px; overflow: hidden;
+    margin-bottom: 12px; background: var(--surface-2); position: relative;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .book-cover-wrap img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform 0.4s;
+  }
+  .book:hover .book-cover-wrap img { transform: scale(1.04); }
+  .book-order {
+    position: absolute; top: 8px; left: 8px;
+    background: rgba(0,0,0,0.85); color: white;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase; padding: 4px 8px; border-radius: 6px;
+  }
+  .book-order.principal { background: var(--green); }
+  .book-order.bonus { background: var(--gold); color: var(--bg); }
+  .book-status {
+    position: absolute; top: 8px; right: 8px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--text-soft);
+  }
+  .book-status.done { background: var(--green); color: white; }
+  .book-status.progress { background: var(--gold); color: var(--bg); }
+  .book-badge-new {
+    position: absolute; bottom: 8px; right: 8px;
+    background: linear-gradient(135deg, var(--gold), #d48a1f);
+    color: #1a1109; font-size: 9px; font-weight: 800;
+    letter-spacing: 0.05em; padding: 3px 7px; border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(240,168,48,0.4);
+  }
+  .book-title { font-size: 15px; font-weight: 700; line-height: 1.25; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .book-sub { font-size: 12px; color: var(--text-soft); line-height: 1.4; }
+  .book-meta {
+    display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+    font-size: 11px; color: var(--text-mute);
+  }
+  .book-meta .tag {
+    background: var(--surface-2); padding: 3px 8px; border-radius: 5px;
+  }
+  .book-meta .tag.time { color: var(--green); }
+
+  /* === PDFs GRID (mais compacto) === */
+  .pdfs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .pdf-card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 11px; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none; color: inherit; cursor: pointer;
+    transition: all 0.15s; -webkit-tap-highlight-color: transparent;
+  }
+  .pdf-card:hover { border-color: var(--red); background: var(--surface-2); }
+  .pdf-icon {
+    width: 38px; height: 38px; border-radius: 9px;
+    background: rgba(214,86,86,0.15); color: var(--red);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 11px; flex-shrink: 0;
+  }
+  .pdf-info { flex: 1; min-width: 0; }
+  .pdf-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; }
+  .pdf-size { font-size: 11px; color: var(--text-mute); margin-top: 2px; }
+
+  /* === LIVRO PREMIUM CARD === */
+  .premium-card {
+    background: linear-gradient(135deg, rgba(240,168,48,0.1) 0%, var(--surface) 100%);
+    border: 1px solid var(--gold); border-radius: var(--radius);
+    padding: 20px; margin-top: 16px;
+    display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  }
+  .premium-icon { font-size: 40px; flex-shrink: 0; }
+  .premium-info { flex: 1; min-width: 200px; }
+  .premium-info h3 { font-size: 18px; color: var(--gold); margin-bottom: 6px; letter-spacing: -0.01em; }
+  .premium-info p { font-size: 14px; color: var(--text-soft); line-height: 1.5; }
+  .premium-info .files { font-size: 12px; color: var(--text-mute); margin-top: 8px; }
+
+  /* === INSTALAR === */
+  .install-card {
+    background: linear-gradient(135deg, var(--green-soft) 0%, var(--surface) 100%);
+    border: 1px solid var(--green); border-radius: var(--radius);
+    padding: 20px; margin-top: 28px;
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  }
+  .install-icon { font-size: 36px; flex-shrink: 0; }
+  .install-info { flex: 1; min-width: 200px; }
+  .install-info h3 { font-size: 16px; margin-bottom: 4px; color: var(--green); }
+  .install-info p { font-size: 13px; color: var(--text-soft); line-height: 1.5; }
+  .install-btn {
+    padding: 12px 24px; background: var(--green); color: white;
+    border: none; border-radius: 11px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s; font-family: inherit;
+    display: none; align-items: center; gap: 8px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .install-btn.show { display: inline-flex; }
+  .install-btn:hover { background: var(--green-dark); }
+  .install-hint {
+    background: var(--surface-2); border-radius: 9px; padding: 10px 12px;
+    margin-top: 10px; font-size: 12px; color: var(--text-soft); line-height: 1.5;
+    display: none;
+  }
+  .install-hint.show { display: block; }
+  .install-hint strong { color: var(--text); }
+
+  /* === ACTIONS === */
+  .actions-card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px;
+    margin-top: 20px;
+  }
+  .actions-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .action-btn {
+    padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; font-family: inherit;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    text-decoration: none;
+  }
+  .action-btn:hover { background: var(--line); border-color: var(--text-mute); }
+  .action-btn.whatsapp { background: #25D366; border-color: #25D366; color: white; }
+  .action-btn.whatsapp:hover { background: #1eaa56; }
+  .action-btn.danger { color: var(--red); }
+  .action-btn.danger:hover { background: rgba(214,86,86,0.1); border-color: var(--red); }
+
+  /* === MOBILE === */
+  @media (max-width: 480px) {
+    body { padding: 16px 12px 100px; }
+    h1 { font-size: 26px; }
+    .subtitle { font-size: 14px; }
+    .books-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .book { padding: 10px; }
+    .book-title { font-size: 13px; }
+    .book-sub { font-size: 11px; }
+    .stats-row { grid-template-columns: 1fr; }
+    .premium-card { padding: 16px; }
+    .premium-info h3 { font-size: 16px; }
+  }
+
+  .footer-note { text-align: center; padding: 32px 20px; color: var(--text-mute); font-size: 12px; border-top: 1px solid var(--line); margin-top: 40px; }
+  .footer-note a { color: var(--green); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-line"><span class="dot"></span> O Código da Virada</div>
+  <h1>Minha Biblioteca</h1>
+  <p class="subtitle">Olá! Aqui está todo o material da sua jornada. Toca em qualquer capa pra abrir em uma nova aba — o hub fica aqui te esperando.</p>
+  <div class="privacy-strip">
+    <span style="font-size:18px;">🔒</span>
+    <div><strong>100% no seu aparelho</strong> · Seu progresso, anotações e dados ficam só com você. Sem servidor, sem login, sem rastreamento.</div>
+  </div>
+</header>
+
+<!-- BANNER CONTINUAR -->
+<a id="continue-banner" class="continue-banner" target="_blank" rel="noopener">
+  <span class="icon">▶️</span>
+  <div class="info">
+    <div class="label">Continue de onde parou</div>
+    <div class="name" id="continue-name">—</div>
+  </div>
+  <span class="arrow">→</span>
+</a>
+
+<!-- STATS ROW -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="lbl">📊 Materiais usados</div>
+    <div class="val"><span id="progress-count">0</span><span class="total"> / 5</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+  <div class="stat-card engagement">
+    <div class="lbl">✍️ Sua atividade</div>
+    <div class="val" id="stat-actions">0</div>
+    <div class="sub" id="stat-actions-detail">passos + notas + revisões</div>
+  </div>
+  <div class="stat-card streak zero" id="streak-card">
+    <div class="lbl">🔥 Sequência</div>
+    <div class="val"><span id="streak-days">0</span><span class="total"> dias</span></div>
+    <div class="sub" id="streak-msg">Abra a biblioteca todo dia pra criar hábito</div>
+  </div>
+</div>
+
+<!-- LIVRO PRINCIPAL -->
+<div class="section-title"><span class="icon">📖</span> <a href="negociacao/index.html" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:14px;text-decoration:none;background:#FFFBEB;border:1px solid #FCD34D;border-radius:16px;padding:16px 18px;margin:0 0 22px;">
+  <span style="flex:1;min-width:0;">
+    <strong style="display:block;color:#0F172A;font-size:16px;font-weight:700;">Com dívida atrasada? Comece por aqui</strong>
+    <span style="display:block;color:#475569;font-size:14px;line-height:1.5;margin-top:3px;">Calcula quanto pedir de desconto, escreve os scripts com os seus dados e gera a carta pro banco.</span>
+  </span>
+  <span style="color:#B45309;font-weight:700;font-size:20px;">&rarr;</span>
+</a>
+Comece por aqui</div>
+<div class="books-grid">
+  <a href="/downloads/ebook-codigo-da-virada.pdf" target="_blank" rel="noopener" class="book" data-mat="ebook">
+    <div class="book-cover-wrap">
+      <span class="book-order principal">1º Passo</span>
+      <span class="book-status" id="status-ebook">📖</span>
+      <img src="capas/ebook.jpg" alt="O Código da Virada Financeira">
+    </div>
+    <div class="book-title">O Código da Virada Financeira</div>
+    <div class="book-sub">7 capítulos · método completo de organização e renda</div>
+    <div class="book-meta">
+      <span class="tag time">⏱ 90 min</span>
+      <span class="tag">Leitura</span>
+    </div>
+  </a>
+</div>
+
+<!-- APLIQUE O MÉTODO -->
+<div class="section-title"><span class="icon">🎯</span> Aplique o método</div>
+<div class="books-grid">
+  <a href="plano-7-dias/index.html" target="_blank" rel="noopener" class="book" data-mat="b3">
+    <div class="book-cover-wrap">
+      <span class="book-order bonus">2º Passo</span>
+      <span class="book-status" id="status-b3">📖</span>
+      <img src="capas/bonus-3.jpg" alt="Plano de 7 Dias">
+    </div>
+    <div class="book-title">Plano de 7 Dias</div>
+    <div class="book-sub">Uma ação por dia · jornada com diário exportável</div>
+    <div class="book-meta">
+      <span class="tag time">⏱ 30-60 min/dia</span>
+      <span class="tag">7 dias</span>
+    </div>
+  </a>
+  <a href="checklist/index.html" target="_blank" rel="noopener" class="book" data-mat="b4">
+    <div class="book-cover-wrap">
+      <span class="book-order bonus">3º Passo</span>
+      <span class="book-status" id="status-b4">📖</span>
+      <img src="capas/bonus-4.jpg" alt="Checklist Mensal">
+    </div>
+    <div class="book-title">Checklist Mensal</div>
+    <div class="book-sub">Revisão financeira mensal · score 0-25</div>
+    <div class="book-meta">
+      <span class="tag time">⏱ 30-45 min</span>
+      <span class="tag">Mensal</span>
+    </div>
+  </a>
+</div>
+
+<!-- BÔNUS QUANDO PRECISAR -->
+<div class="section-title"><span class="icon">🎁</span> Bônus — use quando precisar</div>
+<div class="books-grid">
+  
+  <a href="negociacao/index.html" target="_blank" rel="noopener" class="book" data-mat="b2">
+    <div class="book-cover-wrap">
+      <span class="book-order bonus">Bônus</span>
+      <span class="book-status" id="status-b2">📖</span>
+      <img src="capas/bonus-2.jpg" alt="Roteiro de Negociação de Dívidas">
+    </div>
+    <div class="book-title">Roteiro de Negociação</div>
+    <div class="book-sub">Calculadora + Scripts + Carta jurídica</div>
+    <div class="book-meta">
+      <span class="tag time">⏱ 20-40 min</span>
+      <span class="tag">Por dívida</span>
+    </div>
+  </a>
+</div>
+
+<!-- LIVRO PREMIUM -->
+
+<div class="section-title" style="margin-top:34px;">Baixar em PDF</div>
+<p style="color:var(--text-soft);font-size:14px;line-height:1.6;margin:0 0 14px;">
+  Mesmo conteúdo das ferramentas acima, em arquivo — pra ler sem internet, imprimir ou guardar.
+</p>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
+    <a href="/downloads/ebook-codigo-da-virada.pdf" target="_blank" rel="noopener" class="pdf-card">
+      <strong style="display:block;color:var(--text);font-size:15px;">O Código da Virada Financeira</strong>
+      <span style="display:block;color:var(--text-soft);font-size:13px;margin-top:2px;">O método completo, pra ler ou imprimir</span>
+    </a>
+    <a href="/downloads/roteiro-negociacao.pdf" target="_blank" rel="noopener" class="pdf-card">
+      <strong style="display:block;color:var(--text);font-size:15px;">Roteiro de Negociação</strong>
+      <span style="display:block;color:var(--text-soft);font-size:13px;margin-top:2px;">Os scripts em papel, pra levar na ligação</span>
+    </a>
+    <a href="/downloads/plano-7-dias.pdf" target="_blank" rel="noopener" class="pdf-card">
+      <strong style="display:block;color:var(--text);font-size:15px;">Plano de 7 Dias</strong>
+      <span style="display:block;color:var(--text-soft);font-size:13px;margin-top:2px;">Um dia, uma ação</span>
+    </a>
+    <a href="/downloads/checklist-mensal.pdf" target="_blank" rel="noopener" class="pdf-card">
+      <strong style="display:block;color:var(--text);font-size:15px;">Checklist Mensal</strong>
+      <span style="display:block;color:var(--text-soft);font-size:13px;margin-top:2px;">A revisão de todo fim de mês</span>
+    </a>
+</div>
+
+</body>
+</html>

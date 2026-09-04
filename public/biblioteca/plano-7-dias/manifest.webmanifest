@@ -1,0 +1,16 @@
+{
+  "name": "Plano de 7 Dias — Código da Virada",
+  "short_name": "Plano 7 Dias",
+  "description": "Jornada gamificada de 7 dias — Código da Virada",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a0a0c",
+  "theme_color": "#1d9e75",
+  "orientation": "portrait",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

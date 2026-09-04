@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PropsWithChildren } from "react";
-import { CalendarDays, Smartphone } from "lucide-react";
+import { BookOpen, CalendarDays, Smartphone } from "lucide-react";
 import { BottomNav, isActivePath, mainNavItems } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { UpdateBanner } from "@/components/UpdateBanner";
@@ -35,7 +35,13 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   },
 };
 
-const sidebarItems = [...mainNavItems, { href: "/app/instalar", label: "Instalar app", icon: Smartphone }];
+// A Biblioteca é HTML estático fora do app (public/biblioteca), por isso abre em
+// aba nova e não entra no BottomNav — o menu de baixo segue com as 4 telas do design.
+const sidebarItems = [
+  ...mainNavItems,
+  { href: "/biblioteca/index.html", label: "Biblioteca", icon: BookOpen, externo: true },
+  { href: "/app/instalar", label: "Instalar app", icon: Smartphone },
+];
 
 function MonthChip() {
   const month = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date());
@@ -75,6 +81,7 @@ export function AppShell({ children }: PropsWithChildren) {
               <Link
                 key={item.href}
                 href={item.href}
+                {...("externo" in item && item.externo ? { target: "_blank", rel: "noopener" } : {})}
                 aria-current={active ? "page" : undefined}
                 className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm transition-colors duration-150 ${
                   active

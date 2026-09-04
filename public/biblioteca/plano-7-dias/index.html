@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Figtree:wght@600;700;800&display=swap">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<meta name="theme-color" content="#ffffff">
+<title>Plano de 7 Dias — O Código da Virada</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Plano 7 Dias">
+<style>
+  :root {
+    --bg: #ffffff; --surface: #ffffff; --surface-2: #f8fafc;
+    --line: #e5e9f0; --text: #0f172a; --text-soft: #475569;
+    --text-mute: #94a3b8; --green: #22c55e; --green-dark: #15803d;
+    --green-soft: #dcfce7; --gold: #f5c542;
+    --gold-soft: #fffbeb; --red: #ef4444;
+    --blue: #3b82f6; --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text);
+    font-family: Onest, 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  body { padding: 24px 16px 100px; max-width: 760px; margin: 0 auto; }
+
+  header { padding: 8px 4px 28px; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--green); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  h1 { font-size: 28px; font-weight: 700; line-height: 1.15; margin-bottom: 10px; letter-spacing: -0.02em; }
+  .subtitle { color: var(--text-soft); font-size: 15px; max-width: 540px; }
+
+  .privacy-badge {
+    display: flex; align-items: center; gap: 12px; background: var(--green-soft);
+    border: 1px solid var(--green); border-radius: 11px; padding: 12px 14px;
+    margin-top: 18px; font-size: 13px; line-height: 1.45; color: var(--text);
+  }
+  .privacy-badge strong { color: var(--green); }
+  .privacy-icon { font-size: 22px; flex-shrink: 0; }
+  .cover-img {
+    width: 100%; max-width: 240px; aspect-ratio: 3/4;
+    border-radius: 12px; margin: 0 auto 20px; display: block;
+    object-fit: cover; box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    border: 1px solid var(--line);
+  }
+
+  /* === PROGRESSO === */
+  .progress-section {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+  }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .progress-title { font-size: 17px; font-weight: 600; }
+  .progress-count { font-size: 28px; font-weight: 800; color: var(--green); letter-spacing: -0.04em; }
+  .progress-count .total { color: var(--text-mute); font-size: 22px; }
+  .progress-bar { height: 10px; background: var(--surface-2); border-radius: 5px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green) 0%, var(--green-dark) 100%); border-radius: 5px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+  .progress-msg { margin-top: 12px; font-size: 13px; color: var(--text-soft); }
+
+  /* === DIAS === */
+  .day-card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px;
+    margin-bottom: 12px; transition: all 0.25s;
+    position: relative;
+  }
+  .day-card.locked { opacity: 0.5; }
+  .day-card.unlocked { border-color: var(--text-mute); }
+  .day-card.active { border-color: var(--green); box-shadow: 0 0 0 2px rgba(29,158,117,0.15); }
+  .day-card.done { background: var(--green-soft); border-color: var(--green); }
+
+  .day-header { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+  .day-number {
+    width: 48px; height: 48px; border-radius: 12px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .day-number .lab { font-size: 9px; color: var(--text-mute); font-weight: 700; letter-spacing: 0.05em; }
+  .day-number .n { font-size: 20px; font-weight: 800; color: var(--text); line-height: 1; }
+  .day-card.done .day-number { background: var(--green); border-color: var(--green); }
+  .day-card.done .day-number .lab, .day-card.done .day-number .n { color: white; }
+  .day-card.active .day-number { background: var(--green-soft); border-color: var(--green); }
+  .day-card.active .day-number .n { color: var(--green); }
+
+  .day-info { flex: 1; min-width: 0; }
+  .day-title { font-size: 16px; font-weight: 600; line-height: 1.3; margin-bottom: 4px; }
+  .day-objective { font-size: 13px; color: var(--text-soft); line-height: 1.4; }
+  .day-toggle { font-size: 22px; color: var(--text-mute); flex-shrink: 0; transition: transform 0.2s; cursor: pointer; user-select: none; }
+  .day-card.open .day-toggle { transform: rotate(180deg); color: var(--green); }
+
+  .day-body { display: none; padding-top: 16px; margin-top: 14px; border-top: 1px solid var(--line); }
+  .day-card.open .day-body { display: block; }
+
+  .day-meta { display: flex; gap: 8px; font-size: 12px; color: var(--text-mute); margin-bottom: 14px; flex-wrap: wrap; }
+  .day-meta .item { display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--surface-2); border-radius: 6px; }
+  .day-meta .diff-facil { background: var(--green-soft); color: var(--green); font-weight: 600; }
+  .day-meta .diff-medio { background: var(--gold-soft); color: var(--gold); font-weight: 600; }
+  .day-meta .diff-dificil { background: #fef2f2; color: var(--red); font-weight: 600; }
+  .dica-card {
+    background: rgba(74,144,226,0.1); border: 1px solid var(--blue);
+    border-radius: 11px; padding: 12px 14px; margin: 14px 0;
+    font-size: 13px; line-height: 1.5; color: var(--text);
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .dica-card .dica-icon { font-size: 18px; flex-shrink: 0; }
+  .dica-card a {
+    display: inline-block; margin-top: 8px; padding: 8px 14px;
+    background: var(--blue); color: white; border-radius: 8px;
+    text-decoration: none; font-weight: 600; font-size: 13px;
+    transition: opacity 0.15s;
+  }
+  .dica-card a:hover { opacity: 0.85; }
+
+  .step-list { margin-top: 12px; }
+  .step {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--line); cursor: pointer;
+  }
+  .step:last-child { border-bottom: none; }
+  .step input { width: 22px; height: 22px; margin-top: 1px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
+  .step label { font-size: 14px; color: var(--text); cursor: pointer; flex: 1; line-height: 1.5; }
+  .step input:checked + label { color: var(--text-mute); text-decoration: line-through; }
+
+  .result-box {
+    background: var(--green-soft); border: 1px solid var(--green);
+    border-radius: 11px; padding: 14px; margin-top: 14px;
+    font-size: 13px; line-height: 1.5;
+  }
+  .result-box strong { color: var(--green); }
+
+  .note-field { margin-top: 14px; }
+  .note-field label { display: block; font-size: 13px; color: var(--text-soft); margin-bottom: 6px; font-weight: 500; }
+  .note-field textarea {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--line);
+    color: var(--text); font-size: 14px; padding: 10px 12px;
+    border-radius: 9px; font-family: inherit; min-height: 60px;
+    transition: border-color 0.15s;
+  }
+  .note-field textarea:focus { outline: none; border-color: var(--green); }
+
+  .complete-btn {
+    width: 100%; padding: 12px; border-radius: 11px;
+    font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    background: var(--green); border: 1px solid var(--green); color: white;
+    margin-top: 14px; font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .complete-btn:hover { background: var(--green-dark); }
+  .complete-btn.done { background: var(--surface-2); border-color: var(--line); color: var(--text-soft); }
+
+  /* === FINAL === */
+  .celebration {
+    display: none; text-align: center; padding: 32px 20px;
+    background: linear-gradient(180deg, var(--green-soft) 0%, var(--surface) 100%);
+    border: 2px solid var(--green); border-radius: var(--radius); margin-bottom: 16px;
+  }
+  .celebration.show { display: block; }
+  .celebration h2 { font-size: 28px; color: var(--green); margin-bottom: 8px; letter-spacing: -0.02em; }
+  .celebration p { font-size: 15px; color: var(--text); margin-bottom: 16px; }
+
+  /* === MOBILE === */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    body { max-width: 840px; padding: 32px 24px 120px; }
+    h1 { font-size: 32px; }
+  }
+  @media (max-width: 480px) {
+    body { padding: 16px 12px 100px; }
+    h1 { font-size: 22px; }
+    .day-card { padding: 14px; }
+    .day-title { font-size: 15px; }
+    .progress-count { font-size: 24px; }
+    .progress-section { padding: 16px; }
+  }
+
+  .footer-note { text-align: center; font-size: 12px; color: var(--text-mute); margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+  .footer-note a { color: var(--green); text-decoration: none; }
+
+  .save-indicator { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--green); color: white; padding: 10px 20px; border-radius: 999px; font-size: 13px; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 1000; }
+  .save-indicator.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="capa.jpg" alt="Capa do Plano de 7 Dias" class="cover-img">
+  <div class="brand"><span class="dot"></span> O Código da Virada · Bônus 3</div>
+  <h1>Plano de 7 Dias</h1>
+  <p class="subtitle">Sete dias. Uma ação por dia. Pequenas vitórias que se acumulam.</p>
+  <div class="privacy-badge">
+    <span class="privacy-icon">🔒</span>
+    <div>
+      <strong>100% no seu aparelho</strong> · Sem servidor, sem login, sem rastreamento. Seu progresso fica só com você.
+    </div>
+  </div>
+</header>
+
+<div class="progress-section">
+  <div class="progress-header">
+    <span class="progress-title">Seu progresso</span>
+    <span class="progress-count"><span id="completed">0</span><span class="total"> / 7 dias</span></span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width: 0%"></div></div>
+  <div class="progress-msg" id="progress-msg">Começa pelo Dia 1 — sem fugir.</div>
+</div>
+
+<div class="celebration" id="celebration">
+  <h2>🎉 Parabéns!</h2>
+  <p>Você completou os 7 dias. A virada não é evento — é processo. Agora repete o ciclo: a cada semana, revisa, ajusta, celebra.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:420px;margin:0 auto;">
+    <button class="complete-btn" onclick="exportNotas()">📥 Baixar meu diário</button>
+    <button class="complete-btn" onclick="resetAll()" style="background:var(--surface-2);border-color:var(--line);color:var(--text);">🔄 Recomeçar ciclo</button>
+  </div>
+</div>
+
+<div id="days-container"></div>
+
+<div class="footer-note">
+  <div style="color: var(--green); font-weight: 600; margin-bottom: 10px;">
+    🔒 Seus dados não saem do seu aparelho. Sem servidor, sem login, sem rastreamento.
+  </div>
+  <a href="https://codigodavirada.net.br" target="_blank">codigodavirada.net.br</a>
+</div>
+
+<div class="save-indicator" id="save-ind">Salvo ✓</div>
+
+<script>
+const days = [
+  {
+    n: 1, titulo: 'Raio-X Financeiro',
+    objetivo: 'Sair da negação e olhar de frente para os números.',
+    tempo: '60 min', dificuldade: 'Médio',
+    passos: [
+      'Pega uma folha ou abre uma planilha',
+      'Lista TUDO que você tem (conta, poupança, investimentos, dinheiro em espécie)',
+      'Lista todas as dívidas (credor, valor total, taxa de juros, parcela)',
+      'Lista todas as receitas mensais',
+      'Lista as despesas (fixas / variáveis necessárias / variáveis ajustáveis)',
+      'Calcula: Receitas − Despesas = sua sobra (ou falta)',
+    ],
+    resultado: 'Clareza absoluta sobre onde você está hoje. Mesmo que doa.',
+    notaLabel: 'Sua sobra (ou falta) mensal e como você se sentiu olhando os números',
+  },
+  {
+    n: 2, titulo: 'Calendário de Contas',
+    objetivo: 'Parar de pagar conta em atraso e ter previsibilidade.',
+    tempo: '30 min', dificuldade: 'Fácil',
+    passos: [
+      'Abre a agenda do celular (Google Calendar ou app nativo)',
+      'Marca: dia do salário/principal entrada',
+      'Marca: vencimento de TODAS as contas fixas',
+      'Marca: vencimento da fatura do cartão',
+      'Marca: dia do mercado quinzenal',
+      'Marca: revisão semanal (sugestão: sexta de manhã, 15 min)',
+      'Configura lembretes 3 dias antes de cada vencimento',
+    ],
+    resultado: 'Zero contas em atraso a partir de agora.',
+    notaLabel: 'Quantos vencimentos você marcou? Em que dia escolheu pra revisão semanal?',
+  },
+  {
+    n: 3, titulo: 'Corte Um Desperdício',
+    objetivo: 'Estancar a sangria.',
+    tempo: '45 min', dificuldade: 'Fácil',
+    passos: [
+      'Abre a fatura do cartão dos últimos 3 meses',
+      'Lista TODAS as cobranças recorrentes (streamings, apps, antivírus, etc)',
+      'Pra cada uma, pergunta: "usei nas últimas 4 semanas?"',
+      'Cancela tudo que não foi usado',
+      'BÔNUS: liga pra operadora de internet/telefone e renegocia',
+    ],
+    resultado: 'Entre R$ 80 e R$ 250 por mês de volta ao seu bolso.',
+    notaLabel: 'Quantas assinaturas você cancelou? Quanto economizou por mês?',
+  },
+  {
+    n: 4, titulo: 'Escolha Uma Dívida',
+    objetivo: 'Começar o ataque, mesmo que pequeno.',
+    tempo: '60 min', dificuldade: 'Difícil',
+    dica: { texto: 'Abra o app "Roteiro de Negociação de Dívidas" (outro bônus) — ele gera carta jurídica completa, scripts personalizados e calcula faixa de desconto realista pra você.', link: '../09-Negociacao-Dividas-Interativo/index.html' },
+    passos: [
+      'Olha sua lista de dívidas (do Dia 1)',
+      'Escolhe UMA — pela maior taxa de juros (avalanche) ou pelo menor valor (bola de neve)',
+      'Abre o "Roteiro de Negociação" (bônus 2) e preenche os dados da dívida',
+      'Copia o script personalizado ou baixa a carta jurídica',
+      'Liga ou abre o chat da instituição',
+      'Pede o melhor desconto possível à vista',
+      'NÃO aceita a primeira oferta. Diz "vou pensar"',
+      'Se a oferta tá boa, pede pra mandar por escrito antes de fechar',
+    ],
+    resultado: 'Descobrir que o sistema é muito mais flexível do que você imaginava.',
+    notaLabel: 'Qual dívida atacou? Qual desconto conseguiu (mesmo que ainda em proposta)?',
+  },
+  {
+    n: 5, titulo: 'Ação de Renda Extra',
+    objetivo: 'Gerar dinheiro novo esta semana.',
+    tempo: '90 min', dificuldade: 'Médio',
+    passos: [
+      'Escolhe UM caminho: desapego rápido OU serviço local OU freelance digital',
+      'Se desapego: anda pela casa com olhos de comerciante, escolhe 5 itens',
+      'Tira fotos com luz natural',
+      'Anuncia no OLX, Marketplace e grupo do bairro',
+      'OU oferece um serviço seu no grupo de WhatsApp do prédio/bairro',
+      'OU cadastra-se em Workana, 99freelas, GetNinjas e manda 5 propostas',
+    ],
+    resultado: 'Primeira venda/contratação até o fim da semana.',
+    notaLabel: 'Que caminho escolheu? Quantos itens/propostas? Já teve resposta?',
+  },
+  {
+    n: 6, titulo: 'Primeiro Valor pra Reserva',
+    objetivo: 'Quebrar o ciclo de "dinheiro sumiu".',
+    tempo: '30 min', dificuldade: 'Fácil',
+    passos: [
+      'Abre conta numa corretora gratuita: NuInvest (Nubank), Inter, Picpay Invest, XP, Toro, BTG ou C6 Bank',
+      'Faz a primeira aplicação no Tesouro Selic — investimento mínimo é R$ 30 em 2026',
+      'Configura transferência automática mensal (R$ 50 já vale)',
+      'Não mexe. Esquece que existe.',
+      'BÔNUS: o Tesouro Selic rende perto da Selic atual (14,5% a.a.) — bate caderneta de poupança com folga e tem liquidez diária',
+    ],
+    resultado: 'Começo da reserva de emergência. O hábito importa mais que o valor.',
+    notaLabel: 'Em qual corretora abriu? Valor da primeira aplicação?',
+  },
+  {
+    n: 7, titulo: 'Plano do Próximo Mês',
+    objetivo: 'Transformar a semana em sistema.',
+    tempo: '60 min', dificuldade: 'Médio',
+    passos: [
+      'Pega uma folha. No topo, escreve o mês.',
+      'Define 3 metas concretas pros próximos 30 dias',
+      'Exemplo: "Quitar/negociar a dívida X" / "Gerar R$ 800 de renda extra" / "Cancelar 2 assinaturas"',
+      'Define 1 meta de aprendizado (1 canal, 1 livro, 1 curso gratuito)',
+      'Coloca essa folha onde você vê todo dia (geladeira, espelho, tela de bloqueio)',
+      'Marca na agenda a revisão de 30 dias daqui',
+    ],
+    resultado: 'Você sai dos 7 dias com sistema, não com motivação. Sistema dura.',
+    notaLabel: 'Quais foram suas 3 metas? Quando vai ser a revisão?',
+  },
+];
+
+const STORAGE_KEY = 'virada-plano-7dias-v1';
+let state = { steps: {}, notes: {}, completed: {}, openDay: 1 };
+
+function load() {
+  const s = localStorage.getItem(STORAGE_KEY);
+  if (!s) return;
+  try {
+    state = JSON.parse(s);
+    if (!state.steps) state.steps = {};
+    if (!state.notes) state.notes = {};
+    if (!state.completed) state.completed = {};
+    if (!state.openDay) state.openDay = 1;
+  } catch (e) {}
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const ind = document.getElementById('save-ind');
+  ind.classList.add('show');
+  clearTimeout(window._saveTimer);
+  window._saveTimer = setTimeout(() => ind.classList.remove('show'), 1000);
+}
+
+function isDayDone(n) { return !!state.completed[n]; }
+function countDone() { return days.filter(d => isDayDone(d.n)).length; }
+// Lock estrito: dia N só desbloqueia se o dia (N-1) foi concluído. Plano é sequencial.
+function isLocked(n) {
+  if (n === 1) return false;
+  return !isDayDone(n - 1);
+}
+
+function render() {
+  const c = document.getElementById('days-container');
+  const done = countDone();
+  document.getElementById('completed').textContent = done;
+  document.getElementById('progress-fill').style.width = (done / 7 * 100) + '%';
+
+  const msgs = [
+    'Começa pelo Dia 1 — sem fugir.',
+    'Primeiro passo dado. Não para agora.',
+    'Já tem ritmo. Bora pro 3.',
+    'Metade do caminho. A parte mais difícil já passou.',
+    'Mais 3 dias. Não desiste agora.',
+    'Cada vez mais perto. Sente o avanço?',
+    'Última reta. Termina forte.',
+    '🎉 Você completou os 7 dias!',
+  ];
+  document.getElementById('progress-msg').textContent = msgs[done];
+  document.getElementById('celebration').classList.toggle('show', done === 7);
+
+  c.innerHTML = days.map(d => {
+    const stepsObj = state.steps[d.n] || {};
+    const note = state.notes[d.n] || '';
+    const dayDone = isDayDone(d.n);
+    const locked = isLocked(d.n);
+    const open = state.openDay === d.n && !locked;
+    const isActive = !dayDone && !locked && state.openDay === d.n;
+    let cls = 'day-card';
+    if (locked) cls += ' locked';
+    else if (dayDone) cls += ' done';
+    else cls += ' unlocked';
+    if (isActive) cls += ' active';
+    if (open) cls += ' open';
+
+    return `
+      <div class="${cls}" data-day="${d.n}">
+        <div class="day-header" onclick="toggleDay(${d.n})">
+          <div class="day-number">
+            <span class="lab">DIA</span>
+            <span class="n">${dayDone ? '✓' : d.n}</span>
+          </div>
+          <div class="day-info">
+            <div class="day-title">${d.titulo}</div>
+            <div class="day-objective">${d.objetivo}</div>
+          </div>
+          <span class="day-toggle">${locked ? '🔒' : '⌄'}</span>
+        </div>
+        ${open ? `
+        <div class="day-body">
+          <div class="day-meta">
+            <span class="item">⏱ ${d.tempo}</span>
+            <span class="item diff-${d.dificuldade.toLowerCase().replace('í','i').replace('é','e')}">📊 ${d.dificuldade}</span>
+          </div>
+          ${d.dica ? `
+          <div class="dica-card">
+            <span class="dica-icon">💡</span>
+            <div>
+              ${d.dica.texto}
+              ${d.dica.link ? `<br><a href="${d.dica.link}" target="_blank">Abrir agora →</a>` : ''}
+            </div>
+          </div>
+          ` : ''}
+          <div class="step-list">
+            ${d.passos.map((p, i) => `
+              <div class="step">
+                <input type="checkbox" id="d${d.n}s${i}" data-day="${d.n}" data-step="${i}" ${stepsObj[i] ? 'checked' : ''}>
+                <label for="d${d.n}s${i}">${p}</label>
+              </div>
+            `).join('')}
+          </div>
+          <div class="result-box">
+            <strong>Resultado esperado:</strong> ${d.resultado}
+          </div>
+          <div class="note-field">
+            <label for="note${d.n}">${d.notaLabel}</label>
+            <textarea id="note${d.n}" data-day="${d.n}" placeholder="Anote aqui...">${note}</textarea>
+          </div>
+          <button class="complete-btn ${dayDone ? 'done' : ''}" onclick="toggleDone(${d.n})">
+            ${dayDone ? '✓ Dia concluído — clique pra desmarcar' : 'Marcar Dia ' + d.n + ' como concluído →'}
+          </button>
+        </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+
+  bindEvents();
+}
+
+function bindEvents() {
+  document.querySelectorAll('.step input').forEach(i => {
+    i.addEventListener('change', () => {
+      const day = i.dataset.day;
+      const step = i.dataset.step;
+      if (!state.steps[day]) state.steps[day] = {};
+      state.steps[day][step] = i.checked;
+      save();
+    });
+  });
+  document.querySelectorAll('textarea[data-day]').forEach(t => {
+    t.addEventListener('input', () => {
+      state.notes[t.dataset.day] = t.value;
+      save();
+    });
+  });
+}
+
+function toggleDay(n) {
+  if (isLocked(n)) return;
+  state.openDay = (state.openDay === n) ? 0 : n;
+  save();
+  render();
+}
+
+function toggleDone(n) {
+  state.completed[n] = !state.completed[n];
+  if (state.completed[n] && n < 7) {
+    state.openDay = n + 1; // abre próximo automaticamente
+  }
+  save();
+  render();
+  window.scrollTo({ top: document.querySelector(`[data-day="${state.openDay}"]`)?.offsetTop - 20, behavior: 'smooth' });
+}
+
+function resetAll() {
+  if (!confirm('Recomeçar o ciclo? Isso vai apagar todo o progresso atual.')) return;
+  state = { steps: {}, notes: {}, completed: {}, openDay: 1 };
+  save();
+  render();
+}
+
+function exportNotas() {
+  const dataHoje = new Date().toLocaleDateString('pt-BR');
+  let txt = `MEU DIÁRIO DE 7 DIAS — O CÓDIGO DA VIRADA\n`;
+  txt += `Concluído em: ${dataHoje}\n`;
+  txt += `${'═'.repeat(60)}\n\n`;
+  days.forEach(d => {
+    const status = isDayDone(d.n) ? '✓ CONCLUÍDO' : '○ não concluído';
+    const nota = (state.notes[d.n] || '').trim();
+    const stepsObj = state.steps[d.n] || {};
+    const stepsDone = Object.values(stepsObj).filter(v => v).length;
+    txt += `DIA ${d.n} — ${d.titulo}  [${status}]\n`;
+    txt += `Objetivo: ${d.objetivo}\n`;
+    txt += `Passos concluídos: ${stepsDone}/${d.passos.length}\n`;
+    if (nota) {
+      txt += `\nMinha anotação:\n"${nota}"\n`;
+    } else {
+      txt += `(sem anotação)\n`;
+    }
+    txt += `\n${'─'.repeat(60)}\n\n`;
+  });
+  txt += `\nPróximo passo: repetir o ciclo. A virada é processo, não evento.\n`;
+  txt += `\n— codigodavirada.net.br\n`;
+  const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `meu-diario-7-dias-${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// INIT
+load();
+render();
+</script>
+
+</body>
+</html>

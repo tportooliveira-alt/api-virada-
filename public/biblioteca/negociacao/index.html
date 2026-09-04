@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Figtree:wght@600;700;800&display=swap">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<meta name="theme-color" content="#ffffff">
+<title>Roteiro de Negociação de Dívidas — O Código da Virada</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Negociação">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --line: #e5e9f0;
+    --text: #0f172a;
+    --text-soft: #475569;
+    --text-mute: #94a3b8;
+    --green: #22c55e;
+    --green-dark: #15803d;
+    --green-soft: #dcfce7;
+    --gold: #f5c542;
+    --gold-soft: #fffbeb;
+    --red: #ef4444;
+    --red-soft: #fef2f2;
+    --blue: #3b82f6;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg); color: var(--text);
+    font-family: Onest, 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 24px 16px 100px; max-width: 760px; margin: 0 auto; }
+
+  header { padding: 8px 4px 28px; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--green); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  h1 { font-size: 28px; font-weight: 700; line-height: 1.15; margin-bottom: 10px; letter-spacing: -0.02em; }
+  .subtitle { color: var(--text-soft); font-size: 15px; max-width: 540px; }
+
+  .tabs {
+    display: flex; gap: 4px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 4px; margin: 24px 0; overflow-x: auto;
+  }
+  .tab {
+    flex: 1; min-width: 90px; padding: 11px 8px; border-radius: 9px; text-align: center;
+    font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-soft);
+    transition: all 0.2s; border: none; background: transparent;
+    font-family: inherit; white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab.active { background: var(--green); color: white; }
+
+  section { display: none; }
+  section.active { display: block; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 14px;
+  }
+  .card h2 { font-size: 18px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .card h2 .icon { font-size: 22px; }
+  .card-sub { color: var(--text-soft); font-size: 14px; margin-bottom: 14px; }
+
+  /* === FORMS === */
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 14px; color: var(--text-soft); margin-bottom: 6px; font-weight: 500; }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--line);
+    color: var(--text); font-size: 16px; padding: 12px 14px;
+    border-radius: 10px; font-family: inherit;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--green); }
+  .field textarea { min-height: 70px; resize: vertical; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* === CHECKLIST === */
+  .check-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--line); cursor: pointer;
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-item input { width: 22px; height: 22px; margin-top: 1px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
+  .check-item label { font-size: 15px; color: var(--text); cursor: pointer; flex: 1; }
+  .check-item input:checked + label { color: var(--text-mute); text-decoration: line-through; }
+
+  /* === CALCULADORA === */
+  .calc-result {
+    background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 100%);
+    border: 2px solid var(--green); border-radius: var(--radius);
+    padding: 22px; margin-top: 18px; text-align: center;
+  }
+  .calc-result.muted { border-color: var(--line); }
+  .calc-faixa { display: flex; justify-content: space-around; gap: 8px; margin: 14px 0; }
+  .calc-faixa-item { text-align: center; flex: 1; padding: 12px 6px; background: var(--surface-2); border-radius: 10px; }
+  .calc-faixa-item .label { font-size: 11px; color: var(--text-mute); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .calc-faixa-item .value { font-size: 20px; font-weight: 700; color: var(--green); }
+  .calc-faixa-item.suggested { background: var(--green-soft); border: 1px solid var(--green); }
+  .calc-faixa-item.suggested .value { font-size: 24px; }
+
+  /* === SCRIPTS === */
+  .script-block {
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 11px; padding: 16px; margin-bottom: 12px;
+    position: relative;
+  }
+  .script-step {
+    font-size: 11px; color: var(--green); font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .script-step .num {
+    background: var(--green); color: white; width: 22px; height: 22px;
+    border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .script-text {
+    color: var(--text); font-size: 15px; line-height: 1.6;
+    padding: 12px; background: rgba(0,0,0,0.25); border-radius: 8px;
+    border-left: 3px solid var(--green); margin-bottom: 12px;
+    font-family: Onest, 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  .script-text .highlight { color: var(--green); font-weight: 600; }
+  .script-btn-row { display: flex; gap: 8px; }
+  .script-btn {
+    flex: 1; padding: 10px; border-radius: 9px; font-size: 13px; font-weight: 600;
+    background: var(--surface); border: 1px solid var(--line); color: var(--text);
+    cursor: pointer; transition: all 0.15s; font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .script-btn:hover { background: var(--line); }
+  .script-btn.primary { background: var(--green); border-color: var(--green); color: white; }
+  .script-btn.primary:hover { background: var(--green-dark); }
+  .script-btn.copied { background: var(--gold); border-color: var(--gold); color: var(--bg); }
+
+  /* === FRASES === */
+  .frase-card {
+    background: var(--surface-2); padding: 12px 14px; border-radius: 9px;
+    border-left: 3px solid var(--blue); margin-bottom: 8px;
+    font-size: 14px; line-height: 1.5;
+    display: flex; gap: 10px; align-items: flex-start;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .frase-card:hover { background: #1c1c22; }
+  .frase-icon { color: var(--blue); font-size: 16px; flex-shrink: 0; }
+
+  /* === ALERTA === */
+  .alert {
+    background: var(--red-soft); border: 1px solid var(--red);
+    border-radius: 11px; padding: 14px 16px; margin-bottom: 12px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .alert .icon { color: var(--red); font-size: 20px; flex-shrink: 0; }
+  .alert-text { font-size: 14px; color: var(--text); line-height: 1.5; }
+  .alert.gold { background: var(--gold-soft); border-color: var(--gold); }
+  .alert.gold .icon { color: var(--gold); }
+  .alert.green { background: var(--green-soft); border-color: var(--green); }
+  .alert.green .icon { color: var(--green); }
+
+  /* === PLATAFORMAS === */
+  .plat-card {
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 11px; padding: 16px; margin-bottom: 10px;
+    transition: all 0.15s;
+  }
+  .plat-card h3 { font-size: 16px; margin-bottom: 6px; color: var(--green); }
+  .plat-card p { font-size: 14px; color: var(--text-soft); margin-bottom: 10px; }
+  .plat-card a {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text); font-size: 13px; font-weight: 600;
+    text-decoration: none; padding: 8px 14px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    transition: all 0.15s;
+  }
+  .plat-card a:hover { background: var(--green); border-color: var(--green); color: white; }
+
+  /* === TABELA === */
+  .desconto-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+  .desconto-table th, .desconto-table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--line); }
+  .desconto-table th { font-size: 12px; color: var(--text-mute); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .desconto-table tr:last-child td { border-bottom: none; }
+  .desconto-table td:last-child { text-align: right; color: var(--green); font-weight: 600; }
+
+  /* === MOBILE === */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    body { max-width: 840px; padding: 32px 24px 120px; }
+    h1 { font-size: 32px; }
+  }
+  @media (max-width: 480px) {
+    body { padding: 16px 12px 100px; }
+    h1 { font-size: 22px; }
+    .card { padding: 16px; }
+    .row-2 { grid-template-columns: 1fr; }
+    .tab { font-size: 11px; min-width: 80px; padding: 10px 4px; }
+    .calc-faixa { flex-direction: column; gap: 6px; }
+    .calc-faixa-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; }
+    .calc-faixa-item .label { margin-bottom: 0; }
+  }
+
+  .footer-note { text-align: center; font-size: 12px; color: var(--text-mute); margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+  .footer-note a { color: var(--green); text-decoration: none; }
+
+  .save-indicator { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--green); color: white; padding: 10px 20px; border-radius: 999px; font-size: 13px; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 1000; }
+  .save-indicator.show { opacity: 1; }
+
+  /* === BADGE DE PRIVACIDADE === */
+  .privacy-badge {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--green-soft); border: 1px solid var(--green);
+    border-radius: 11px; padding: 12px 14px; margin-top: 18px;
+    font-size: 13px; line-height: 1.45; color: var(--text);
+  }
+  .privacy-badge strong { color: var(--green); }
+  .privacy-icon { font-size: 22px; flex-shrink: 0; }
+  .cover-img {
+    width: 100%; max-width: 240px; aspect-ratio: 3/4;
+    border-radius: 12px; margin: 0 auto 20px; display: block;
+    object-fit: cover; box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    border: 1px solid var(--line);
+  }
+  .privacy-card {
+    background: var(--surface); border: 2px solid var(--green);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 14px;
+  }
+  .privacy-card h2 { color: var(--green); }
+  .privacy-card-detail { font-size: 14px; line-height: 1.7; color: var(--text); }
+  .privacy-card-detail strong { color: var(--green); }
+  .privacy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .privacy-item {
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .privacy-item .ic { font-size: 18px; flex-shrink: 0; }
+  .privacy-item .lab { font-size: 13px; line-height: 1.4; }
+  @media (max-width: 480px) {
+    .privacy-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="capa.jpg" alt="Capa do Roteiro de Negociação" class="cover-img">
+  <div class="brand"><span class="dot"></span> O Código da Virada · Bônus 2</div>
+  <h1>Roteiro de Negociação de Dívidas</h1>
+  <p class="subtitle">Você não está pedindo favor. Você está oferecendo dinheiro pra uma empresa que considerou aquela dívida como perdida.</p>
+  <div class="privacy-badge">
+    <span class="privacy-icon">🔒</span>
+    <div>
+      <strong>100% no seu aparelho</strong> · Sem servidor, sem login, sem rastreamento. Seus dados de dívida ficam só com você.
+    </div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-tab="dados">📝 Sua dívida</button>
+  <button class="tab" data-tab="checklist">✅ Preparação</button>
+  <button class="tab" data-tab="scripts">💬 Scripts</button>
+  <button class="tab" data-tab="carta">📄 Carta jurídica</button>
+  <button class="tab" data-tab="frases">🗣️ Frases</button>
+  <button class="tab" data-tab="depois">📋 Depois</button>
+</div>
+
+<!-- ═══════════ DADOS ═══════════ -->
+<section id="sec-dados" class="active">
+  <div class="privacy-card">
+    <h2><span class="icon">🔒</span> Antes de preencher: sua privacidade</h2>
+    <div class="privacy-card-detail">
+      Você vai informar dados sensíveis (CPF, valor da dívida, banco). <strong>Tudo isso fica APENAS no seu aparelho</strong>, no armazenamento local do navegador (localStorage). <strong>Não passa por servidor, não vai pra base de dados nossa, ninguém mais vê</strong>.
+    </div>
+    <div class="privacy-grid">
+      <div class="privacy-item"><span class="ic">📵</span><span class="lab"><strong>Sem servidor.</strong> A página é estática — não há backend nem banco de dados.</span></div>
+      <div class="privacy-item"><span class="ic">🚫</span><span class="lab"><strong>Sem login.</strong> Você não cria conta nem se identifica.</span></div>
+      <div class="privacy-item"><span class="ic">👁️‍🗨️</span><span class="lab"><strong>Sem rastreamento.</strong> Nada de cookies, pixels ou analytics.</span></div>
+      <div class="privacy-item"><span class="ic">🗑️</span><span class="lab"><strong>Você apaga quando quiser.</strong> Basta limpar o histórico do navegador.</span></div>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--text-mute);font-style:italic;">
+      Conformidade com a LGPD (Lei 13.709/2018): como não coletamos seus dados, não há tratamento de dados pessoais por nós. Você é o único controlador.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">📝</span> Quem você está negociando</h2>
+    <p class="card-sub">Preenche aqui que os scripts vão se montar automaticamente com seus dados.</p>
+    <div class="field"><label>Seu nome completo</label><input type="text" id="d-nome" placeholder="Como você quer que te chamem"></div>
+    <div class="field"><label>CPF</label><input type="text" id="d-cpf" placeholder="000.000.000-00" inputmode="numeric" maxlength="14"><div id="cpf-feedback" style="font-size:12px;margin-top:6px;display:none;"></div></div>
+    <div class="row-2">
+      <div class="field"><label>Credor</label><input type="text" id="d-credor" placeholder="Ex: Nubank, Renner, BMG"></div>
+      <div class="field"><label>Final do cartão / contrato</label><input type="text" id="d-final" placeholder="1234"></div>
+    </div>
+    <div class="row-2">
+      <div class="field"><label>Tipo da dívida</label>
+        <select id="d-tipo">
+          <option value="cartao">Cartão de crédito</option>
+          <option value="cheque">Cheque especial</option>
+          <option value="emprestimo">Empréstimo pessoal</option>
+          <option value="loja">Crediário de loja</option>
+          <option value="telefone">Conta de telefone/internet</option>
+          <option value="veiculo">Financiamento de veículo</option>
+        </select>
+      </div>
+      <div class="field" id="banco-field"><label>Banco (pra análise de abusividade)</label>
+        <select id="d-banco">
+          <option value="">— Não sei / outro —</option>
+          <option value="itau">Itaú</option>
+          <option value="bb">Banco do Brasil</option>
+          <option value="santander">Santander</option>
+          <option value="bradesco">Bradesco</option>
+          <option value="caixa">Caixa Econômica</option>
+          <option value="nubank">Nubank</option>
+          <option value="inter">Inter</option>
+          <option value="c6">C6 Bank</option>
+          <option value="next">Next</option>
+          <option value="picpay">PicPay</option>
+        </select>
+        <div id="banco-hint" style="display:none;font-size:12px;color:var(--text-mute);margin-top:6px;line-height:1.4;">Análise de abusividade ativa apenas para <strong style="color:var(--gold);">cartão de crédito</strong> e <strong style="color:var(--gold);">cheque especial</strong> (tipos com juros mais altos).</div>
+      </div>
+    </div>
+    <div id="abusividade-result" style="display:none;"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">💰</span> Calculadora de desconto</h2>
+    <p class="card-sub">Baseado em dados reais do mercado brasileiro (BACEN 2024).</p>
+    <div class="row-2">
+      <div class="field"><label>Valor total da dívida (R$)</label><input type="number" id="d-valor" placeholder="0,00" inputmode="decimal" step="0.01"></div>
+      <div class="field"><label>Tempo de atraso</label>
+        <select id="d-atraso">
+          <option value="recente">Menos de 6 meses</option>
+          <option value="medio">6 meses a 1 ano</option>
+          <option value="antigo">Mais de 1 ano</option>
+          <option value="muito">Mais de 2 anos</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Quanto você tem disponível pra pagar à vista (R$)</label><input type="number" id="d-disponivel" placeholder="0,00" inputmode="decimal" step="0.01"></div>
+
+    <div id="calc-result" class="calc-result muted">
+      <div style="font-size:14px;color:var(--text-soft);">Preencha os campos acima pra ver sua faixa de negociação</div>
+    </div>
+
+    <div id="proj-futuro" style="display:none;margin-top:18px;padding:14px 16px;background:var(--red-soft);border:1px solid var(--red);border-radius:11px;">
+      <div style="font-size:12px;color:var(--red);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">⏰ E se você não negociar?</div>
+      <div id="proj-conteudo" style="font-size:14px;color:var(--text);line-height:1.6;"></div>
+      <div style="font-size:11px;color:var(--text-mute);margin-top:8px;font-style:italic;">Projeção com juros compostos sobre a taxa do banco escolhido. Estimativa, não previsão exata.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CHECKLIST ═══════════ -->
+<section id="sec-checklist">
+  <div class="alert green">
+    <span class="icon">✅</span>
+    <div class="alert-text"><strong>Antes de ligar.</strong> Faça este checklist em silêncio. Tudo na ponta da língua = você no controle.</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">📋</span> Checklist de preparação</h2>
+    <div id="prep-list">
+      <div class="check-item"><input type="checkbox" id="c1"><label for="c1">Sei o valor exato da dívida (atualizado)</label></div>
+      <div class="check-item"><input type="checkbox" id="c2"><label for="c2">Sei a taxa de juros mensal</label></div>
+      <div class="check-item"><input type="checkbox" id="c3"><label for="c3">Defini quanto posso pagar à vista hoje</label></div>
+      <div class="check-item"><input type="checkbox" id="c4"><label for="c4">Defini até quanto posso parcelar (e em quantas vezes)</label></div>
+      <div class="check-item"><input type="checkbox" id="c5"><label for="c5">Tenho o número do contrato/cartão à mão</label></div>
+      <div class="check-item"><input type="checkbox" id="c6"><label for="c6">Estou num lugar tranquilo, sem pressa</label></div>
+      <div class="check-item"><input type="checkbox" id="c7"><label for="c7">Tenho caneta e papel pra anotar</label></div>
+      <div class="check-item"><input type="checkbox" id="c8"><label for="c8">É início do mês (operadores têm metas)</label></div>
+    </div>
+  </div>
+
+  <div class="alert gold">
+    <span class="icon">⚠️</span>
+    <div class="alert-text"><strong>Regra de ouro:</strong> NUNCA pague no impulso da primeira ligação. Diga "vou pensar e retorno". Mesmo que a oferta pareça ótima.</div>
+  </div>
+</section>
+
+<!-- ═══════════ SCRIPTS ═══════════ -->
+<section id="sec-scripts">
+  <div class="alert green">
+    <span class="icon">💬</span>
+    <div class="alert-text"><strong>Scripts personalizados</strong> com seus dados. Toca em <strong>Copiar</strong> pra colar no WhatsApp ou ler na ligação.</div>
+  </div>
+
+  <div id="scripts-container"></div>
+</section>
+
+<!-- ═══════════ CARTA JURÍDICA ═══════════ -->
+<section id="sec-carta">
+  <div class="alert green">
+    <span class="icon">⚖️</span>
+    <div class="alert-text"><strong>Carta jurídica de proposta de quitação</strong> com base na legislação brasileira atualizada (CDC, Lei do Superendividamento, MP do Novo Desenrola/2026 e Súmula 548/STJ). Preenche os dados na aba <strong>"Sua dívida"</strong> e o texto monta automaticamente.</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">📄</span> Pré-visualização</h2>
+    <p class="card-sub">Esse texto será baixado no Word. Confere antes de enviar.</p>
+    <div id="carta-preview" style="background: #fff; color: #1a1a1a; padding: 28px 32px; border-radius: 10px; font-family: 'Times New Roman', Georgia, serif; font-size: 14px; line-height: 1.7; max-height: 420px; overflow-y: auto; border: 1px solid var(--line);"></div>
+
+    <div style="margin-top:14px;padding:12px 14px;background:var(--gold-soft);border:1px solid var(--gold);border-radius:10px;font-size:12px;color:var(--text-soft);line-height:1.5;">
+      <strong style="color:var(--gold);">⚖️ Modelo jurídico, não substitui advogado.</strong> Em casos complexos (penhora, ação judicial em curso, dívida já protestada, valores acima de R$ 50.000), procure um advogado ou Defensoria Pública. Esta carta é eficaz para a maioria das negociações administrativas com credores.
+    </div>
+
+    <div class="card" style="border-color: var(--green); margin-top:18px;">
+      <h2 style="color: var(--green);">Pra onde enviar</h2>
+      <p style="font-size:14px;color:var(--text-soft);line-height:1.7;">
+        Carta pronta na mão, agora é escolher o canal. Do mais rápido ao mais formal:
+      </p>
+      <ol style="font-size:14px;color:var(--text-soft);line-height:1.9;padding-left:20px;margin:10px 0 0;">
+        <li><strong style="color:var(--text);">App ou site do seu banco</strong> — procure "Acordos", "Negociação" ou "Renegociar dívida". É onde a resposta sai mais rápido, e o desconto costuma já aparecer na tela.</li>
+        <li><strong style="color:var(--text);">SAC do credor</strong> — o telefone está no verso do cartão, na fatura e no rodapé do site oficial. Ligue com a carta aberta na frente e use os scripts da aba anterior.</li>
+        <li><strong style="color:var(--text);">consumidor.gov.br</strong> — canal oficial do governo, gratuito. A empresa tem <strong style="color:var(--text);">10 dias</strong> para responder e fica tudo registrado por escrito. É o mais forte quando o banco enrola ou promete e não cumpre.</li>
+        <li><strong style="color:var(--text);">Serasa Limpa Nome</strong> (serasa.com.br) — mostra ofertas de acordo já com desconto, direto dos credores.</li>
+        <li><strong style="color:var(--text);">Procon da sua cidade</strong> — presencial ou online, para quando os canais acima falharem.</li>
+      </ol>
+      <p style="font-size:13px;color:var(--text-mute);line-height:1.7;margin-top:12px;">
+        Guarde protocolo, print e e-mail de tudo. Só pague depois de receber o acordo por escrito, com o valor exato e a frase de quitação total da dívida.
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+      <button class="script-btn primary" id="btn-baixar-word" style="padding:14px;">📥 Baixar pra Word (.doc)</button>
+      <button class="script-btn" id="btn-copiar-carta" style="padding:14px;">📋 Copiar texto</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+      <button class="script-btn" id="btn-enviar-email" style="padding:14px;">✉️ E-mail</button>
+      <button class="script-btn" id="btn-enviar-whatsapp" style="padding:14px;background:#25D366;color:#fff;border-color:#25D366;">💬 WhatsApp</button>
+    </div>
+  </div>
+
+  <div class="card" style="border-color: var(--gold);">
+    <h2 style="color: var(--gold);"><span class="icon">⚖️</span> Base legal citada na carta</h2>
+    <p style="font-size:14px;color:var(--text-soft);line-height:1.7;">
+      <strong style="color:var(--text);">Lei 8.078/90 (CDC) Art. 43 §1º</strong> — Direito à correção e exclusão de dados negativos<br><em style="color:var(--text-mute);font-size:13px;">Na prática: o que estiver errado sobre você no cadastro tem que ser corrigido, e você tem direito de saber o que consta.</em><br><br>
+      <strong style="color:var(--text);">Súmula 548/STJ</strong> — Credor tem 5 dias úteis após o pagamento pra retirar negativação<br><em style="color:var(--text-mute);font-size:13px;">Na prática: pagou, seu nome tem que sair do Serasa/SPC em 5 dias úteis. Se não sair, é descumprimento.</em><br><br>
+      <strong style="color:var(--text);">Lei 14.181/2021 (Superendividamento)</strong> — Direito à renegociação com preservação do mínimo existencial<br><em style="color:var(--text-mute);font-size:13px;">Na prática: a lei diz que ninguém pode ser cobrado a ponto de ficar sem o dinheiro do básico — comida, moradia, remédio.</em><br><br>
+      <strong style="color:var(--text);">MP do Novo Desenrola Brasil (04/05/2026)</strong> — Programa governamental ativo com descontos de 30% a 90% por 90 dias<br><br>
+      <strong style="color:var(--text);">Lei 13.709/2018 (LGPD)</strong> — Direito de acesso e correção dos próprios dados cadastrais<br><em style="color:var(--text-mute);font-size:13px;">Na prática: os seus dados são seus. Você pode pedir para ver e corrigir.</em><br><br>
+      <strong style="color:var(--text);">Resolução BCB 4.806/2020</strong> — Bancos devem informar claramente custos do crédito<br><br>
+      <strong style="color:var(--text);">Súmula 530 / STJ</strong> — Juros abusivos quando taxa > 2× média BACEN (atualmente 857,2% a.a. pra cartão rotativo)<br><em style="color:var(--text-mute);font-size:13px;">Na prática: se o banco cobra mais que o dobro da média do mercado, dá pra questionar o juro na Justiça — e é por isso que ele costuma preferir negociar.</em>
+    </p>
+    <p style="margin-top:14px;font-size:12px;color:var(--text-mute);line-height:1.5;">
+      <strong>Fontes oficiais consultadas:</strong><br>
+      • BACEN — Estatísticas Monetárias e de Crédito (atualização mensal)<br>
+      • <a href="https://dadosabertos.bcb.gov.br/dataset/22022-taxa-media-de-juros-das-operacoes-de-credito-com-recursos-livres---pessoas-fisicas---cartao-d" target="_blank" style="color:var(--green);">Dataset 22022 — Taxa média rotativo PF</a><br>
+      • Histórico: 424,5% (jan/2026) → 435,9% (fev/2026) → 428,6% (mar/2026)<br>
+      • Taxas por banco: Agência Brasil + BACEN
+    </p>
+  </div>
+
+  <div class="alert">
+    <span class="icon">📌</span>
+    <div class="alert-text"><strong>Como usar:</strong> Envie a carta por e-mail ao SAC do credor, anexe ao chat do app do banco, ou imprima e envie por correio com AR. Guarde o protocolo de envio.</div>
+  </div>
+</section>
+
+<!-- ═══════════ FRASES ═══════════ -->
+<section id="sec-frases">
+  <div class="card">
+    <h2><span class="icon">🗣️</span> Frases que destravam negociação</h2>
+    <p class="card-sub">Use essas durante a ligação. Vão te dar vantagem em qualquer impasse.</p>
+    <div class="frase-card" onclick="copyText('Esse valor ainda está acima do que tenho disponível.')"><span class="frase-icon">"</span><div>"Esse valor ainda está acima do que tenho disponível."</div></div>
+    <div class="frase-card" onclick="copyText('Você consegue conversar com seu supervisor?')"><span class="frase-icon">"</span><div>"Você consegue conversar com seu supervisor?"</div></div>
+    <div class="frase-card" onclick="copyText('Outras instituições me ofereceram desconto maior.')"><span class="frase-icon">"</span><div>"Outras instituições me ofereceram desconto maior."</div></div>
+    <div class="frase-card" onclick="copyText('Eu prefiro pagar agora, mas dentro do que cabe no meu orçamento.')"><span class="frase-icon">"</span><div>"Eu prefiro pagar agora, mas dentro do que cabe no meu orçamento."</div></div>
+    <div class="frase-card" onclick="copyText('Vou pensar e retorno amanhã.')"><span class="frase-icon">"</span><div>"Vou pensar e retorno amanhã."</div></div>
+    <div class="frase-card" onclick="copyText('Posso pagar à vista hoje se chegarmos em R$ X.')"><span class="frase-icon">"</span><div>"Posso pagar à vista hoje se chegarmos em R$ X."</div></div>
+    <div class="frase-card" onclick="copyText('Preciso de tudo combinado por escrito antes de eu efetuar o pagamento.')"><span class="frase-icon">"</span><div>"Preciso de tudo combinado por escrito antes de eu efetuar o pagamento."</div></div>
+    <p style="margin-top:14px;font-size:13px;color:var(--text-mute);">💡 Dica: toca na frase pra copiar.</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">📊</span> Tabela de descontos médios à vista</h2>
+    <p class="card-sub">Dívidas negativadas. Use como referência, não como promessa.</p>
+    <table class="desconto-table">
+      <tr><th>Tipo</th><th>Desconto possível</th></tr>
+      <tr><td>Cartão de crédito (1+ ano)</td><td>70% a 95%</td></tr>
+      <tr><td>Cheque especial (1+ ano)</td><td>75% a 95%</td></tr>
+      <tr><td>Empréstimo pessoal (1+ ano)</td><td>60% a 85%</td></tr>
+      <tr><td>Crediário de loja</td><td>80% a 95%</td></tr>
+      <tr><td>Telefone/internet</td><td>70% a 90%</td></tr>
+      <tr><td>Financiamento de veículo</td><td>30% a 50%</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════ DEPOIS ═══════════ -->
+<section id="sec-depois">
+  <div class="alert gold">
+    <span class="icon">⚠️</span>
+    <div class="alert-text"><strong>Antes de aceitar qualquer acordo</strong>, confirme TODOS os itens abaixo. Se algum estiver duvidoso, NÃO PAGUE.</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">🛡️</span> Antes de pagar</h2>
+    <div class="check-item"><input type="checkbox" id="a1"><label for="a1">O valor final está exatamente igual ao acordado por escrito</label></div>
+    <div class="check-item"><input type="checkbox" id="a2"><label for="a2">O CNPJ do recebedor é o do banco/empresa credora</label></div>
+    <div class="check-item"><input type="checkbox" id="a3"><label for="a3">Se for PIX, a chave bate com o CNPJ oficial</label></div>
+    <div class="check-item"><input type="checkbox" id="a4"><label for="a4">Se for parcelado, as parcelas têm valor fixo (sem juros futuros)</label></div>
+    <div class="check-item"><input type="checkbox" id="a5"><label for="a5">Tenho promessa da carta de quitação por escrito</label></div>
+    <div class="check-item"><input type="checkbox" id="a6"><label for="a6">Tenho promessa de baixa no Serasa em até 5 dias úteis</label></div>
+  </div>
+
+  <div class="alert">
+    <span class="icon">🚨</span>
+    <div class="alert-text"><strong>Sinais de armadilha:</strong> PIX com chave aleatória (CPF), "pague R$ X agora pra confirmar", pressão pra pagar em segundos, recusa em mandar por escrito.</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">📋</span> Depois do pagamento</h2>
+    <div class="check-item"><input type="checkbox" id="p1"><label for="p1">Guardei o comprovante (por pelo menos 5 anos)</label></div>
+    <div class="check-item"><input type="checkbox" id="p2"><label for="p2">Em 7 dias, vou consultar CPF no Serasa, SPC e Cadin</label></div>
+    <div class="check-item"><input type="checkbox" id="p3"><label for="p3">Se não houver baixa em 30 dias, registro no consumidor.gov.br</label></div>
+    <div class="check-item"><input type="checkbox" id="p4"><label for="p4">Se recusarem dar quitação, vou no Procon</label></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">🌐</span> Plataformas oficiais que ajudam</h2>
+    <div class="plat-card">
+      <h3>Serasa Limpa Nome</h3>
+      <p>Descontos de até 99% em dívidas negativadas. Negociação online.</p>
+      <a href="https://www.serasa.com.br/limpa-nome-online/" target="_blank">Abrir →</a>
+    </div>
+    <div class="plat-card">
+      <h3>Desenrola Brasil</h3>
+      <p>Programa do governo federal. Quem ganha até 2 salários mínimos tem condições especiais.</p>
+      <a href="https://www.gov.br/fazenda/desenrola" target="_blank">Abrir →</a>
+    </div>
+    <div class="plat-card">
+      <h3>Consumidor.gov.br</h3>
+      <p>Registra reclamações oficialmente. Empresas têm prazo pra responder.</p>
+      <a href="https://www.consumidor.gov.br" target="_blank">Abrir →</a>
+    </div>
+  </div>
+</section>
+
+<div class="footer-note">
+  <div style="margin-bottom:10px;color:var(--green);font-weight:600;">
+    🔒 Seus dados não saem do seu aparelho. Sem servidor, sem login, sem rastreamento.
+  </div>
+  <a href="https://codigodavirada.net.br" target="_blank">codigodavirada.net.br</a>
+</div>
+
+<div class="save-indicator" id="save-ind">Salvo ✓</div>
+
+<script>
+const STORAGE_KEY = 'virada-negociacao-v1';
+let state = { dados: {}, checks: {} };
+
+// === MÁSCARA E VALIDAÇÃO DE CPF ===
+function maskCPF(v) {
+  return v.replace(/\D/g, '').slice(0, 11)
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+}
+function isValidCPF(cpf) {
+  const c = cpf.replace(/\D/g, '');
+  if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(c[i]) * (10 - i);
+  let d1 = 11 - (sum % 11);
+  if (d1 >= 10) d1 = 0;
+  if (d1 !== parseInt(c[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(c[i]) * (11 - i);
+  let d2 = 11 - (sum % 11);
+  if (d2 >= 10) d2 = 0;
+  return d2 === parseInt(c[10]);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const cpfEl = document.getElementById('d-cpf');
+  const fb = document.getElementById('cpf-feedback');
+  if (cpfEl) {
+    cpfEl.addEventListener('input', () => {
+      cpfEl.value = maskCPF(cpfEl.value);
+      const raw = cpfEl.value.replace(/\D/g, '');
+      if (raw.length === 0) { fb.style.display = 'none'; }
+      else if (raw.length < 11) { fb.style.display = 'block'; fb.style.color = 'var(--text-mute)'; fb.textContent = 'Continue digitando...'; }
+      else if (isValidCPF(cpfEl.value)) { fb.style.display = 'block'; fb.style.color = 'var(--green)'; fb.textContent = '✓ CPF válido'; }
+      else { fb.style.display = 'block'; fb.style.color = 'var(--red)'; fb.textContent = '✗ CPF inválido — verifica os dígitos'; }
+    });
+  }
+});
+
+function save() {
+  state.dados = {
+    nome: document.getElementById('d-nome').value,
+    cpf: document.getElementById('d-cpf').value,
+    credor: document.getElementById('d-credor').value,
+    final: document.getElementById('d-final').value,
+    tipo: document.getElementById('d-tipo').value,
+    banco: (document.getElementById('d-banco') || {}).value || '',
+    valor: document.getElementById('d-valor').value,
+    atraso: document.getElementById('d-atraso').value,
+    disponivel: document.getElementById('d-disponivel').value,
+  };
+  state.checks = {};
+  document.querySelectorAll('input[type="checkbox"]').forEach(c => state.checks[c.id] = c.checked);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  showSave();
+}
+function showSave() {
+  const ind = document.getElementById('save-ind');
+  ind.classList.add('show');
+  clearTimeout(window._saveTimer);
+  window._saveTimer = setTimeout(() => ind.classList.remove('show'), 1000);
+}
+function load() {
+  const s = localStorage.getItem(STORAGE_KEY);
+  if (!s) return;
+  try {
+    state = JSON.parse(s);
+    Object.keys(state.dados || {}).forEach(k => {
+      const el = document.getElementById('d-' + k);
+      if (el) el.value = state.dados[k];
+    });
+    Object.keys(state.checks || {}).forEach(k => {
+      const el = document.getElementById(k);
+      if (el) el.checked = state.checks[k];
+    });
+  } catch (e) {}
+}
+
+// === TABS ===
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-' + t.dataset.tab).classList.add('active');
+    if (t.dataset.tab === 'scripts') renderScripts();
+    if (t.dataset.tab === 'carta') renderCarta();
+  });
+});
+
+// === CARTA JURÍDICA ===
+const tipoLegalLabel = {
+  cartao: 'cartão de crédito',
+  cheque: 'cheque especial',
+  emprestimo: 'empréstimo pessoal não consignado',
+  loja: 'crediário/financiamento de loja',
+  telefone: 'serviço de telecomunicações',
+  veiculo: 'financiamento de veículo',
+};
+const atrasoLegalLabel = {
+  recente: 'inferior a 6 (seis) meses',
+  medio: 'entre 6 (seis) meses e 1 (um) ano',
+  antigo: 'superior a 1 (um) ano',
+  muito: 'superior a 2 (dois) anos',
+};
+
+function buildCartaTexto() {
+  const d = state.dados || {};
+  const nome = d.nome || '[SEU NOME COMPLETO]';
+  const cpf = d.cpf || '[SEU CPF]';
+  const credor = d.credor || '[NOME DO CREDOR]';
+  const final = d.final || '[NÚMERO DO CONTRATO/CARTÃO]';
+  const tipo = d.tipo || 'cartao';
+  const tipoTxt = tipoLegalLabel[tipo];
+  const atraso = d.atraso || 'medio';
+  const atrasoTxt = atrasoLegalLabel[atraso];
+  const valor = parseFloat(d.valor) || 0;
+  const disp = parseFloat(d.disponivel) || 0;
+  const valorFmt = valor > 0 ? formatBRL(valor) : '[VALOR TOTAL]';
+  const dispFmt = disp > 0 ? formatBRL(disp) : '[VALOR PROPOSTO]';
+  const pctDesc = valor > 0 && disp > 0 ? Math.round((1 - disp/valor) * 100) : null;
+
+  const hoje = new Date();
+  const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const dataFmt = `${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`;
+
+  const desenrolaTrecho = (tipo === 'cartao' || tipo === 'cheque' || tipo === 'emprestimo')
+    ? `Cumpre destacar, ademais, que o presente débito enquadra-se nas modalidades abrangidas pelo Novo Desenrola Brasil, programa governamental instituído por Medida Provisória assinada em 4 de maio de 2026, com duração de 90 (noventa) dias, o qual prevê descontos de até 90% (noventa por cento) sobre o saldo devedor de dívidas de ${tipoTxt} contraídas até 31 de janeiro de 2026.`
+    : `Embora o presente débito não se enquadre diretamente no programa Novo Desenrola Brasil (instituído por Medida Provisória de 4 de maio de 2026), aplicam-se à presente negociação os princípios gerais de boa-fé objetiva e função social do contrato (CC, art. 421 e 422), bem como o direito à renegociação com preservação do mínimo existencial.`;
+
+  /* Bloco de abusividade (só pra cartão de crédito) */
+  const bancoKey = (d.banco || '').toLowerCase();
+  const banco = bancos[bancoKey];
+  let abusividadeBody = null;
+  const tipoElegivelAbus = (tipo === 'cartao' || tipo === 'cheque');
+  const modalidadeTxt = tipo === 'cheque' ? 'cheque especial' : 'crédito rotativo';
+  if (banco && tipoElegivelAbus && banco.taxaAno > LIMITE_ABUSIVIDADE) {
+    abusividadeBody = {
+      h: 'VI — DA ABUSIVIDADE DOS JUROS (Súmula 530/STJ)',
+      p: `Cumpre registrar, para fins de fundamentação da presente proposta, que a taxa de juros do ${modalidadeTxt} praticada pelo ${banco.nome} atualmente é de ${banco.taxaMes}% ao mês, equivalente a ${banco.taxaAno}% ao ano, conforme dados públicos do Banco Central do Brasil (BACEN — Estatísticas Monetárias e de Crédito, ${TAXA_MES_REF}).\n\nA média de mercado para a mesma modalidade, segundo o BACEN, registrou a seguinte evolução nos meses recentes: ${TAXA_HISTORICO}, mantendo-se em ${TAXA_MEDIA_BACEN}% ao ano em ${TAXA_MES_REF}.\n\nA taxa praticada pelo ${banco.nome} supera em mais de 2 (duas) vezes essa média de mercado, circunstância que, à luz da Súmula nº 530 do Superior Tribunal de Justiça, configura INDÍCIO DE ABUSIVIDADE, ensejando eventual revisão judicial do contrato com fundamento no art. 51, IV e §1º, da Lei nº 8.078/90 (CDC).\n\nA presente proposta busca, portanto, evitar o necessário ajuizamento de ação revisional, oferecendo solução consensual e amigável, em linha com os princípios da economia processual e da pacificação social.`
+    };
+  } else if (banco && tipoElegivelAbus && banco.taxaAno > TAXA_MEDIA_BACEN) {
+    abusividadeBody = {
+      h: 'VI — DO CONTEXTO DAS TAXAS PRATICADAS',
+      p: `Registre-se, ainda, que a taxa de juros do ${modalidadeTxt} praticada pelo ${banco.nome} (${banco.taxaMes}% ao mês / ${banco.taxaAno}% ao ano, conforme BACEN ${TAXA_MES_REF}) supera a média de mercado para a mesma modalidade (${TAXA_MEDIA_BACEN}% ao ano em ${TAXA_MES_REF}), o que reforça a razoabilidade da presente proposta de desconto para quitação amigável.`
+    };
+  }
+
+  return {
+    titulo: 'PROPOSTA DE QUITAÇÃO DE DÉBITO COM SOLICITAÇÃO DE DESCONTO',
+    cabecalho: `Local e data: ${dataFmt}\n\nA(o) ${credor}\nSetor de Recuperação de Crédito / Atendimento ao Cliente`,
+    de: `De: ${nome}\nCPF: ${cpf}\nReferência: contrato/cartão final ${final}`,
+    body: [
+      {h: 'I — DA QUALIFICAÇÃO E DO OBJETO', p: `Eu, ${nome}, inscrito(a) no CPF sob o nº ${cpf}, titular do contrato/operação de ${tipoTxt} de final ${final} junto a essa instituição, venho, respeitosamente, apresentar PROPOSTA FORMAL DE QUITAÇÃO do débito atualmente existente, no valor aproximado de ${valorFmt}, atualmente com tempo de inadimplência ${atrasoTxt}.`},
+
+      {h: 'II — DO FUNDAMENTO LEGAL', p: `A presente proposta encontra amparo nos seguintes diplomas legais:\n\n(a) Código de Defesa do Consumidor — Lei nº 8.078/90, especialmente o art. 43, §1º, que reconhece o direito do consumidor à atualização e correção de dados cadastrais negativos;\n\n(b) Lei nº 14.181/2021 (Lei do Superendividamento), que assegura ao consumidor o direito à renegociação de dívidas com preservação do mínimo existencial e a celebração de plano de pagamento compatível com sua capacidade financeira;\n\n(c) Súmula nº 548 do Superior Tribunal de Justiça, segundo a qual "incumbe ao credor a exclusão do registro da dívida em nome do devedor no cadastro de inadimplentes no prazo de 5 (cinco) dias úteis, a partir do integral e efetivo pagamento do débito";\n\n(d) Lei nº 13.709/2018 (LGPD), que garante o direito de acesso, correção e exclusão de dados cadastrais incorretos ou desatualizados;\n\n(e) ${desenrolaTrecho}`},
+
+      {h: 'III — DA PROPOSTA', p: `Diante do exposto, e considerando que esta instituição preferirá receber valor parcial à vista a manter débito potencialmente prescritível e de cobrança incerta, formalizo a seguinte PROPOSTA DE QUITAÇÃO À VISTA:\n\n• Valor proposto: ${dispFmt}${pctDesc !== null ? ` (correspondente a desconto de aproximadamente ${pctDesc}% sobre o saldo total)` : ''};\n• Forma de pagamento: pagamento integral à vista, via boleto bancário ou PIX, mediante boleto ou chave PIX emitidos em nome e CNPJ desta instituição, cujos dados solicito sejam informados na resposta;\n• Prazo para pagamento: até 5 (cinco) dias úteis após o recebimento da contraproposta formal por escrito.`},
+
+      {h: 'IV — DAS GARANTIAS SOLICITADAS', p: `Para que se viabilize o pagamento, solicito, em conformidade com a legislação acima:\n\n1. Envio prévio, por escrito (e-mail ou WhatsApp), de TERMO DE ACORDO contendo o valor exato, dados bancários oficiais da instituição (CNPJ) e cláusula expressa de quitação integral;\n\n2. Compromisso expresso de emissão de CARTA DE QUITAÇÃO em até 5 (cinco) dias úteis após a confirmação do pagamento;\n\n3. Compromisso expresso de COMUNICAÇÃO AOS ÓRGÃOS DE PROTEÇÃO AO CRÉDITO (Serasa, SPC e demais) solicitando a exclusão de meu CPF dos cadastros restritivos no prazo legal de 5 (cinco) dias úteis após o pagamento, conforme Súmula 548/STJ;\n\n4. Confirmação de que NENHUMA cobrança residual subsistirá após a quitação proposta, vedada qualquer cobrança vexatória nos termos do art. 71 do CDC.`},
+
+      ...(abusividadeBody ? [abusividadeBody] : []),
+
+      {h: (abusividadeBody ? 'VII' : 'V') + ' — DO ENCERRAMENTO', p: `Permaneço no aguardo de manifestação formal desta instituição no prazo de 10 (dez) dias úteis a contar do recebimento, sob pena de buscar as plataformas oficiais de mediação (consumidor.gov.br, Procon e demais órgãos competentes) e, se necessário, judicialmente a renegociação compulsória nos termos da Lei do Superendividamento.\n\nReafirmo minha intenção de regularizar o presente débito de forma amigável e definitiva, dentro dos parâmetros legais e da minha capacidade financeira atual.`},
+    ],
+    encerramento: `Atenciosamente,\n\n\n_______________________________________\n${nome}\nCPF: ${cpf}`
+  };
+}
+
+function renderCarta() {
+  const c = buildCartaTexto();
+  const html = `
+    <h2 style="text-align:center;font-size:14px;letter-spacing:0.05em;margin:0 0 24px;font-weight:700;text-transform:uppercase;">${c.titulo}</h2>
+    <p style="margin-bottom:16px;white-space:pre-line;">${c.cabecalho}</p>
+    <p style="margin-bottom:20px;white-space:pre-line;border-top:1px solid #ddd;padding-top:14px;">${c.de}</p>
+    ${c.body.map(b => `<h3 style="font-size:14px;margin:18px 0 8px;font-weight:700;">${b.h}</h3><p style="text-align:justify;margin-bottom:12px;white-space:pre-line;">${b.p}</p>`).join('')}
+    <p style="margin-top:30px;white-space:pre-line;">${c.encerramento}</p>
+  `;
+  document.getElementById('carta-preview').innerHTML = html;
+}
+
+function cartaPlainText() {
+  const c = buildCartaTexto();
+  let txt = c.titulo + '\n\n' + c.cabecalho + '\n\n' + c.de + '\n\n';
+  c.body.forEach(b => { txt += b.h + '\n\n' + b.p + '\n\n'; });
+  txt += c.encerramento;
+  return txt;
+}
+
+function baixarCartaWord() {
+  const c = buildCartaTexto();
+  const html = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8"><title>${c.titulo}</title>
+<xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml>
+<style>@page{size:A4;margin:2.5cm 2.5cm 2.5cm 3cm}body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.5;text-align:justify}h1{font-size:14pt;text-align:center;text-transform:uppercase;letter-spacing:1px;margin-bottom:28pt}h2{font-size:12pt;margin:18pt 0 8pt;font-weight:bold}p{margin:0 0 10pt;text-align:justify}</style>
+</head><body>
+<h1>${c.titulo}</h1>
+<p style="white-space:pre-line">${c.cabecalho}</p>
+<p style="white-space:pre-line;border-top:1px solid #999;padding-top:8pt">${c.de}</p>
+${c.body.map(b => `<h2>${b.h}</h2><p style="white-space:pre-line">${b.p}</p>`).join('')}
+<p style="margin-top:30pt;white-space:pre-line">${c.encerramento}</p>
+</body></html>`;
+  const blob = new Blob(['﻿', html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const nome = (state.dados.nome || 'proposta').toLowerCase().replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-');
+  a.href = url;
+  a.download = `carta-quitacao-${nome}-${new Date().toISOString().slice(0,10)}.doc`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const bw = document.getElementById('btn-baixar-word');
+  const bc = document.getElementById('btn-copiar-carta');
+  const be = document.getElementById('btn-enviar-email');
+  if (bw) bw.addEventListener('click', baixarCartaWord);
+  if (bc) bc.addEventListener('click', () => {
+    navigator.clipboard.writeText(cartaPlainText()).then(() => {
+      bc.textContent = '✓ Copiado!';
+      bc.classList.add('copied');
+      setTimeout(() => { bc.textContent = '📋 Copiar texto'; bc.classList.remove('copied'); }, 1800);
+    });
+  });
+  if (be) be.addEventListener('click', () => {
+    const c = buildCartaTexto();
+    const subject = encodeURIComponent('Proposta de quitação — ' + (state.dados.nome || ''));
+    const body = encodeURIComponent(cartaPlainText());
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  });
+  const bwa = document.getElementById('btn-enviar-whatsapp');
+  if (bwa) bwa.addEventListener('click', () => {
+    // WhatsApp tem limite ~4000 chars na URL. Mando um resumo + aviso de carta completa
+    const d = state.dados || {};
+    const nome = d.nome || '[seu nome]';
+    const credor = d.credor || '[credor]';
+    const final = d.final || '[final do contrato]';
+    const valor = parseFloat(d.valor) || 0;
+    const disp = parseFloat(d.disponivel) || 0;
+    const valorFmt = valor > 0 ? formatBRL(valor) : '[valor]';
+    const dispFmt = disp > 0 ? formatBRL(disp) : '[proposta]';
+    const pctDesc = valor > 0 && disp > 0 ? Math.round((1 - disp/valor) * 100) : null;
+    const resumo = `Olá! Sou ${nome}, titular do contrato/cartão de final ${final} junto ao ${credor}.\n\nVenho propor formalmente a QUITAÇÃO À VISTA do meu débito de ${valorFmt} pelo valor de ${dispFmt}${pctDesc ? ` (desconto de ${pctDesc}%)` : ''}.\n\nA proposta tem fundamento no CDC (art. 43), Súmula 548/STJ, Lei 14.181/2021 (Superendividamento) e MP do Novo Desenrola Brasil (04/05/2026).\n\nPosso enviar a carta jurídica completa por e-mail se preferirem. Aguardo retorno por escrito para confirmar:\n\n1. Termo de acordo formal\n2. Carta de quitação em 5 dias úteis após pagamento\n3. Exclusão de meu CPF de Serasa/SPC em 5 dias úteis (Súmula 548/STJ)\n\nAtenciosamente, ${nome}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(resumo)}`, '_blank');
+  });
+});
+
+// === CALCULADORA ===
+function calcular() {
+  const valor = parseFloat(document.getElementById('d-valor').value) || 0;
+  const tipo = document.getElementById('d-tipo').value;
+  const atraso = document.getElementById('d-atraso').value;
+  const disponivel = parseFloat(document.getElementById('d-disponivel').value) || 0;
+  const result = document.getElementById('calc-result');
+
+  const projEl = document.getElementById('proj-futuro');
+  if (!valor) {
+    result.className = 'calc-result muted';
+    result.innerHTML = '<div style="font-size:14px;color:var(--text-soft);">Preencha o valor da dívida acima</div>';
+    if (projEl) projEl.style.display = 'none';
+    return;
+  }
+
+  // Aviso de valor muito baixo (provavelmente erro de digitação)
+  if (valor < 50) {
+    result.className = 'calc-result muted';
+    result.innerHTML = `<div style="font-size:14px;color:var(--gold);"><strong>⚠️ Valor muito baixo (${formatBRL(valor)}).</strong> Pra dívidas abaixo de R$ 50 não faz sentido negociar — pague à vista e foque o tempo em dívidas maiores. Verifique se digitou o valor correto.</div>`;
+    if (projEl) projEl.style.display = 'none';
+    return;
+  }
+
+  /* Dados atualizados 2026 — fontes:
+     - MP Desenrola 2026 (Min. Fazenda, 04/05/2026): 30%-90%
+     - Serasa Limpa Nome: 40%-99% (feirões)
+     - CNN Brasil / FDR: cartão 40% (90-120 dias) -> 90% (1+ ano)
+     - Bônus à vista no Desenrola: +12% sobre principal já com desconto */
+  const ranges = {
+    cartao: { recente: [40,70], medio: [60,85], antigo: [75,90], muito: [80,95] },
+    cheque: { recente: [50,75], medio: [65,85], antigo: [80,90], muito: [85,95] },
+    emprestimo: { recente: [40,65], medio: [55,80], antigo: [70,90], muito: [80,90] },
+    loja: { recente: [50,75], medio: [65,85], antigo: [80,92], muito: [85,95] },
+    telefone: { recente: [40,65], medio: [55,80], antigo: [70,85], muito: [80,90] },
+    veiculo: { recente: [15,30], medio: [20,40], antigo: [25,45], muito: [30,50] },
+  };
+  const [min, max] = ranges[tipo][atraso];
+  const sugerido = Math.round((min + max) / 2);
+  const minVal = valor * (1 - max/100);
+  const maxVal = valor * (1 - min/100);
+  const sugVal = valor * (1 - sugerido/100);
+
+  let alerta = '';
+  if (disponivel > 0 && disponivel < minVal) {
+    alerta = `<div class="alert gold" style="margin-top:14px;text-align:left;"><span class="icon">⚠️</span><div class="alert-text">Você tem ${formatBRL(disponivel)} disponível, mas o melhor cenário precisa de ${formatBRL(minVal)}. Tenta juntar mais um pouco ou foca em parcelamento.</div></div>`;
+  } else if (disponivel >= sugVal) {
+    alerta = `<div class="alert green" style="margin-top:14px;text-align:left;"><span class="icon">✅</span><div class="alert-text">Você tem ${formatBRL(disponivel)} — dá pra atacar a faixa boa. Pede o desconto sugerido com firmeza.</div></div>`;
+  }
+
+  result.className = 'calc-result';
+  result.innerHTML = `
+    <div style="font-size:13px;color:var(--text-mute);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Faixa realista de negociação</div>
+    <div style="font-size:14px;color:var(--text-soft);margin-bottom:10px;">Pra ${formatBRL(valor)} com esse tempo de atraso</div>
+    <div class="calc-faixa">
+      <div class="calc-faixa-item">
+        <div class="label">Mínimo</div>
+        <div class="value">${formatBRL(maxVal)}</div>
+        <div style="font-size:11px;color:var(--text-mute);margin-top:2px;">${min}% desc.</div>
+      </div>
+      <div class="calc-faixa-item suggested">
+        <div class="label">⭐ Peça isso</div>
+        <div class="value">${formatBRL(sugVal)}</div>
+        <div style="font-size:11px;color:var(--green);margin-top:2px;font-weight:700;">${sugerido}% desc.</div>
+      </div>
+      <div class="calc-faixa-item">
+        <div class="label">Máximo</div>
+        <div class="value">${formatBRL(minVal)}</div>
+        <div style="font-size:11px;color:var(--text-mute);margin-top:2px;">${max}% desc.</div>
+      </div>
+    </div>
+    ${alerta}
+    <p style="font-size:12px;color:var(--text-mute);margin-top:10px;font-style:italic;">Bancos preferem receber 30% agora a 100% nunca. Comece pelo valor mínimo e empurra pro sugerido.</p>
+  `;
+
+  // === Projeção futura: e se NÃO negociar? ===
+  const bancoKey = (document.getElementById('d-banco')?.value || '').toLowerCase();
+  const banco = bancos[bancoKey];
+  if (projEl) {
+    // Taxa default por tipo se banco não escolhido (média BACEN modalidade)
+    const taxaPadrao = { cartao: 14.0, cheque: 12.0, emprestimo: 5.5, loja: 7.0, telefone: 9.0, veiculo: 1.8 };
+    const taxaMes = (banco && (tipo === 'cartao' || tipo === 'cheque')) ? banco.taxaMes : (taxaPadrao[tipo] || 5);
+    const em3 = valor * Math.pow(1 + taxaMes/100, 3);
+    const em6 = valor * Math.pow(1 + taxaMes/100, 6);
+    const em12 = valor * Math.pow(1 + taxaMes/100, 12);
+    const fonte = (banco && (tipo === 'cartao' || tipo === 'cheque')) ? banco.nome : `${tipo === 'cartao' ? 'cartão' : tipo === 'cheque' ? 'cheque especial' : tipo} (média de mercado)`;
+    document.getElementById('proj-conteudo').innerHTML = `
+      <div style="margin-bottom:8px;">Sem negociar, com juros de <strong>${taxaMes}%/mês</strong> (${fonte}), seus <strong>${formatBRL(valor)}</strong> viram:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;">
+        <div style="text-align:center;padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
+          <div style="font-size:11px;color:var(--text-mute);margin-bottom:2px;">3 meses</div>
+          <div style="font-weight:700;color:var(--gold);">${formatBRL(em3)}</div>
+        </div>
+        <div style="text-align:center;padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
+          <div style="font-size:11px;color:var(--text-mute);margin-bottom:2px;">6 meses</div>
+          <div style="font-weight:700;color:var(--red);">${formatBRL(em6)}</div>
+        </div>
+        <div style="text-align:center;padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
+          <div style="font-size:11px;color:var(--text-mute);margin-bottom:2px;">12 meses</div>
+          <div style="font-weight:700;color:var(--red);">${formatBRL(em12)}</div>
+        </div>
+      </div>
+    `;
+    projEl.style.display = 'block';
+  }
+}
+
+function formatBRL(v) {
+  return 'R$ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+/* === ANÁLISE DE ABUSIVIDADE (Súmula 530 STJ) ===
+   Fontes BACEN — Estatísticas Monetárias e de Crédito 2026:
+   - Janeiro/2026: 424,5% a.a. (média BACEN)
+   - Fevereiro/2026: 435,9% a.a.
+   - Março/2026: 428,6% a.a. (referência atual usada)
+   - Dataset oficial: https://dadosabertos.bcb.gov.br/dataset/22022
+   Taxas por banco (BACEN 2026):
+   - Itaú 540,77% | BB 453,5% | Santander 437,83% | Bradesco 390,34%
+   - Nubank 356,18% | Caixa 254,97%
+   - Limite abusividade STJ (Súmula 530): 2x média = 857,2% a.a.        */
+const TAXA_MEDIA_BACEN = 428.6;
+const TAXA_MES_REF = 'março/2026';
+const TAXA_HISTORICO = '424,5% (jan/2026) → 435,9% (fev/2026) → 428,6% (mar/2026)';
+const LIMITE_ABUSIVIDADE = TAXA_MEDIA_BACEN * 2;
+const bancos = {
+  itau: { nome: 'Itaú Unibanco', taxaAno: 540.77, taxaMes: 16.74 },
+  bb: { nome: 'Banco do Brasil', taxaAno: 453.5, taxaMes: 15.33 },
+  santander: { nome: 'Santander', taxaAno: 437.83, taxaMes: 15.05 },
+  bradesco: { nome: 'Bradesco', taxaAno: 390.34, taxaMes: 14.17 },
+  nubank: { nome: 'Nubank', taxaAno: 356.18, taxaMes: 13.48 },
+  caixa: { nome: 'Caixa Econômica Federal', taxaAno: 254.97, taxaMes: 11.13 },
+  inter: { nome: 'Inter', taxaAno: 360, taxaMes: 13.55, estimado: true },
+  c6: { nome: 'C6 Bank', taxaAno: 380, taxaMes: 14, estimado: true },
+  next: { nome: 'Next', taxaAno: 390, taxaMes: 14.2, estimado: true },
+  picpay: { nome: 'PicPay', taxaAno: 360, taxaMes: 13.6, estimado: true },
+};
+
+function renderAbusividade() {
+  const el = document.getElementById('abusividade-result');
+  const hint = document.getElementById('banco-hint');
+  if (!el) return;
+  const bancoKey = (state.dados.banco || '').toLowerCase();
+  const banco = bancos[bancoKey];
+  const tipo = state.dados.tipo;
+  const tipoElegivel = (tipo === 'cartao' || tipo === 'cheque');
+  // Mostra hint quando o tipo não é elegível pra análise
+  if (hint) hint.style.display = tipoElegivel ? 'none' : 'block';
+  if (!banco || !tipoElegivel) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'block';
+  const acimaMedia = banco.taxaAno > TAXA_MEDIA_BACEN;
+  const abusivo = banco.taxaAno > LIMITE_ABUSIVIDADE;
+  const cor = abusivo ? 'var(--red)' : (acimaMedia ? 'var(--gold)' : 'var(--green)');
+  const corSoft = abusivo ? 'var(--red-soft)' : (acimaMedia ? 'var(--gold-soft)' : 'var(--green-soft)');
+  let veredito = '';
+  if (abusivo) {
+    veredito = `<strong style="color:var(--red);">⚖️ INDÍCIO DE JUROS ABUSIVOS</strong><br>Taxa acima do dobro da média BACEN (${LIMITE_ABUSIVIDADE.toFixed(1)}% ao ano). Pela <strong>Súmula 530 do STJ</strong>, há fundamento jurídico pra revisão do contrato. Sua carta vai citar esse fato.`;
+  } else if (acimaMedia) {
+    veredito = `<strong style="color:var(--gold);">⚠️ TAXA ACIMA DA MÉDIA</strong><br>Acima da média BACEN de ${TAXA_MEDIA_BACEN}% ao ano, mas ainda dentro do limite da Súmula 530/STJ. Use como argumento de barganha.`;
+  } else {
+    veredito = `<strong style="color:var(--green);">✓ TAXA ABAIXO DA MÉDIA DE MERCADO</strong><br>Abaixo da média BACEN. Não há indício formal de abusividade dos juros — foque a negociação no desconto à vista (Desenrola/Limpa Nome).`;
+  }
+  el.innerHTML = `
+    <div style="background:${corSoft};border:1px solid ${cor};border-radius:11px;padding:14px 16px;margin-top:10px;font-size:14px;line-height:1.5;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+        <span style="font-weight:700;color:var(--text);">${banco.nome}${banco.estimado ? ' (estimado)' : ''}</span>
+        <span style="font-weight:700;color:${cor};font-size:16px;">${banco.taxaMes}%/mês · ${banco.taxaAno}%/ano</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-mute);margin-bottom:8px;">Média BACEN ${TAXA_MES_REF}: <strong>${TAXA_MEDIA_BACEN}% ao ano</strong> · Limite Súmula 530/STJ: <strong>${LIMITE_ABUSIVIDADE.toFixed(1)}% ao ano</strong><br>Histórico recente: ${TAXA_HISTORICO}</div>
+      <div style="color:var(--text);">${veredito}</div>
+    </div>
+  `;
+}
+
+// === SCRIPTS ===
+function renderScripts() {
+  const c = document.getElementById('scripts-container');
+  const d = state.dados || {};
+  const nome = d.nome || '[SEU NOME]';
+  const cpf = d.cpf || '[SEU CPF]';
+  const credor = d.credor || '[CREDOR]';
+  const final = d.final || '[FINAL]';
+  const valor = d.valor || '0';
+  const disp = d.disponivel || '0';
+  const valorFmt = parseFloat(valor) > 0 ? formatBRL(parseFloat(valor)) : '[VALOR]';
+  const dispFmt = parseFloat(disp) > 0 ? formatBRL(parseFloat(disp)) : '[VALOR DISPONÍVEL]';
+
+  const scripts = [
+    {
+      step: 1, titulo: 'Primeira abordagem (ligação)',
+      texto: `Olá, meu nome é <span class="highlight">${nome}</span>, CPF <span class="highlight">${cpf}</span>. Estou ligando porque quero quitar minha dívida hoje. Pode me transferir para o setor de negociação ou recuperação de crédito, por favor?`
+    },
+    {
+      step: 2, titulo: 'Pedido inicial (peça MAIS do que espera receber)',
+      texto: `Tenho <span class="highlight">${dispFmt}</span> disponível à vista e gostaria de saber o melhor desconto que vocês podem me oferecer. Estou negociando com outras instituições também e vou priorizar quem oferecer a melhor condição.`
+    },
+    {
+      step: 3, titulo: 'Quando oferecerem o primeiro desconto (NUNCA aceite)',
+      texto: `Agradeço, mas esse valor ainda está acima do que tenho disponível. Tem como conversar com seu supervisor? Outras instituições me ofereceram desconto maior.`
+    },
+    {
+      step: 4, titulo: 'Empurrando para um valor específico',
+      texto: `Olha, com toda sinceridade, se não chegarmos em <span class="highlight">${dispFmt}</span>, eu vou ter que esperar a dívida prescrever. Prefiro pagar agora, mas dentro do que cabe no meu orçamento. Vocês conseguem?`
+    },
+    {
+      step: 5, titulo: 'Fechamento e segurança',
+      texto: `Perfeito, vamos fechar nesse valor. Antes de eu pagar, preciso que vocês me enviem por e-mail ou WhatsApp:\n\n1. O boleto/PIX com o valor combinado\n2. O documento de quitação após o pagamento\n3. A confirmação de baixa no Serasa em até 5 dias úteis\n\nVocês conseguem mandar ainda hoje?`
+    },
+    {
+      step: 6, titulo: 'Versão WhatsApp / chat',
+      texto: `Boa tarde. Sou <span class="highlight">${nome}</span>, CPF <span class="highlight">${cpf}</span>. Quero quitar à vista minha dívida com <span class="highlight">${credor}</span> (contrato/cartão final <span class="highlight">${final}</span>). Tenho <span class="highlight">${dispFmt}</span> disponível hoje. Qual o melhor desconto possível? Aguardo proposta pra fechar agora.`,
+      isWhatsapp: true,
+    },
+  ];
+
+  c.innerHTML = scripts.map((s, i) => `
+    <div class="script-block">
+      <div class="script-step"><span class="num">${s.step}</span> ${s.titulo}</div>
+      <div class="script-text">${s.texto.replace(/\n/g, '<br>')}</div>
+      <div class="script-btn-row">
+        <button class="script-btn primary" data-script="${i}" data-action="copy">📋 Copiar texto</button>
+        ${s.isWhatsapp ? '<button class="script-btn" data-script="' + i + '" data-action="wa">📱 Abrir WhatsApp</button>' : ''}
+      </div>
+    </div>
+  `).join('');
+
+  c.querySelectorAll('.script-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      const idx = parseInt(b.dataset.script);
+      const action = b.dataset.action;
+      const text = scripts[idx].texto.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ');
+      if (action === 'copy') {
+        navigator.clipboard.writeText(text).then(() => {
+          b.textContent = '✓ Copiado!';
+          b.classList.add('copied');
+          setTimeout(() => { b.textContent = '📋 Copiar texto'; b.classList.remove('copied'); }, 1800);
+        });
+      } else if (action === 'wa') {
+        window.open('https://wa.me/?text=' + encodeURIComponent(text));
+      }
+    });
+  });
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const ind = document.getElementById('save-ind');
+    ind.textContent = '📋 Copiado!';
+    ind.classList.add('show');
+    setTimeout(() => { ind.classList.remove('show'); ind.textContent = 'Salvo ✓'; }, 1500);
+  });
+}
+
+// === BIND ===
+document.querySelectorAll('input, select, textarea').forEach(el => {
+  if (el.id.startsWith('d-')) {
+    el.addEventListener('input', () => { save(); calcular(); renderAbusividade(); renderCarta(); });
+    el.addEventListener('change', () => { save(); calcular(); renderAbusividade(); renderCarta(); });
+  } else if (el.type === 'checkbox') {
+    el.addEventListener('change', save);
+  }
+});
+
+// === INIT ===
+load();
+calcular();
+renderAbusividade();
+</script>
+
+</body>
+</html>
