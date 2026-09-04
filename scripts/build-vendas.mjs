@@ -33,8 +33,18 @@ const SITE_URL = "https://codigodavirada.net.br";
 function enxugarOferta(s) {
   // a capa na vitrine dos bônus; a grade de 4 colunas passa a 3
   s = s.replace(/\s*<figure[^>]*><img src="\.\/assets-landing\/bonus-renda-extra\.png"[\s\S]*?<\/figure>/, "");
-  s = s.replace("grid-template-columns:repeat(4, 1fr); gap:10px; padding:16px 0 4px;",
-                "grid-template-columns:repeat(3, 1fr); gap:10px; padding:16px 0 4px;");
+  // A grade continua com 4 quadros: sai a capa do bônus removido, entra a capa do
+  // e-book. Ela é a peça mais bonita do pacote e não aparecia em lugar nenhum da
+  // página — o comprador via os bônus e não via o livro que está comprando.
+  s = s.replace(
+    '<figure style="margin:0; display:flex; flex-direction:column; gap:6px;"><img src="./assets-landing/bonus-negociacao.png"',
+    '<figure style="margin:0; display:flex; flex-direction:column; gap:6px;">'
+    + '<img src="/assets/capa-ebook.jpg" alt="E-book Código da Virada" loading="lazy"'
+    + ' style="width:100%; aspect-ratio:4/5; object-fit:cover; object-position:center 32%; border-radius:8px; box-shadow:0 8px 20px rgba(15,23,42,0.18);">'
+    + '<figcaption style="font-size:11px; font-weight:600; color:#64748B; text-align:center; line-height:1.3;">E-book · 5 capítulos</figcaption>'
+    + '</figure>'
+    + '<figure style="margin:0; display:flex; flex-direction:column; gap:6px;"><img src="./assets-landing/bonus-negociacao.png"'
+  );
   // a linha na lista "O que você leva"
   s = s.replace(/, \["Bônus 2 · 50 ideias de renda extra", "para começar do zero", 27\]/, "");
   // renumera os que ficaram (1 negociação, 2 plano, 3 checklist)
