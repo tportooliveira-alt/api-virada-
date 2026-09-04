@@ -7,7 +7,7 @@
  *  1) Usuário toca "Entrar com Google"
  *  2) Tenta ID token (Google One Tap/FedCM)
  *  3) Se FedCM falhar no navegador, cai automaticamente no popup OAuth
- *  4) /api/access/check valida e diz se o email é comprador (lista Hotmart)
+ *  4) /api/access/check valida e diz se o email é comprador (lista de compradores)
  */
 
 import { PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
@@ -369,7 +369,10 @@ function NeedsLogin({
       )}
 
       <p className="mt-5 text-center text-xs text-ink-500">
-          Ainda nao comprou? Fale com o suporte para liberar seu acesso.
+        Ainda não comprou?{" "}
+        <a href="/vendas.html" className="font-semibold text-virada-green underline underline-offset-2">
+          Conheça o app
+        </a>
       </p>
 
       {/* Botão dev — aparece APENAS em localhost, invisível em produção */}
@@ -393,7 +396,7 @@ function NotMember({ email, onSwitch }: { email: string; onSwitch: () => void })
       <h2 className="mt-1 text-xl font-semibold text-ink-900">Comprou com outro e-mail?</h2>
       <p className="mt-1 mb-5 text-sm text-ink-500">
         Você entrou como <span className="font-semibold text-ink-900">{email}</span>, mas esse e-mail não aparece como comprador.
-        Verifique no seu recibo da Hotmart com qual e-mail a compra foi feita.
+        Confira no e-mail de confirmação da compra com qual e-mail ela foi feita.
       </p>
       <button
         type="button"
