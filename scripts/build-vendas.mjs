@@ -194,7 +194,18 @@ ${html.trim()}
 <script>
 (function () {
   // Links configuráveis
-  if (CHECKOUT_URL) document.querySelectorAll("a[data-checkout]").forEach(function (a) { a.href = CHECKOUT_URL; });
+  var whatsNum = WHATSAPP.replace(/\\D/g, "");
+  document.querySelectorAll("a[data-checkout]").forEach(function (a) {
+    if (CHECKOUT_URL) { a.href = CHECKOUT_URL; return; }
+    // Sem checkout, o botão apontava para "#comprar" e só rolava a página: quem
+    // decidiu comprar batia numa parede. Enquanto o link não existe, cai no
+    // WhatsApp, onde o agente atende 24h e fecha a venda.
+    if (whatsNum) {
+      a.href = "https://wa.me/" + whatsNum + "?text=" + encodeURIComponent("Quero comprar o Código da Virada. Me manda o link de pagamento?");
+      a.setAttribute("target", "_blank");
+      a.setAttribute("rel", "noopener");
+    }
+  });
   var whats = WHATSAPP.replace(/\\D/g, "");
   document.querySelectorAll("a[data-whats]").forEach(function (a) {
     if (whats) a.href = "https://wa.me/" + whats + "?text=" + encodeURIComponent("Oi! Tenho uma dúvida sobre o Código da Virada.");
