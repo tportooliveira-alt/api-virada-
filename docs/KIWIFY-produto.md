@@ -45,7 +45,6 @@ depois, sem refazer o produto.
 > - Bônus: Negociar dívida (calcula o desconto justo e escreve a carta pro banco)
 > - Bônus: Plano de 7 dias
 > - Bônus: Checklist mensal
-> - Bônus: 50 ideias de renda extra
 >
 > Pagamento único. Sem mensalidade. 7 dias de garantia — não gostou, devolvemos.
 

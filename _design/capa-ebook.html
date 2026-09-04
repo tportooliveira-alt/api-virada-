@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@600;700;800;900&family=Onest:wght@400;500;600&display=swap">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:1600px;height:2560px;overflow:hidden;}
+  body{
+    background:#0F172A;
+    font-family:'Onest',sans-serif;
+    color:#fff;
+    position:relative;
+  }
+  /* brilho quente vindo de baixo, como o hero da landing */
+  .brilho{
+    position:absolute;left:50%;bottom:-380px;transform:translateX(-50%);
+    width:1500px;height:1100px;border-radius:50%;
+    background:radial-gradient(circle, rgba(245,197,66,.20) 0%, rgba(21,128,61,.13) 42%, transparent 70%);
+  }
+  /* grade fina — a planilha, sem literalidade */
+  .grade{
+    position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+                     linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size:80px 80px;
+    mask-image:linear-gradient(180deg, rgba(0,0,0,.9), transparent 62%);
+    -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.9), transparent 62%);
+  }
+  .moldura{
+    position:absolute;inset:56px;border:2px solid rgba(245,197,66,.28);border-radius:10px;
+  }
+
+  .conteudo{
+    position:relative;height:100%;
+    display:flex;flex-direction:column;
+    padding:170px 140px 150px;
+  }
+
+  .eyebrow{
+    font-family:'Figtree',sans-serif;font-size:30px;font-weight:800;
+    letter-spacing:.30em;text-transform:uppercase;color:#F5C542;
+    text-align:center;
+  }
+  .risco{
+    width:190px;height:2px;background:rgba(245,197,66,.5);
+    margin:34px auto 0;
+  }
+
+  .miolo{flex:1;display:flex;flex-direction:column;justify-content:center;padding-bottom:130px;}
+
+  h1{
+    font-family:'Figtree',sans-serif;font-weight:900;
+    font-size:186px;line-height:.92;letter-spacing:-.045em;
+    text-align:center;
+  }
+  h1 .marca{
+    display:inline-block;background:#F5C542;color:#0F172A;
+    padding:0 .1em .06em;border-radius:12px;transform:rotate(-1.2deg);
+    margin-top:.06em;
+  }
+
+  .promessa{
+    margin-top:78px;text-align:center;
+    font-size:47px;line-height:1.45;font-weight:400;color:#CBD5E1;
+    max-width:1010px;margin-left:auto;margin-right:auto;
+  }
+  .promessa b{color:#fff;font-weight:600;}
+
+  .selos{
+    display:flex;justify-content:center;align-items:center;gap:0;
+  }
+  .selo{
+    font-family:'Figtree',sans-serif;font-size:30px;font-weight:800;
+    letter-spacing:.13em;text-transform:uppercase;color:#fff;
+    padding:0 46px;position:relative;
+  }
+  .selo span{color:#F5C542;}
+  .selo + .selo::before{
+    content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);
+    width:7px;height:7px;border-radius:50%;background:rgba(245,197,66,.65);
+  }
+
+  .rodape{
+    margin-top:96px;padding-top:52px;
+    border-top:2px solid rgba(255,255,255,.14);
+    text-align:center;
+  }
+  .autor{
+    font-family:'Figtree',sans-serif;font-size:46px;font-weight:800;
+    letter-spacing:.20em;text-transform:uppercase;color:#fff;
+  }
+  .selo-baixo{
+    margin-top:24px;font-size:27px;letter-spacing:.20em;
+    text-transform:uppercase;color:#94A3B8;
+  }
+</style>
+</head>
+<body>
+  <div class="brilho"></div>
+  <div class="grade"></div>
+  <div class="moldura"></div>
+
+  <div class="conteudo">
+    <p class="eyebrow">Guia prático</p>
+    <div class="risco"></div>
+
+    <div class="miolo">
+    <h1>O CÓDIGO<br>DA <span class="marca">VIRADA</span></h1>
+
+    <p class="promessa">
+      Você sabe quanto ganha.<br><b>O que você não sabe é pra onde foi.</b>
+    </p>
+    </div>
+
+    <div class="selos">
+      <span class="selo"><span>5</span> capítulos</span>
+      <span class="selo"><span>3</span> bônus</span>
+      <span class="selo">app incluso</span>
+    </div>
+
+    <div class="rodape">
+      <p class="autor">Thiago Porto Oliveira</p>
+      <p class="selo-baixo">Sem promessa milagrosa</p>
+    </div>
+  </div>
+</body>
+</html>

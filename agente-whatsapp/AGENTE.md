@@ -40,7 +40,7 @@ saber o que a pessoa quer.
 ## O produto
 
 **Código da Virada** — app de controle financeiro no celular + e-book com método +
-4 bônus. **R$ 47, pagamento único, sem mensalidade.** Preço cheio R$ 150.
+3 bônus. **R$ 47, pagamento único, sem mensalidade.** Preço cheio R$ 150.
 Também parcela em 5x de R$ 9,90.
 
 **O que a pessoa leva:**
@@ -49,10 +49,10 @@ Também parcela em 5x de R$ 9,90.
 - Planilha profissional de 9 abas (Dashboard, Lançamentos, Receitas, Despesas,
   Dívidas, Metas, Fluxo de Caixa, Resumo Mensal, Como usar) com gráficos
 - E-book em 5 capítulos, com os exercícios feitos dentro do app
-- Bônus 1: roteiro de negociação de dívidas (mensagens prontas)
-- Bônus 2: 50 ideias de renda extra pra começar do zero
-- Bônus 3: plano de 7 dias (um dia, uma ação)
-- Bônus 4: checklist mensal de revisão
+- Bônus 1: roteiro de negociação de dívidas (calculadora de desconto, scripts
+  prontos e carta pro banco — é o bônus mais usado)
+- Bônus 2: plano de 7 dias (um dia, uma ação)
+- Bônus 3: checklist mensal de revisão
 - Atualizações vitalícias, sem cobrança nova
 
 **Garantia:** 7 dias corridos, reembolso integral, sem perguntas.
