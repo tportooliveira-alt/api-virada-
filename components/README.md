@@ -14,7 +14,9 @@ Componentes reutilizáveis do app. Client components (PWA, offline-first).
 | `GoalCard.tsx`, `DebtCard.tsx`, `MissionCard.tsx`, `ProgressBar.tsx`, `BadgeCard.tsx` | Metas, dívidas, gamificação |
 | `ExpenseChart.tsx` | Gráfico de gastos |
 | `AntiImpulseCard.tsx`, `AudioTipCard.tsx`, `ExtraIncomeIdeaCard.tsx` | Conteúdo educativo no app |
-| `InstallGuide.tsx`, `LocalStorageNotice.tsx` | Onboarding PWA |
+| `InstallGuide.tsx`, `InstallButton.tsx`, `InstallNudge.tsx` | Instalação do app: guia por aparelho, botão que dispara o instalador do navegador e o convite dispensável no topo das telas (hook em `lib/pwa/use-install-app.ts`) |
+| `PwaRegister.tsx` | Registra o `public/sw.js` (só em produção; em dev desregistra) |
+| `LocalStorageNotice.tsx` | Onboarding: onde ficam os dados |
 | `PremiumGate.tsx`, `EmptyState.tsx` | Estados de UI |
 
-> Estado global vem do `ViradaProvider` (ver `providers/`). Dados ficam no IndexedDB.
+> Estado global vem do `ViradaProvider` (ver `providers/`). Dados ficam no localStorage (`virada-app:v1`).

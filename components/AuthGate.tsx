@@ -209,7 +209,10 @@ export function AuthGate({ children }: PropsWithChildren) {
     setStage("ok");
   }
 
-  const isPublic = pathname === "/";
+  // Telas abertas: a landing e a página de "compra confirmada" — quem chega nela
+  // ACABOU de pagar e ainda não logou. Barrar ali com o portão de login é mandar
+  // o comprador para uma parede em vez das instruções.
+  const isPublic = pathname === "/" || pathname === "/obrigado";
 
   // Carrega Google Identity Services + revalida sessão
   useEffect(() => {
