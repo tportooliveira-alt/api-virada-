@@ -77,7 +77,7 @@ export const HEADERS: Partial<Record<TabKey, string[]>> = {
  * atrasada, reaplica o visual sozinho no próximo "Atualizar agora".
  * Só valores mudam sem bump.
  */
-export const LAYOUT_VERSION = "2026-09-02.2";
+export const LAYOUT_VERSION = "2026-09-03.1";
 
 // Cores das barras de participação do Dashboard — mesma sequência da legenda
 // da pizza no design (Planilha Virada - Redesign).

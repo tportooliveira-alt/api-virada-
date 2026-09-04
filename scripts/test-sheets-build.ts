@@ -302,6 +302,24 @@ async function main() {
   check("progresso em decimal (0-1)", Math.abs(metasRows?.[0][5] - 0.25) < 0.001);
   check("meta cumprida = 1.0", metasRows?.[1][5] === 1);
 
+  // ─── Locale pt_BR: nada de ponto decimal em valor digitado ─────────────────
+  // A planilha nasce com locale pt_BR, então userEnteredValue é lido como o
+  // usuário digitaria: decimal com VÍRGULA. Com ponto, a API recusa o batch
+  // inteiro (400 INVALID_ARGUMENT) e a planilha fica sem layout nenhum.
+  {
+    const comPonto: string[] = [];
+    JSON.stringify(captured, (key, value) => {
+      if (key === "userEnteredValue" && typeof value === "string" && /^-?\d+\.\d+$/.test(value)) {
+        comPonto.push(value);
+      }
+      return value;
+    });
+    check(
+      comPonto.length ? `condições sem ponto decimal (pt_BR) — achei ${comPonto.join(", ")}` : "condições sem ponto decimal (pt_BR)",
+      comPonto.length === 0,
+    );
+  }
+
   // ─── Resultado ─────────────────────────────────────────────────────────────
   console.log(`\nTotal: ${passed} passou, ${failed} falhou`);
   if (failed > 0) process.exit(1);

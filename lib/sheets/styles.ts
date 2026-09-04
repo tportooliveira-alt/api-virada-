@@ -477,10 +477,13 @@ export function condFormatProgressBands(
       index,
     },
   });
+  // userEnteredValue é lido como o usuário digitaria NA planilha, e ela é criada
+  // com locale pt_BR — decimal com vírgula. Com ponto, a API recusa o lote inteiro
+  // ("Invalid ConditionValue.userEnteredValue: 0.75"). Mesma pegadinha das fórmulas.
   return [
-    band({ type: "NUMBER_GREATER_THAN_EQ", values: [{ userEnteredValue: "0.75" }] }, greenSoft, greenDeep, 0),
-    band({ type: "NUMBER_GREATER_THAN_EQ", values: [{ userEnteredValue: "0.35" }] }, amberSoft, amberDeep, 1),
-    band({ type: "NUMBER_LESS", values: [{ userEnteredValue: "0.35" }] }, redSoft, red, 2),
+    band({ type: "NUMBER_GREATER_THAN_EQ", values: [{ userEnteredValue: "0,75" }] }, greenSoft, greenDeep, 0),
+    band({ type: "NUMBER_GREATER_THAN_EQ", values: [{ userEnteredValue: "0,35" }] }, amberSoft, amberDeep, 1),
+    band({ type: "NUMBER_LESS", values: [{ userEnteredValue: "0,35" }] }, redSoft, red, 2),
   ];
 }
 
