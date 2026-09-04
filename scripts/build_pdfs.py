@@ -410,7 +410,23 @@ def md_to_flowables(md_text: str, styles: dict[str, ParagraphStyle]) -> list:
 # ----------------------------------------------------------------------
 
 
+CAPA_IMAGEM = Path(__file__).resolve().parent.parent / "public" / "assets" / "capa-ebook-a5.jpg"
+
+
 def draw_cover(canvas, doc, *, title: str, subtitle: str, kicker: str) -> None:
+    # A capa de verdade (a mesma da biblioteca e da venda) entra como imagem.
+    # O desenho vetorial abaixo é o retrato antigo, dark, com "8 capítulos" e
+    # "+4 bônus" — fica só como reserva se o arquivo sumir.
+    if CAPA_IMAGEM.exists():
+        canvas.saveState()
+        canvas.drawImage(
+            str(CAPA_IMAGEM), 0, 0,
+            width=PAGE_W, height=PAGE_H,
+            preserveAspectRatio=False, anchor="c", mask=None,
+        )
+        canvas.restoreState()
+        return
+
     canvas.saveState()
     canvas.setFillColor(BG_DARK)
     canvas.rect(0, 0, PAGE_W, PAGE_H, fill=1, stroke=0)
