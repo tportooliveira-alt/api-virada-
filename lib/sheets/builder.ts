@@ -452,8 +452,8 @@ export function buildStaticValues() {
     { range: `${TAB.dashboard}!G9`, values: [["Comparativo mensal"], ["Leitura mensal de entradas, saídas e resultado para enxergar tendência."]] },
     { range: `${TAB.dashboard}!A11`, values: [["Categoria", "Total"]] },
     { range: `${TAB.dashboard}!G11`, values: [["Mês", "Entradas", "Saídas", "Resultado"]] },
-    { range: `${TAB.dashboard}!A12:B21`, values: padRows(10, ["Sem dados", 0]) },
-    { range: `${TAB.dashboard}!G12:J21`, values: padRows(10, ["Sem mês", 0, 0, 0]) },
+    { range: `${TAB.dashboard}!A12:B21`, values: padRows(10, ["", ""]) },
+    { range: `${TAB.dashboard}!G12:J21`, values: padRows(10, ["", "", "", ""]) },
     { range: `${TAB.dashboard}!A33`, values: [["Dívidas em aberto e pressão de caixa"], ["Gráfico de barras para visualizar rapidamente onde está o maior peso financeiro."]] },
     { range: `${TAB.dashboard}!C11`, values: [["participação"]] },
     { range: `${TAB.dashboard}!K11`, values: [["resultado do mês"]] },
@@ -702,13 +702,13 @@ function buildTopCategoryRows(expenses: SyncInput["expenses"]) {
   const byCategory = new Map<string, number>();
   expenses.forEach((expense) => byCategory.set(expense.category, roundMoney((byCategory.get(expense.category) || 0) + expense.value)));
   const rows = [...byCategory.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([category, total]) => [category, total]);
-  return rows.length ? padRows(10, ["", ""], rows) : [["Sem dados", 0], ...padRows(9, ["", ""])] ;
+  // Sem categoria nenhuma, a grade fica em branco: escrever "Sem dados" numa
+  // linha com barra colorida parece produto inacabado, não planilha vazia.
+  return padRows(10, ["", ""], rows);
 }
 
 function buildDashboardMonthRows(resumo: unknown[][]) {
-  return resumo.length
-    ? padRows(10, ["", "", "", ""], resumo.slice(-10).map((row) => [formatMonth(row[0]), row[1], row[2], row[3]]))
-    : [["Sem mês", 0, 0, 0], ...padRows(9, ["", "", "", ""])] ;
+  return padRows(10, ["", "", "", ""], resumo.slice(-10).map((row) => [formatMonth(row[0]), row[1], row[2], row[3]]));
 }
 
 function pieChart(dashboard: number, rowIndex: number, columnIndex: number, widthPixels: number, heightPixels: number) {
