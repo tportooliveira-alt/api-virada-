@@ -40,7 +40,7 @@ function enxugarOferta(s) {
     '<figure style="margin:0; display:flex; flex-direction:column; gap:6px;"><img src="./assets-landing/bonus-negociacao.png"',
     '<figure style="margin:0; display:flex; flex-direction:column; gap:6px;">'
     + '<img src="/assets/capa-ebook.jpg" alt="E-book Código da Virada" loading="lazy"'
-    + ' style="width:100%; aspect-ratio:4/5; object-fit:cover; object-position:center 32%; border-radius:8px; box-shadow:0 8px 20px rgba(15,23,42,0.18);">'
+    + ' style="width:100%; aspect-ratio:4/5; object-fit:contain; border-radius:8px; filter:drop-shadow(0 8px 20px rgba(15,23,42,0.28));">'
     + '<figcaption style="font-size:11px; font-weight:600; color:#64748B; text-align:center; line-height:1.3;">E-book · 5 capítulos</figcaption>'
     + '</figure>'
     + '<figure style="margin:0; display:flex; flex-direction:column; gap:6px;"><img src="./assets-landing/bonus-negociacao.png"'
