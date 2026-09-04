@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { LogOut, Smartphone, Trash2 } from "lucide-react";
+import { BookOpen, HandCoins, ListChecks, LogOut, Smartphone, Trash2 } from "lucide-react";
 import { GoogleSyncButton } from "@/components/GoogleSyncButton";
 import { getLocalUser, logOut } from "@/components/AuthGate";
 import { Sheet, SheetAction } from "@/components/ui/Sheet";
@@ -47,6 +47,30 @@ export default function ContaPage() {
               </p>
             </div>
           </div>
+        </section>
+
+        {/* O que veio junto — no celular é por aqui que se chega às ferramentas */}
+        <section className="surface-card order-2 flex flex-col gap-3 p-[18px] lg:order-none">
+          <p className="eyebrow">O que veio junto</p>
+          {[
+            { href: "/biblioteca/negociacao/index.html", Icon: HandCoins, titulo: "Negociar dívida", desc: "Calcula o desconto, escreve os scripts e gera a carta pro banco." },
+            { href: "/downloads/ebook-codigo-da-virada.pdf", Icon: BookOpen, titulo: "E-book", desc: "O método completo, em 7 capítulos." },
+            { href: "/biblioteca/plano-7-dias/index.html", Icon: ListChecks, titulo: "Plano de 7 dias", desc: "Uma ação por dia pra sair do lugar." },
+          ].map(({ href, Icon, titulo, desc }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-3 rounded-xl border border-ink-200 bg-white px-3.5 py-3 transition-colors duration-150 hover:bg-ink-50"
+            >
+              <Icon className="h-[18px] w-[18px] shrink-0 text-green-700" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-ink-900">{titulo}</span>
+                <span className="mt-0.5 block text-xs leading-[1.4] text-ink-500">{desc}</span>
+              </span>
+            </a>
+          ))}
         </section>
 
         {/* Instalar */}

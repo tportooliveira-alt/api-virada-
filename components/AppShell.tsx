@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PropsWithChildren } from "react";
-import { BookOpen, CalendarDays, Smartphone } from "lucide-react";
+import { BookOpen, CalendarDays, HandCoins, Smartphone } from "lucide-react";
 import { BottomNav, isActivePath, mainNavItems } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { UpdateBanner } from "@/components/UpdateBanner";
@@ -35,11 +35,13 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   },
 };
 
-// A Biblioteca é HTML estático fora do app (public/biblioteca), por isso abre em
-// aba nova e não entra no BottomNav — o menu de baixo segue com as 4 telas do design.
+// Ferramentas e e-book são HTML/PDF estáticos fora do app (public/), por isso abrem
+// em aba nova e não entram no BottomNav — o menu de baixo segue com as 4 telas do design.
+// Vão direto no menu, sem passar por uma tela de "biblioteca": um clique a menos.
 const sidebarItems = [
   ...mainNavItems,
-  { href: "/biblioteca/index.html", label: "Biblioteca", icon: BookOpen, externo: true },
+  { href: "/biblioteca/negociacao/index.html", label: "Negociar dívida", icon: HandCoins, externo: true },
+  { href: "/downloads/ebook-codigo-da-virada.pdf", label: "E-book", icon: BookOpen, externo: true },
   { href: "/app/instalar", label: "Instalar app", icon: Smartphone },
 ];
 
