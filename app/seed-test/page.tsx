@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { saveData, clearData } from "@/lib/db/virada-store";
+import type { ViradaData } from "@/lib/types";
 
 const STORAGE_KEY = "virada-app:v1";
 const ACCOUNT_KEY = "virada-account-v1";
@@ -16,7 +17,7 @@ function daysAgo(n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-const SEED_DATA = {
+const SEED_DATA: ViradaData = {
   expenses: [
     { id: id("exp"), description: "Ração para o gado", value: 850, category: "Fornecedor", date: daysAgo(2), paymentMethod: "Pix", nature: "essencial", scope: "empresa", source: "app" },
     { id: id("exp"), description: "Sal mineral", value: 350, category: "Fornecedor", date: daysAgo(5), paymentMethod: "Dinheiro", nature: "essencial", scope: "empresa", source: "app" },
@@ -57,20 +58,25 @@ const ACCOUNT_DATA = {
 export default function SeedTestPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
 
-  function popular() {
+  // Escreve direto no IndexedDB — é ele que o app lê (lib/db/virada-store).
+  // Gravar só no localStorage não funciona: a migração legada roda uma única
+  // vez, na 1ª abertura, e já teria acontecido em qualquer navegador de teste.
+  async function popular() {
     setStatus("loading");
     try {
+      await saveData(SEED_DATA);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_DATA));
       localStorage.setItem(ACCOUNT_KEY, JSON.stringify(ACCOUNT_DATA));
-      setTimeout(() => setStatus("done"), 600);
+      setStatus("done");
     } catch (e) {
       alert("Erro: " + e);
       setStatus("idle");
     }
   }
 
-  function limpar() {
+  async function limpar() {
     if (!confirm("Tem certeza que quer apagar TODOS os dados do app?")) return;
+    await clearData();
     localStorage.removeItem(STORAGE_KEY);
     setStatus("idle");
     alert("Dados apagados!");
@@ -93,7 +99,7 @@ export default function SeedTestPage() {
         </div>
 
         {status === "idle" && (
-          <button onClick={popular} style={{ marginTop: 24, padding: "16px 32px", background: "#22C55E", color: "#fff", border: 0, borderRadius: 8, fontSize: 16, fontWeight: 700, cursor: "pointer", width: "100%" }}>
+          <button onClick={() => void popular()} style={{ marginTop: 24, padding: "16px 32px", background: "#22C55E", color: "#fff", border: 0, borderRadius: 8, fontSize: 16, fontWeight: 700, cursor: "pointer", width: "100%" }}>
             🚀 Popular dados de teste
           </button>
         )}
@@ -106,16 +112,16 @@ export default function SeedTestPage() {
           <div style={{ marginTop: 24, padding: 20, background: "rgba(34, 197, 94, 0.15)", border: "1px solid #22C55E", borderRadius: 8 }}>
             <p style={{ color: "#22C55E", fontWeight: 700, fontSize: 18 }}>✅ Dados populados!</p>
             <p style={{ marginTop: 8 }}>Agora você pode:</p>
-            <Link href="/app/inicio" style={{ display: "block", marginTop: 12, padding: 12, background: "#22C55E", color: "#fff", textAlign: "center", borderRadius: 6, textDecoration: "none", fontWeight: 600 }}>
+            <a href="/app/inicio" style={{ display: "block", marginTop: 12, padding: 12, background: "#22C55E", color: "#fff", textAlign: "center", borderRadius: 6, textDecoration: "none", fontWeight: 600 }}>
               Ir pro app →
-            </Link>
-            <Link href="/app/relatorios" style={{ display: "block", marginTop: 8, padding: 12, background: "#F5C542", color: "#07111F", textAlign: "center", borderRadius: 6, textDecoration: "none", fontWeight: 600 }}>
+            </a>
+            <a href="/app/relatorios" style={{ display: "block", marginTop: 8, padding: 12, background: "#F5C542", color: "#07111F", textAlign: "center", borderRadius: 6, textDecoration: "none", fontWeight: 600 }}>
               Exportar planilha →
-            </Link>
+            </a>
           </div>
         )}
 
-        <button onClick={limpar} style={{ marginTop: 16, padding: 8, background: "transparent", color: "#94A3B8", border: "1px solid rgba(203, 213, 225, 0.12)", borderRadius: 6, fontSize: 13, cursor: "pointer", width: "100%" }}>
+        <button onClick={() => void limpar()} style={{ marginTop: 16, padding: 8, background: "transparent", color: "#94A3B8", border: "1px solid rgba(203, 213, 225, 0.12)", borderRadius: 6, fontSize: 13, cursor: "pointer", width: "100%" }}>
           Apagar todos os dados (reset)
         </button>
       </div>
