@@ -1,9 +1,10 @@
 "use client";
 
 /**
- * ViradaProvider — 100% local, zero servidor.
- * Dados ficam no celular do usuário (localStorage).
- * Sem login. Abre e usa. Deploy gratuito no Netlify.
+ * ViradaProvider — dados financeiros 100% no aparelho do cliente.
+ * Fonte da verdade: IndexedDB (lib/db/virada-store). O localStorage antigo
+ * continua como backup e é migrado uma única vez, na 1ª abertura desta versão.
+ * O servidor só guarda a lista de quem comprou (SQLite) — nunca os lançamentos.
  */
 
 import {
