@@ -1,11 +1,16 @@
 /**
- * Testa o fluxo completo de estorno:
- * estornar gasto → cria receita oposta (saldo neutro)
- * estornar receita → cria despesa oposta (saldo neutro)
- * Planilha reflete valores exatos com o estorno incluído.
+ * Testa o fluxo completo de estorno (contrato em lib/types.ts):
+ * estornar gasto  → o gasto fica marcado com `estornadoEm` e sai dos totais
+ * estornar receita → a receita fica marcada com `estornadoEm` e sai dos totais
+ * Nada é criado: o histórico continua inteiro e nenhum contra-lançamento aparece
+ * na planilha. (Os TOTAIS da planilha ignorando estornados são do cluster B.)
+ *
+ * Roda com: npx tsx scripts/test-estorno.ts
  */
+import { applyEstorno } from "../providers/virada-provider";
+import { isEstornado, semEstornados } from "../lib/types";
+import type { ViradaData } from "../lib/types";
 import { buildSyncBatch } from "../lib/sheets/builder";
-import type { SyncInput } from "../lib/sheets/builder";
 
 let pass = 0, fail = 0;
 const check = (label: string, ok: boolean, hint?: string) => {
@@ -14,9 +19,17 @@ const check = (label: string, ok: boolean, hint?: string) => {
 };
 
 const round = (n: number) => Math.round(n * 100) / 100;
+const soma = (items: { value: number }[]) => round(items.reduce((s, i) => s + i.value, 0));
+
+// Totais como app, planilha e prévia devem calcular: filtra estornados, depois soma.
+function totais(d: ViradaData) {
+  const receitas = soma(semEstornados(d.incomes));
+  const despesas = soma(semEstornados(d.expenses));
+  return { receitas, despesas, saldo: round(receitas - despesas) };
+}
 
 // ─── Dados base ──────────────────────────────────────────────────────────────
-const baseInput: SyncInput = {
+const base: ViradaData = {
   expenses: [
     { id: "e1", description: "Supermercado",  value: 500,  category: "Mercado",  date: "2026-04-10", paymentMethod: "Pix",     nature: "essencial", scope: "casa", source: "app" },
     { id: "e2", description: "Conta de luz",  value: 200,  category: "Energia",  date: "2026-04-15", paymentMethod: "Boleto",  nature: "essencial", scope: "casa", source: "app" },
@@ -28,135 +41,89 @@ const baseInput: SyncInput = {
   ],
   debts: [],
   goals: [],
+  missionStatus: {},
 };
 
-const totalReceitas = baseInput.incomes.reduce((s, i) => s + i.value, 0);   // 3800
-const totalDespesas = baseInput.expenses.reduce((s, e) => s + e.value, 0);  // 850
-const saldoBase = round(totalReceitas - totalDespesas);                       // 2950
+const HOJE = "2026-04-25";
 
 // ─── A) Estado base (sem estorno) ────────────────────────────────────────────
 console.log("\n[A] Estado base — antes do estorno");
-check("totalReceitas = 3800", totalReceitas === 3800);
-check("totalDespesas = 850",  totalDespesas === 850);
-check("saldo = 2950",          saldoBase === 2950);
-
-const batchBase = buildSyncBatch(baseInput);
-const a6base = batchBase.valueRanges.find(v => v.range === "Dashboard!A6")?.values[0][0];
-const d6base = batchBase.valueRanges.find(v => v.range === "Dashboard!D6")?.values[0][0];
-const g6base = batchBase.valueRanges.find(v => v.range === "Dashboard!G6")?.values[0][0];
-check("planilha A6 = 3800", a6base === 3800);
-check("planilha D6 = 850",  d6base === 850);
-check("planilha G6 = 2950", g6base === 2950);
+{
+  const t = totais(base);
+  check("totalReceitas = 3800", t.receitas === 3800);
+  check("totalDespesas = 850",  t.despesas === 850);
+  check("saldo = 2950",          t.saldo === 2950);
+  check("nada está estornado", ![...base.expenses, ...base.incomes].some(isEstornado));
+}
 
 // ─── B) Estorno de despesa (e1 = Supermercado 500) ───────────────────────────
 console.log("\n[B] Estorno de despesa (Supermercado R$ 500)");
-// Estorno cria receita oposta com prefixo "ESTORNO —"
-const inputEstornoDespesa: SyncInput = {
-  ...baseInput,
-  incomes: [
-    ...baseInput.incomes,
-    { id: "est_e1", description: "ESTORNO — Supermercado", value: 500, category: "Outros", date: "2026-04-10", scope: "casa", source: "app" },
-  ],
-};
-// Despesa original PERMANECE no histórico
-const recEstorno = inputEstornoDespesa.incomes.reduce((s, i) => s + i.value, 0); // 3800 + 500 = 4300
-const desEstorno = inputEstornoDespesa.expenses.reduce((s, e) => s + e.value, 0); // 850 (original permanece)
-const saldoEstorno = round(recEstorno - desEstorno); // 3450
+const depoisB = applyEstorno(base, { id: "e1", type: "expense" }, HOJE);
+{
+  const t = totais(depoisB);
+  const e1 = depoisB.expenses.find((e) => e.id === "e1");
+  check("despesa original permanece no histórico (3 despesas)", depoisB.expenses.length === 3);
+  check("nenhuma receita foi criada (2 receitas)", depoisB.incomes.length === 2);
+  check("despesa marcada com estornadoEm = hoje", e1?.estornadoEm === HOJE);
+  check("as outras despesas não foram marcadas", !depoisB.expenses.filter((e) => e.id !== "e1").some(isEstornado));
+  check("totalReceitas após estorno = 3800 (não infla)", t.receitas === 3800);
+  check("totalDespesas após estorno = 350 (500 abatidos)", t.despesas === 350);
+  check("saldo após estorno = 3450", t.saldo === 3450);
 
-check("despesa original permanece no histórico", inputEstornoDespesa.expenses.length === 3);
-check("totalReceitas após estorno = 4300 (com estorno)",  recEstorno === 4300);
-check("totalDespesas após estorno = 850 (original mantido)", desEstorno === 850);
-check("saldo após estorno = 3450 (receitas - despesas)", saldoEstorno === 3450);
-
-const batchEstorno = buildSyncBatch(inputEstornoDespesa);
-const a6est = batchEstorno.valueRanges.find(v => v.range === "Dashboard!A6")?.values[0][0];
-const d6est = batchEstorno.valueRanges.find(v => v.range === "Dashboard!D6")?.values[0][0];
-const g6est = batchEstorno.valueRanges.find(v => v.range === "Dashboard!G6")?.values[0][0];
-check("planilha A6 = 4300 (com estorno)",         a6est === 4300);
-check("planilha D6 = 850 (despesa original mantida)", d6est === 850);
-check("planilha G6 = 3450 (saldo correto)",       g6est === 3450);
-
-// Linha de estorno aparece nas Receitas da planilha
-const receitasRange = batchEstorno.valueRanges.find(v => v.range === "Receitas!A2");
-const linhaEstorno = (receitasRange?.values ?? []).find(row => String(row[1]).startsWith("ESTORNO"));
-check("planilha Receitas tem linha com prefixo ESTORNO", !!linhaEstorno);
-check("planilha Receitas tem 3 linhas (2 originais + 1 estorno)", (receitasRange?.values ?? []).length === 3);
-check("valor da linha de estorno = 500", Number(linhaEstorno?.[3]) === 500);
-
-// Fluxo de caixa do dia 10 agora soma: receita 500 estorno + despesa 500 original → resultado 0
-const fluxoRange = batchEstorno.valueRanges.find(v => v.range === "Fluxo de Caixa!A2");
-const dia10 = (fluxoRange?.values ?? []).find(row => String(row[0]) === "10/04/2026");
-check("fluxo dia 10: entradas = 500 (estorno)", Number(dia10?.[1]) === 500);
-check("fluxo dia 10: saídas = 500 (original)", Number(dia10?.[2]) === 500);
-check("fluxo dia 10: resultado = 0 (neutro)",  Number(dia10?.[3]) === 0);
+  // Planilha: a linha continua no histórico e não existe linha "ESTORNO —"
+  const batch = buildSyncBatch({ incomes: depoisB.incomes, expenses: depoisB.expenses, debts: [], goals: [] });
+  const receitas = batch.valueRanges.find((v) => v.range === "Receitas!A2")?.values ?? [];
+  const despesas = batch.valueRanges.find((v) => v.range === "Despesas!A2")?.values ?? [];
+  check("planilha Receitas tem 2 linhas (sem contra-lançamento)", receitas.length === 2);
+  check("planilha Despesas tem 3 linhas (estornada continua no histórico)", despesas.length === 3);
+  check("planilha não tem linha com prefixo ESTORNO", ![...receitas, ...despesas].some((row) => String(row[1]).startsWith("ESTORNO")));
+}
 
 // ─── C) Estorno de receita (i2 = Freela 800) ─────────────────────────────────
 console.log("\n[C] Estorno de receita (Freela R$ 800)");
-const inputEstornoReceita: SyncInput = {
-  ...baseInput,
-  expenses: [
-    ...baseInput.expenses,
-    { id: "est_i2", description: "ESTORNO — Freela", value: 800, category: "Outros", paymentMethod: "Outro", nature: "essencial", date: "2026-04-12", scope: "casa", source: "app" },
-  ],
-};
-const recER  = inputEstornoReceita.incomes.reduce((s, i) => s + i.value, 0);   // 3800
-const desER  = inputEstornoReceita.expenses.reduce((s, e) => s + e.value, 0);  // 850 + 800 = 1650
-const saldoER = round(recER - desER); // 2150
-
-check("receita original permanece no histórico", inputEstornoReceita.incomes.length === 2);
-check("totalDespesas após estorno receita = 1650", desER === 1650);
-check("totalReceitas = 3800 (não muda)", recER === 3800);
-check("saldo após estorno receita = 2150", saldoER === 2150);
-
-const batchER = buildSyncBatch(inputEstornoReceita);
-check("planilha A6 = 3800 (receitas não mudam)", batchER.valueRanges.find(v => v.range === "Dashboard!A6")?.values[0][0] === 3800);
-check("planilha D6 = 1650 (com estorno)",         batchER.valueRanges.find(v => v.range === "Dashboard!D6")?.values[0][0] === 1650);
-check("planilha G6 = 2150 (saldo correto)",        batchER.valueRanges.find(v => v.range === "Dashboard!G6")?.values[0][0] === 2150);
-
-const despesasRange = batchER.valueRanges.find(v => v.range === "Despesas!A2");
-const linhaEstornoD = (despesasRange?.values ?? []).find(row => String(row[1]).startsWith("ESTORNO"));
-check("planilha Despesas tem linha ESTORNO", !!linhaEstornoD);
-check("planilha Despesas tem 4 linhas (3 originais + 1 estorno)", (despesasRange?.values ?? []).length === 4);
-check("valor da linha de estorno = 800", Number(linhaEstornoD?.[3]) === 800);
+{
+  const d = applyEstorno(base, { id: "i2", type: "income" }, HOJE);
+  const t = totais(d);
+  check("receita original permanece no histórico (2 receitas)", d.incomes.length === 2);
+  check("nenhuma despesa foi criada (3 despesas)", d.expenses.length === 3);
+  check("receita marcada com estornadoEm", d.incomes.find((i) => i.id === "i2")?.estornadoEm === HOJE);
+  check("totalReceitas após estorno = 3000 (800 abatidos)", t.receitas === 3000);
+  check("totalDespesas = 850 (não muda)", t.despesas === 850);
+  check("saldo após estorno receita = 2150", t.saldo === 2150);
+}
 
 // ─── D) Estorno duplo — efeito cumulativo ────────────────────────────────────
 console.log("\n[D] Estorno duplo — dois gastos estornados");
-const inputDuplo: SyncInput = {
-  ...baseInput,
-  incomes: [
-    ...baseInput.incomes,
-    { id: "est_e1b", description: "ESTORNO — Supermercado", value: 500, category: "Outros", date: "2026-04-10", scope: "casa", source: "app" },
-    { id: "est_e2b", description: "ESTORNO — Conta de luz", value: 200, category: "Outros", date: "2026-04-15", scope: "casa", source: "app" },
-  ],
-};
-const recDuplo = inputDuplo.incomes.reduce((s, i) => s + i.value, 0);  // 3800 + 700 = 4500
-const desDuplo = inputDuplo.expenses.reduce((s, e) => s + e.value, 0); // 850 (originais permanecem)
-const saldoDuplo = round(recDuplo - desDuplo); // 3650
-
-check("dois estornos: receitas = 4500", recDuplo === 4500);
-check("dois estornos: despesas = 850 (originais)", desDuplo === 850);
-check("dois estornos: saldo = 3650", saldoDuplo === 3650);
-check("planilha G6 com duplo estorno = 3650",
-  buildSyncBatch(inputDuplo).valueRanges.find(v => v.range === "Dashboard!G6")?.values[0][0] === 3650
-);
+{
+  const d = applyEstorno(applyEstorno(base, { id: "e1", type: "expense" }, HOJE), { id: "e2", type: "expense" }, HOJE);
+  const t = totais(d);
+  check("dois estornos: 2 despesas marcadas", d.expenses.filter(isEstornado).length === 2);
+  check("dois estornos: receitas = 3800", t.receitas === 3800);
+  check("dois estornos: despesas = 150 (só a de impulso)", t.despesas === 150);
+  check("dois estornos: saldo = 3650", t.saldo === 3650);
+  check("histórico intacto: 3 despesas + 2 receitas", d.expenses.length === 3 && d.incomes.length === 2);
+}
 
 // ─── E) Estorno não cria ponto flutuante ────────────────────────────────────
 console.log("\n[E] Precisão — valores com centavos");
-const inputCentavos: SyncInput = {
-  expenses: [
-    { id: "ec1", description: "Farmácia", value: 37.45, category: "Saúde", date: "2026-04-01", paymentMethod: "Débito", nature: "essencial", scope: "casa", source: "app" },
-  ],
-  incomes: [
-    { id: "ic1", description: "Gorjeta", value: 12.80, category: "Outros", date: "2026-04-01", scope: "casa", source: "app" },
-    { id: "est_ec1", description: "ESTORNO — Farmácia", value: 37.45, category: "Outros", date: "2026-04-01", scope: "casa", source: "app" },
-  ],
-  debts: [], goals: [],
-};
-const batchCentavos = buildSyncBatch(inputCentavos);
-const g6centavos = Number(batchCentavos.valueRanges.find(v => v.range === "Dashboard!G6")?.values[0][0]);
-const saldoEsperado = round(12.80 + 37.45 - 37.45); // 12.80
-check("saldo com centavos e estorno = 12.80 (sem ponto flutuante)", g6centavos === saldoEsperado, `recebeu ${g6centavos}`);
-check("g6 tem no máximo 2 casas decimais", Number(g6centavos.toFixed(2)) === g6centavos);
+{
+  const centavos: ViradaData = {
+    expenses: [
+      { id: "ec1", description: "Farmácia", value: 37.45, category: "Saúde", date: "2026-04-01", paymentMethod: "Débito", nature: "essencial", scope: "casa", source: "app" },
+      { id: "ec2", description: "Padaria",  value: 0.10,  category: "Mercado", date: "2026-04-01", paymentMethod: "Dinheiro", nature: "essencial", scope: "casa", source: "app" },
+      { id: "ec3", description: "Bala",     value: 0.20,  category: "Mercado", date: "2026-04-01", paymentMethod: "Dinheiro", nature: "essencial", scope: "casa", source: "app" },
+    ],
+    incomes: [
+      { id: "ic1", description: "Gorjeta", value: 12.80, category: "Outros", date: "2026-04-01", scope: "casa", source: "app" },
+    ],
+    debts: [], goals: [], missionStatus: {},
+  };
+  const d = applyEstorno(centavos, { id: "ec1", type: "expense" }, HOJE);
+  const t = totais(d);
+  check("despesas com centavos após estorno = 0.30 (0.10 + 0.20, sem 0.30000000000000004)", t.despesas === 0.30, `recebeu ${t.despesas}`);
+  check("saldo com centavos e estorno = 12.50", t.saldo === 12.50, `recebeu ${t.saldo}`);
+  check("saldo tem no máximo 2 casas decimais", Number(t.saldo.toFixed(2)) === t.saldo);
+}
 
 // ─── Resultado ───────────────────────────────────────────────────────────────
 console.log(`\nTotal: ${pass} passou, ${fail} falhou`);

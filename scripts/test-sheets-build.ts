@@ -279,6 +279,11 @@ async function main() {
     { id: "d3", name: "Empréstimo BB",  totalValue: 5000, installmentValue: 500,  dueDate: "2026-05-15", priority: "média",  status: "negociando" },
     { id: "d4", name: "Antiga",         totalValue: 300,  installmentValue: 300,  dueDate: "2026-01-01", priority: "alta",   status: "quitada" },
   ]);
+  // B10: a limpeza parcial ia até a coluna Z e apagava os rótulos/notas da
+  // coluna J (escritos só na criação). Só até a última coluna de dados, e aberta
+  // (sem linha final) pra não deixar linha fantasma depois da 1000.
+  const divClear = captured.find((c) => c.method === "values.batchClear");
+  check("syncDebts limpa só Dívidas!A2:G (não A2:Z1000)", JSON.stringify(divClear?.arg.requestBody.ranges) === JSON.stringify(["Dívidas!A2:G"]), JSON.stringify(divClear?.arg.requestBody.ranges));
   const divBatch = captured.find((c) => c.method === "values.batchUpdate");
   const divRange = (divBatch?.arg.requestBody.data ?? []).find((d: any) => d.range?.startsWith("Dívidas"));
   const divRows = divRange?.values;
@@ -294,6 +299,8 @@ async function main() {
     { id: "g1", name: "Reserva 6 meses", targetValue: 12000, currentValue: 3000, type: "reserva" },
     { id: "g2", name: "Quitar cartão",   targetValue: 1800,  currentValue: 1800, type: "dívida" },
   ]);
+  const metasClear = captured.find((c) => c.method === "values.batchClear");
+  check("syncGoals limpa só Metas!A2:F (não A2:Z1000)", JSON.stringify(metasClear?.arg.requestBody.ranges) === JSON.stringify(["Metas!A2:F"]), JSON.stringify(metasClear?.arg.requestBody.ranges));
   const metasBatch = captured.find((c) => c.method === "values.batchUpdate");
   const metasRange = (metasBatch?.arg.requestBody.data ?? []).find((d: any) => d.range?.startsWith("Metas"));
   const metasRows = metasRange?.values;
@@ -318,6 +325,23 @@ async function main() {
       comPonto.length ? `condições sem ponto decimal (pt_BR) — achei ${comPonto.join(", ")}` : "condições sem ponto decimal (pt_BR)",
       comPonto.length === 0,
     );
+  }
+
+  // ─── SPARKLINE: sintaxe pt-BR obrigatória ──────────────────────────────────
+  // A planilha nasce em pt_BR e o valor vai como USER_ENTERED: "MAX(" ou "," no
+  // lugar de "MÁXIMO(" e ";" dá #NOME?/#ERROR! na célula. Este assert quebra se
+  // alguém "traduzir" a fórmula de volta para o inglês.
+  console.log("\n[5] sparkBar — sintaxe pt-BR (SE/MÁXIMO/MÍNIMO, ';' e '\\')");
+  {
+    const sparks = valData.filter((v: any) => v.range === "Dashboard!C12:C21" || v.range === "Dashboard!K12:K21")
+      .flatMap((v: any) => v.values.map((row: any[]) => String(row[0])));
+    check("20 fórmulas SPARKLINE no Dashboard", sparks.length === 20, `recebeu ${sparks.length}`);
+    check("todas começam com =SE(", sparks.every((f: string) => f.startsWith("=SE(")));
+    check("todas usam MÁXIMO( e MÍNIMO( (pt-BR)", sparks.every((f: string) => f.includes("MÁXIMO(") && f.includes("MÍNIMO(")));
+    check("nenhuma usa MAX( / MIN( / IF( (inglês)", sparks.every((f: string) => !/\b(MAX|MIN|IF)\(/.test(f)));
+    check("nenhuma vírgula — separador é ';'", sparks.every((f: string) => !f.includes(",")));
+    check("literal de matriz com '\\' entre colunas", sparks.every((f: string) => f.includes('"charttype"\\"bar"')));
+    check("mês negativo NÃO some (sem 'N(x)>0'; usa ABS)", sparks.every((f: string) => !f.includes(")>0;") && f.includes("ABS(")));
   }
 
   // ─── Resultado ─────────────────────────────────────────────────────────────

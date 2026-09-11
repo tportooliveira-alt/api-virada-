@@ -5,7 +5,7 @@
  */
 
 import { buildSyncBatch, SyncInput } from "../lib/sheets/builder";
-import { sumValues } from "../lib/utils";
+import { isFromCurrentMonth, sumValues } from "../lib/utils";
 import type { Expense, Income, Debt, Goal } from "../lib/types";
 
 // ─── Utilitários de teste ─────────────────────────────────────────────────────
@@ -62,8 +62,10 @@ function removeById<T extends { id: string }>(arr: T[], id: string): T[] {
   return arr.filter((item) => item.id !== id);
 }
 
-function getRange(batch: ReturnType<typeof buildSyncBatch>, prefix: string) {
-  return batch.valueRanges.find((vr) => vr.range.startsWith(prefix));
+// Range EXATO da lista da aba ("Fluxo de Caixa!A2"). Com startsWith, o painel
+// "Fluxo de Caixa!K4:K7" passava por lista e o teste lia "4 linhas" de dado.
+function getRange(batch: ReturnType<typeof buildSyncBatch>, tab: string) {
+  return batch.valueRanges.find((vr) => vr.range === `${tab}!A2`);
 }
 
 function getDashCell(batch: ReturnType<typeof buildSyncBatch>, cell: string) {
@@ -106,11 +108,17 @@ section("A) Exclusão de receita — totais regridem");
     assertEq((recVR.values as unknown[][]).length, 2, "A: planilha tem 2 receitas (não 3)");
   }
 
-  // Dashboard A6 = entradas
+  // Dashboard: A8 é "Desde o início"; A6 é o mês corrente e os fixtures são de
+  // 2026-04 — fora desse mês tem que ser 0 (não o histórico).
+  const dashA8 = getDashCell(batch, "A8");
+  assert(dashA8 !== undefined, "A: Dashboard!A8 presente");
+  if (dashA8) {
+    assertEq((dashA8.values as unknown[][])[0][0], 1250, "A: Dashboard A8 = 1250 (não 1750)");
+  }
   const dashA6 = getDashCell(batch, "A6");
   assert(dashA6 !== undefined, "A: Dashboard!A6 presente");
   if (dashA6) {
-    assertEq((dashA6.values as unknown[][])[0][0], 1250, "A: Dashboard A6 = 1250 (não 1750)");
+    assertEq((dashA6.values as unknown[][])[0][0], isFromCurrentMonth("2026-04-15") ? 1250 : 0, "A: Dashboard A6 = entradas só do mês corrente (0 fora de 2026-04)");
   }
 }
 
@@ -149,11 +157,16 @@ section("B) Exclusão de despesa — saldo sobe");
     assertEq((desVR.values as unknown[][]).length, 2, "B: planilha tem 2 despesas (não 3)");
   }
 
-  // Dashboard D6 = 600
+  // Dashboard D8 (desde o início) = 600; D6 (mês corrente) só se 2026-04 for o mês de hoje
+  const dashD8 = getDashCell(batch, "D8");
+  assert(dashD8 !== undefined, "B: Dashboard!D8 presente");
+  if (dashD8) {
+    assertEq((dashD8.values as unknown[][])[0][0], 600, "B: Dashboard D8 = 600 (não 900)");
+  }
   const dashD6 = getDashCell(batch, "D6");
   assert(dashD6 !== undefined, "B: Dashboard!D6 presente");
   if (dashD6) {
-    assertEq((dashD6.values as unknown[][])[0][0], 600, "B: Dashboard D6 = 600 (não 900)");
+    assertEq((dashD6.values as unknown[][])[0][0], isFromCurrentMonth("2026-04-15") ? 600 : 0, "B: Dashboard D6 = gastos só do mês corrente (0 fora de 2026-04)");
   }
 }
 
@@ -198,16 +211,15 @@ section("C) Exclusão do único item — não quebra, volta a zero");
       "C: planilha Receitas retorna ausente ou vazio (não undefined explosivo)"
     );
 
-    // Fluxo de caixa com fallback (1 linha)
-    const fluVR = getRange(batch, "Fluxo de Caixa");
-    assert(fluVR !== undefined, "C: fluxo de caixa com fallback existe");
-    if (fluVR) {
-      const frows = fluVR.values as unknown[][];
-      assertEq(frows.length, 1, "C: fluxo de caixa fallback = 1 linha");
-      assertEq(Number(frows[0][1]), 0, "C: fluxo fallback entradas = 0");
-      assertEq(Number(frows[0][2]), 0, "C: fluxo fallback saídas = 0");
-      assertEq(Number(frows[0][3]), 0, "C: fluxo fallback resultado = 0");
-      assertEq(Number(frows[0][4]), 0, "C: fluxo fallback saldo acumulado = 0");
+    // Fluxo de caixa SEM linha fantasma: o fallback [hoje,0,0,0,0] era dado
+    // inventado e foi removido de propósito. Lista ausente; painel zerado.
+    assertEq(getRange(batch, "Fluxo de Caixa"), undefined, "C: 'Fluxo de Caixa!A2' ausente (nenhuma linha [hoje,0,0,0,0])");
+    const painelFluxo = batch.valueRanges.find((vr) => vr.range === "Fluxo de Caixa!K4:K7");
+    assert(painelFluxo !== undefined, "C: painel 'Fluxo de Caixa!K4:K7' presente");
+    if (painelFluxo) {
+      // Intl separa "R$" do número com espaço duro (U+00A0); normaliza pra comparar.
+      const painel = (painelFluxo.values as unknown[][]).map((r) => [String(r[0]).replace(/ /g, " ")]);
+      assertEq(JSON.stringify(painel), JSON.stringify([["0"], ["—"], ["—"], ["R$ 0,00"]]), "C: painel Fluxo = 0 dias, '—', '—', R$ 0,00");
     }
 
     // Resumo mensal vazio

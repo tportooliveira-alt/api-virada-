@@ -6,15 +6,20 @@ import Database from "better-sqlite3";
 import { existsSync, mkdirSync } from "fs";
 import path from "path";
 
-const DIR = path.join(process.cwd(), "data");
-if (!existsSync(DIR)) mkdirSync(DIR, { recursive: true });
-
+// Onde o arquivo do banco mora. Configurável porque nem todo host deixa
+// escrever no diretório da aplicação — num preview serverless só /tmp é
+// gravável, e lá o banco é EFÊMERO (some a cada cold start). Na VPS, que é o
+// alvo de produção, o padrão `data/` continua valendo e é persistente.
+const DIR = process.env.ACCESS_DB_DIR || path.join(process.cwd(), "data");
 const FILE = path.join(DIR, "access.db");
 
 let _db: Database.Database | null = null;
 
 export function db(): Database.Database {
   if (_db) return _db;
+  // Criar o diretório aqui, e não no topo do módulo: um `import` que toca o
+  // disco derruba qualquer rota que só queira, por exemplo, checar ADMIN_EMAILS.
+  if (!existsSync(DIR)) mkdirSync(DIR, { recursive: true });
   _db = new Database(FILE);
   _db.pragma("journal_mode = WAL");
   _db.pragma("foreign_keys = ON");

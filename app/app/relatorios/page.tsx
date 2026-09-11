@@ -8,12 +8,26 @@ import { Chip } from "@/components/ui/Chip";
 import { Segmented } from "@/components/ui/Segmented";
 import { Sheet, SheetAction } from "@/components/ui/Sheet";
 import type { Debt, DebtPriority, DebtStatus, Goal } from "@/lib/types";
-import { formatCurrency, formatDate, formatDateFull, timeAgo, toInputDate } from "@/lib/utils";
+import { isEstornado, semEstornados } from "@/lib/types";
+import {
+  dailyFlow,
+  formatCurrency,
+  formatDate,
+  formatDateFull,
+  getGoalProgress,
+  groupTopCategories,
+  inPeriod,
+  isGoalReached,
+  roundMoney,
+  savingsRate,
+  timeAgo,
+  toInputDate,
+  type Period,
+} from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
 
 // ── Período e abas ────────────────────────────────────────────────────────────
 
-type Period = "mes" | "30d" | "ano" | "all";
 type Tab = "resumo" | "lancamentos" | "receitas" | "despesas" | "dividas" | "metas" | "fluxo" | "mensal";
 
 const PERIODS: { value: Period; label: string }[] = [
@@ -36,20 +50,16 @@ const TABS: { value: Tab; label: string }[] = [
 
 const CHART_COLORS = Array.from({ length: 10 }, (_, i) => `var(--chart-${i + 1})`);
 
-// Datas são "AAAA-MM-DD": comparação de texto já ordena certo.
-function inPeriod(date: string, period: Period) {
-  if (period === "all") return true;
-  const today = toInputDate();
-  if (period === "mes") return date.slice(0, 7) === today.slice(0, 7);
-  if (period === "ano") return date.slice(0, 4) === today.slice(0, 4);
-  const limit = new Date();
-  limit.setDate(limit.getDate() - 30);
-  return date >= toInputDate(limit);
-}
-
 // "+R$ 2.900,00" para o que entrou, "−R$ 950,00" (U+2212) para o que saiu
 function signed(value: number) {
   return `${value >= 0 ? "+" : "−"}${formatCurrency(Math.abs(value))}`;
+}
+
+// "Sobrou do que entrou": taxa de sobra sobre as entradas; negativo é gasto acima do que entrou
+function sobrouLabel(rate: number | null) {
+  if (rate === null) return "sem entradas";
+  if (rate < 0) return `gastou ${-rate}% a mais do que entrou`;
+  return `sobrou ${rate}% do que entrou`;
 }
 
 // "2026-09" → "Setembro de 2026"
@@ -122,7 +132,7 @@ function Donut({ slices, total }: { slices: { name: string; value: number; color
   const R = 64;
   let angle = -Math.PI / 2;
   const paths = slices.map((slice) => {
-    const a = (slice.value / total) * 2 * Math.PI;
+    const a = total > 0 ? (slice.value / total) * 2 * Math.PI : 0;
     const x1 = C + R * Math.cos(angle);
     const y1 = C + R * Math.sin(angle);
     angle += a;
@@ -222,6 +232,7 @@ type TxRow = {
   scope?: string;
   paymentMethod?: string;
   nature?: string;
+  estornadoEm?: string;
 };
 
 function Relatorios() {
@@ -249,71 +260,49 @@ function Relatorios() {
   const [goalTarget, setGoalTarget] = useState(0);
   const [goalCurrent, setGoalCurrent] = useState(0);
 
-  const { expenses, incomes } = useMemo(
-    () => ({
-      expenses: data.expenses.filter((item) => inPeriod(item.date, period)),
-      incomes: data.incomes.filter((item) => inPeriod(item.date, period)),
-    }),
-    [data.expenses, data.incomes, period],
-  );
+  // Histórico (listas) mostra tudo do período, estornado inclusive; totais e gráficos
+  // usam só `expenses`/`incomes`, já sem estornados (contrato em lib/types.ts).
+  const { expensesPeriod, incomesPeriod, expenses, incomes } = useMemo(() => {
+    const expensesPeriod = data.expenses.filter((item) => inPeriod(item.date, period));
+    const incomesPeriod = data.incomes.filter((item) => inPeriod(item.date, period));
+    return { expensesPeriod, incomesPeriod, expenses: semEstornados(expensesPeriod), incomes: semEstornados(incomesPeriod) };
+  }, [data.expenses, data.incomes, period]);
 
-  const totInc = incomes.reduce((sum, item) => sum + item.value, 0);
-  const totExp = expenses.reduce((sum, item) => sum + item.value, 0);
-  const saldo = totInc - totExp;
-  const economia = totInc > 0 ? `${Math.max(0, Math.round((saldo / totInc) * 100))}%` : "—";
+  const totInc = roundMoney(incomes.reduce((sum, item) => sum + item.value, 0));
+  const totExp = roundMoney(expenses.reduce((sum, item) => sum + item.value, 0));
+  const saldo = roundMoney(totInc - totExp);
+  const sobrou = savingsRate(totInc, totExp);
 
   const rows: TxRow[] = useMemo(
     () =>
       [
-        ...expenses.map((item): TxRow => ({ ...item, type: "expense" })),
-        ...incomes.map((item): TxRow => ({ ...item, type: "income" })),
+        ...expensesPeriod.map((item): TxRow => ({ ...item, type: "expense" })),
+        ...incomesPeriod.map((item): TxRow => ({ ...item, type: "income" })),
       ].sort((a, b) => b.date.localeCompare(a.date) || b.value - a.value),
-    [expenses, incomes],
+    [expensesPeriod, incomesPeriod],
   );
 
-  const byCategory = useMemo(() => {
-    const map = new Map<string, number>();
-    expenses.forEach((item) => map.set(item.category, (map.get(item.category) ?? 0) + item.value));
-    return [...map.entries()]
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 8) // design: donut só com as 8 maiores categorias
-      .map((c, i) => ({ ...c, color: CHART_COLORS[i % CHART_COLORS.length] }));
-  }, [expenses]);
+  // 8 maiores + "Outros": as fatias somam o total e os % somam 100
+  const byCategory = useMemo(
+    () => groupTopCategories(expenses, 8).map((c, i) => ({ ...c, color: CHART_COLORS[i % CHART_COLORS.length] })),
+    [expenses],
+  );
 
-  const impulso = expenses.filter((item) => item.nature === "impulso").reduce((sum, item) => sum + item.value, 0);
+  const impulso = roundMoney(expenses.filter((item) => item.nature === "impulso").reduce((sum, item) => sum + item.value, 0));
   const impulsoPct = totExp > 0 ? Math.round((impulso / totExp) * 100) : 0;
 
-  // Dia a dia: resultado por data + acumulado, mais recente primeiro
-  const byDate = useMemo(() => {
-    const map = new Map<string, { inc: number; exp: number }>();
-    incomes.forEach((item) => {
-      const day = map.get(item.date) ?? { inc: 0, exp: 0 };
-      map.set(item.date, { ...day, inc: day.inc + item.value });
-    });
-    expenses.forEach((item) => {
-      const day = map.get(item.date) ?? { inc: 0, exp: 0 };
-      map.set(item.date, { ...day, exp: day.exp + item.value });
-    });
-    let acc = 0;
-    return [...map.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, day]) => {
-        acc += day.inc - day.exp;
-        return { date, ...day, result: day.inc - day.exp, acc };
-      })
-      .reverse();
-  }, [expenses, incomes]);
+  // Dia a dia: resultado por data + acumulado (centavos exatos), mais recente primeiro
+  const byDate = useMemo(() => dailyFlow(incomes, expenses).reverse(), [expenses, incomes]);
 
-  // Por mês: sempre sobre todos os dados
+  // Por mês: sempre sobre todos os dados (sem estornados)
   const byMonth = useMemo(() => {
     const map = new Map<string, { inc: number; exp: number; n: number }>();
-    data.incomes.forEach((item) => {
+    semEstornados(data.incomes).forEach((item) => {
       const ym = item.date.slice(0, 7);
       const m = map.get(ym) ?? { inc: 0, exp: 0, n: 0 };
       map.set(ym, { ...m, inc: m.inc + item.value, n: m.n + 1 });
     });
-    data.expenses.forEach((item) => {
+    semEstornados(data.expenses).forEach((item) => {
       const ym = item.date.slice(0, 7);
       const m = map.get(ym) ?? { inc: 0, exp: 0, n: 0 };
       map.set(ym, { ...m, exp: m.exp + item.value, n: m.n + 1 });
@@ -385,15 +374,16 @@ function Relatorios() {
       <div>
         {list.map((item) => {
           const positive = item.type === "income";
+          const estornado = isEstornado(item);
           return (
             <ListRow
               key={item.id}
               ini={item.category.charAt(0)}
-              positive={positive}
+              positive={positive && !estornado}
               title={item.description || item.category}
-              meta={`${formatDate(item.date)} · ${item.category} · ${scopeLabel(item.scope)}`}
+              meta={`${formatDate(item.date)} · ${item.category} · ${scopeLabel(item.scope)}${estornado ? " · Estornado" : ""}`}
               value={signed(positive ? item.value : -item.value)}
-              valueClass={positive ? "text-green-700" : "text-ink-900"}
+              valueClass={estornado ? "text-ink-400 line-through" : positive ? "text-green-700" : "text-ink-900"}
               onMore={() => setTxSheet(item)}
             />
           );
@@ -467,8 +457,8 @@ function Relatorios() {
         </div>
         <div className="min-w-0 rounded-[12px] border border-ink-200 bg-white px-4 py-3.5">
           <p className="text-xs text-ink-500">Sobrou do que entrou</p>
-          <p className="money mt-1 font-display text-xl font-bold text-ink-900">{economia}</p>
-          <p className="mt-0.5 text-xs text-ink-500">economia do período</p>
+          <p className="money mt-1 font-display text-xl font-bold text-ink-900">{sobrou === null ? "—" : `${sobrou}%`}</p>
+          <p className="mt-0.5 text-xs text-ink-500">saldo dividido pelas entradas</p>
         </div>
       </div>
 
@@ -505,11 +495,11 @@ function Relatorios() {
               <div className="flex items-center gap-5">
                 <Donut slices={byCategory} total={totExp} />
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  {byCategory.slice(0, 5).map((c) => (
+                  {byCategory.map((c) => (
                     <div key={c.name} className="flex items-center gap-2.5 text-[13px] text-ink-700">
                       <i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
                       <span className="min-w-0 flex-1 truncate">{c.name}</span>
-                      <b className="tabular-nums">{Math.round((c.value / totExp) * 100)}%</b>
+                      <b className="tabular-nums">{c.pct}%</b>
                     </div>
                   ))}
                 </div>
@@ -558,8 +548,7 @@ function Relatorios() {
         ) : (
           <div>
             {byMonth.map((m) => {
-              const result = m.inc - m.exp;
-              const pct = m.inc > 0 ? Math.max(0, Math.round((result / m.inc) * 100)) : 0;
+              const result = roundMoney(m.inc - m.exp);
               const label = monthLabel(m.ym);
               return (
                 <ListRow
@@ -567,7 +556,7 @@ function Relatorios() {
                   ini={label.charAt(0)}
                   positive={result >= 0}
                   title={label}
-                  meta={`${m.n} lançamento${m.n === 1 ? "" : "s"} · sobrou ${pct}% do que entrou`}
+                  meta={`${m.n} lançamento${m.n === 1 ? "" : "s"} · ${sobrouLabel(savingsRate(m.inc, m.exp))}`}
                   value={signed(result)}
                   valueClass={result >= 0 ? "text-green-700" : "text-red-700"}
                 />
@@ -696,7 +685,7 @@ function Relatorios() {
           ) : (
             <div className="flex flex-col gap-2.5">
               {data.goals.map((goal) => {
-                const p = goal.targetValue > 0 ? Math.min(100, Math.round((goal.currentValue / goal.targetValue) * 100)) : 0;
+                const p = getGoalProgress(goal);
                 const tone = p >= 75 ? "text-green-700" : p >= 35 ? "text-amber-700" : "text-red-500";
                 const bar = p >= 75 ? "bg-green-700" : p >= 35 ? "bg-amber-700" : "bg-red-500";
                 return (
@@ -719,7 +708,7 @@ function Relatorios() {
                       <div className={`h-full rounded-full ${bar}`} style={{ width: `${p}%` }} />
                     </div>
                     <p className="text-xs text-ink-500">
-                      {p >= 100
+                      {isGoalReached(goal)
                         ? `Meta alcançada · ${formatCurrency(goal.targetValue)}`
                         : `${formatCurrency(goal.currentValue)} de ${formatCurrency(goal.targetValue)} · faltam ${formatCurrency(
                             goal.targetValue - goal.currentValue,
@@ -738,18 +727,22 @@ function Relatorios() {
         {txSheet && (
           <>
             <p className="text-sm leading-relaxed text-ink-600">
-              {txSheet.description || txSheet.category} · {formatCurrency(txSheet.value)}. Desfazer cria um lançamento contrário e mantém
-              o histórico; excluir apaga de vez.
+              {txSheet.description || txSheet.category} · {formatCurrency(txSheet.value)}.{" "}
+              {isEstornado(txSheet)
+                ? "Já foi desfeito: continua no histórico, mas fora dos totais."
+                : "Desfazer marca como estornado: fica no histórico, mas sai dos totais; excluir apaga de vez."}
             </p>
             <div className="flex flex-col gap-2">
-              <SheetAction
-                onClick={() => {
-                  data.estornar(txSheet);
-                  setTxSheet(null);
-                }}
-              >
-                Desfazer lançamento
-              </SheetAction>
+              {!isEstornado(txSheet) && (
+                <SheetAction
+                  onClick={() => {
+                    data.estornar(txSheet);
+                    setTxSheet(null);
+                  }}
+                >
+                  Desfazer lançamento
+                </SheetAction>
+              )}
               <SheetAction
                 tone="danger"
                 onClick={() => {

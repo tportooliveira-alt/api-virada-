@@ -69,7 +69,7 @@ export function TransactionList({ type, items, onDelete, onEstorno }: Transactio
                     {onEstorno ? (
                       <button
                         onClick={() => {
-                          if (window.confirm("Estornar este lançamento? O app vai criar um lançamento oposto para zerar o erro.")) {
+                          if (window.confirm("Estornar este lançamento? Ele fica no histórico marcado como estornado e sai de todos os totais.")) {
                             onEstorno(item, type);
                           }
                         }}

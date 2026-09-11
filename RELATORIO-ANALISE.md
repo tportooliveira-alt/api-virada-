@@ -27,16 +27,21 @@ better-sqlite3 (servidor) · idb/IndexedDB (cliente) · googleapis · Google Ide
 
 | Suite | Resultado |
 |---|---|
-| `scripts/test-sheets-build.ts` | ✅ 69/69 |
-| `scripts/test-webhooks.ts` | ✅ 25/25 |
-| `scripts/test-deletions.ts` | ✅ 76/76 |
-| `scripts/test-estorno.ts` | ✅ 35/35 |
-| `scripts/test-app-completo.ts` | ✅ 60/60 |
+| `scripts/test-sheets-build.ts` | ✅ |
+| `scripts/test-webhooks.ts` | ✅ |
+| `scripts/test-deletions.ts` | ✅ |
+| `scripts/test-estorno.ts` | ✅ |
+| `scripts/test-app-completo.ts` | ✅ |
 | `scripts/test-sheets-stress.ts` | ✅ (gera massa de dados) |
-| `scripts/test_finance.js` | ❌ obsoleto (ver erro #4) |
-| `scripts/test_performance.js` | ❌ obsoleto (ver erro #4) |
+| `scripts/test-calculos-telas.ts` | ✅ (adicionado na auditoria de cálculos, 2026-09) |
+| `scripts/test-estorno-totais.ts` | ✅ (idem) |
+| `scripts/test-planilha-bordas.ts` | ✅ (idem) |
+| `scripts/test-planilha-vs-app.ts` | ✅ (idem) |
+| `scripts/test-admin-session.ts` | ✅ |
 
-**Total: 265 asserts TS passando.** Os 2 `.js` que falham são testes mortos.
+Todos em TypeScript, rodados com `TZ=America/Sao_Paulo npx tsx scripts/<arquivo>`. Os dois `.js`
+mortos (`test_finance.js`, `test_performance.js`) foram removidos em 2026-06-17 (ver erro #4).
+A lista viva, com o que cada um cobre, está em `scripts/README.md`.
 
 ## 3. Erros encontrados (por severidade)
 
@@ -66,8 +71,8 @@ ou (b) hospedar em VPS com disco persistente e remover/ajustar o `netlify.toml`.
 não é checada** e um ID token de qualquer app Google passa.
 **Correção:** exigir `expectedClient` definido e validar `aud` sempre (falhar se ausente).
 
-### 🟢 #4 MENOR — Testes obsoletos (mortos)
-**Onde:** `scripts/test_finance.js`, `scripts/test_performance.js`.
+### 🟢 #4 MENOR — Testes obsoletos (mortos)  ✅ CORRIGIDO (2026-06-17: arquivos removidos)
+**Onde (à época):** `scripts/test_finance.js`, `scripts/test_performance.js` — já não existem.
 **Problema:** chamam `POST /api/auth/login` (email+senha), `GET/POST /api/finance` — rotas
 que **não existem**. O app migrou p/ login Google (sem senha) + finanças no cliente.
 Esses testes nunca passam. **Correção:** remover ou reescrever como testes client-side.

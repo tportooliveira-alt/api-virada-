@@ -1,1 +1,16 @@
-https://aquamarine-crumble-9be5b2.netlify.app/
+# Onde este app roda.
+
+PRODUÇÃO (o que o comprador acessa)
+  VPS Hostinger — 187.77.252.91
+  Precisa de disco persistente: o banco de compradores é SQLite em data/access.db.
+  É a decisão #1 do CLAUDE.md.
+
+PREVIEW (só pra abrir no celular e olhar as telas)
+  Vercel — URL preenchida ao criar o projeto.
+  Serverless: o SQLite de compradores NÃO funciona lá (disco efêmero, conflito #2
+  do RELATORIO). Webhook de venda idem. Pra entrar no preview use ADMIN_EMAILS.
+
+ANTIGO (morto)
+  https://aquamarine-crumble-9be5b2.netlify.app/
+  Netlify abandonado junto com o netlify.toml — ver decisão #9 do CLAUDE.md.
+  Se o app estiver instalado no celular a partir desta URL, desinstale: é build velha.

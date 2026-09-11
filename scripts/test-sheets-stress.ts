@@ -1,4 +1,14 @@
-import { buildSyncBatch, type SyncInput } from "../lib/sheets/builder";
+/**
+ * Massa de dados na planilha: 360 lançamentos (smoke) e o limite de linhas.
+ *
+ * B5 (auditoria): os dados começam em A2, então o 1000º lançamento cai na linha
+ * 1001 — a limpeza antiga ia só até a 1000 e essa linha virava fantasma
+ * permanente. A limpeza agora é aberta ("A2:I", até o fim da coluna) e tem que
+ * cobrir a última linha escrita com 1.000 E com 1.001 lançamentos.
+ *
+ * Roda com: npx tsx scripts/test-sheets-stress.ts
+ */
+import { buildSyncBatch, MAX_DATA_ROWS, type SyncInput } from "../lib/sheets/builder";
 
 function dateByIndex(i: number) {
   const day = (i % 28) + 1;
@@ -55,7 +65,14 @@ function must(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
 }
 
-function main() {
+// Última linha que uma limpeza "Aba!A2:I" ou "Aba!A2:I1000" alcança (Infinity = até o fim).
+function clearEndRow(range: string) {
+  const end = range.split("!")[1].split(":")[1] ?? "";
+  const digits = end.replace(/[A-Z]+/, "");
+  return digits ? Number(digits) : Infinity;
+}
+
+function smoke() {
   const TOTAL_LANCAMENTOS = 360;
   const input = makeInput(TOTAL_LANCAMENTOS);
   const batch = buildSyncBatch(input);
@@ -74,8 +91,9 @@ function main() {
   must(fluxo.length > 0, "Fluxo vazio");
   must(resumo.length > 0, "Resumo vazio");
 
-  const dashboardLanc = ranges.get("Dashboard!J6")?.[0]?.[0];
-  must(Number(dashboardLanc) === TOTAL_LANCAMENTOS, `Dashboard J6 esperado ${TOTAL_LANCAMENTOS}, veio ${String(dashboardLanc)}`);
+  // J6 é o mês corrente (igual ao Início do app); o histórico inteiro fica em J8.
+  const dashboardTotal = ranges.get("Dashboard!J8")?.[0]?.[0];
+  must(Number(dashboardTotal) === TOTAL_LANCAMENTOS, `Dashboard J8 esperado ${TOTAL_LANCAMENTOS}, veio ${String(dashboardTotal)}`);
 
   console.log("STRESS OK");
   console.log(`Lançamentos: ${lancamentos.length}`);
@@ -85,4 +103,24 @@ function main() {
   console.log(`Resumo (meses): ${resumo.length}`);
 }
 
-main();
+function limiteDeLinhas() {
+  for (const total of [MAX_DATA_ROWS, MAX_DATA_ROWS + 1]) {
+    const batch = buildSyncBatch(makeInput(total));
+    const escritas = batch.valueRanges.find((r) => r.range === "Lançamentos!A2")?.values.length ?? 0;
+    const ultimaLinha = 2 + escritas - 1;
+    const clear = batch.clearRanges.find((r) => r.startsWith("Lançamentos!A2:I"));
+    must(escritas === total, `${total}: esperava ${total} linhas escritas, veio ${escritas}`);
+    must(!!clear, `${total}: falta limpeza de Lançamentos`);
+    must(clearEndRow(clear!) >= ultimaLinha, `${total}: limpeza (${clear}) não alcança a linha ${ultimaLinha} — viraria linha fantasma`);
+    for (const r of batch.clearRanges.filter((x) => !x.startsWith("Dashboard!"))) {
+      must(clearEndRow(r) === Infinity, `${total}: limpeza de aba de dados deve ser aberta (até o fim da coluna): ${r}`);
+    }
+    console.log(`LIMITE OK — ${total} lançamentos: escreve A2..A${ultimaLinha}, limpeza ${clear}`);
+  }
+  // Com 1.000 lançamentos a última linha (1001) ainda está dentro da faixa de
+  // formato/filtro/zebra (MAX_DATA_ROWS + 1). Acima disso a linha continua sendo
+  // limpa (limpeza aberta), mas fica sem formatação — e a grade tem só +10.
+}
+
+smoke();
+limiteDeLinhas();

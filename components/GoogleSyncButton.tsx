@@ -18,17 +18,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, RefreshCcw } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
+import { LAYOUT_VERSION, type SyncInput } from "@/lib/sheets/builder";
+// Os corpos dos requests são montados em lib/sheets/sync-requests.ts (puro,
+// testado offline); aqui fica só o HTTP com o token do usuário.
 import {
-  LAYOUT_VERSION,
-  TAB,
-  TAB_ORDER,
-  buildChartRequests,
-  buildLayoutRequests,
-  buildSheetSpecs,
-  buildStaticValues,
-  buildSyncBatch,
-  type SyncInput,
-} from "@/lib/sheets/builder";
+  chartsCall,
+  createWorkbookBody,
+  layoutCall,
+  missingTabsCall,
+  pushDataCalls,
+  readSheetIds,
+  staticValuesCall,
+  upgradeLayoutCall,
+  type SpreadsheetInfo,
+} from "@/lib/sheets/sync-requests";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/spreadsheets",
@@ -76,17 +79,6 @@ async function googleFetch(method: string, endpoint: string, token: string, body
   return res.json();
 }
 
-interface CreateResp {
-  spreadsheetId: string;
-  sheets?: {
-    properties?: { title?: string; sheetId?: number };
-    charts?: { chartId?: number }[];
-    bandedRanges?: { bandedRangeId?: number }[];
-    protectedRanges?: { protectedRangeId?: number }[];
-    conditionalFormats?: unknown[];
-  }[];
-}
-
 /**
  * Reaplica o visual numa planilha que já existe — é o que faz a planilha do
  * usuário "se ajeitar sozinha" quando o layout do app muda, sem precisar
@@ -98,65 +90,22 @@ async function upgradeLayout(token: string, spreadsheetId: string): Promise<void
     "GET",
     `/spreadsheets/${spreadsheetId}?fields=sheets.properties(sheetId,title),sheets.charts(chartId),sheets.bandedRanges(bandedRangeId),sheets.protectedRanges(protectedRangeId),sheets.conditionalFormats`,
     token,
-  )) as CreateResp;
+  )) as SpreadsheetInfo;
 
-  const readIds = (resp: CreateResp) => {
-    const map: Record<string, number> = {};
-    for (const sheet of resp.sheets ?? []) {
-      const { title, sheetId } = sheet.properties ?? {};
-      if (title && typeof sheetId === "number") map[title] = sheetId;
-    }
-    return map;
-  };
-
-  let ids = readIds(info);
+  let ids = readSheetIds(info);
 
   // planilha de uma versão antiga pode não ter todas as abas de hoje
-  const faltando = TAB_ORDER.filter((key) => ids[TAB[key]] === undefined);
-  if (faltando.length) {
-    await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, {
-      requests: faltando.map((key) => ({ addSheet: { properties: { title: TAB[key] } } })),
-    });
-    ids = readIds(
-      (await googleFetch("GET", `/spreadsheets/${spreadsheetId}?fields=sheets.properties(sheetId,title)`, token)) as CreateResp,
+  const faltando = missingTabsCall(ids);
+  if (faltando) {
+    await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, faltando);
+    ids = readSheetIds(
+      (await googleFetch("GET", `/spreadsheets/${spreadsheetId}?fields=sheets.properties(sheetId,title)`, token)) as SpreadsheetInfo,
     );
   }
 
-  // o layout re-adiciona gráficos, zebra, proteções e regras de cor — sem limpar
-  // os antigos, cada atualização duplicaria tudo (e "addBanding" daria erro de
-  // sobreposição). Os DADOS do usuário não são tocados aqui.
-  const limpeza: unknown[] = [];
-  for (const sheet of info.sheets ?? []) {
-    const sheetId = sheet.properties?.sheetId;
-    for (const chart of sheet.charts ?? []) {
-      if (typeof chart.chartId === "number") limpeza.push({ deleteEmbeddedObject: { objectId: chart.chartId } });
-    }
-    for (const banda of sheet.bandedRanges ?? []) {
-      if (typeof banda.bandedRangeId === "number") limpeza.push({ deleteBanding: { bandedRangeId: banda.bandedRangeId } });
-    }
-    for (const protegido of sheet.protectedRanges ?? []) {
-      if (typeof protegido.protectedRangeId === "number") {
-        limpeza.push({ deleteProtectedRange: { protectedRangeId: protegido.protectedRangeId } });
-      }
-    }
-    // regras condicionais se deletam por índice — de trás para frente
-    if (typeof sheetId === "number") {
-      for (let i = (sheet.conditionalFormats ?? []).length - 1; i >= 0; i--) {
-        limpeza.push({ deleteConditionalFormatRule: { sheetId, index: i } });
-      }
-    }
-  }
-
-  await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, {
-    requests: [...limpeza, ...buildLayoutRequests(ids)],
-  });
-  await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchUpdate`, token, {
-    valueInputOption: "USER_ENTERED",
-    data: buildStaticValues(),
-  });
-  await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, {
-    requests: buildChartRequests(ids),
-  });
+  await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, upgradeLayoutCall(info, ids));
+  await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchUpdate`, token, staticValuesCall());
+  await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, chartsCall(ids));
 }
 
 async function etapa<T>(nome: string, fn: () => Promise<T>): Promise<T> {
@@ -168,39 +117,17 @@ async function etapa<T>(nome: string, fn: () => Promise<T>): Promise<T> {
 }
 
 async function createWorkbook(token: string, email: string): Promise<{ spreadsheetId: string; spreadsheetUrl: string; ids: Record<string, number> }> {
-  const created = (await googleFetch("POST", "/spreadsheets", token, {
-    properties: { title: `Virada Financeira — ${email}`, locale: "pt_BR", timeZone: "America/Sao_Paulo" },
-    sheets: buildSheetSpecs(),
-  })) as CreateResp;
-
-  const ids: Record<string, number> = {};
-  for (const s of created.sheets ?? []) {
-    if (s.properties?.title && typeof s.properties.sheetId === "number") {
-      ids[s.properties.title] = s.properties.sheetId;
-    }
-  }
+  const created = (await googleFetch("POST", "/spreadsheets", token, createWorkbookBody(email))) as SpreadsheetInfo & { spreadsheetId: string };
+  const ids = readSheetIds(created);
 
   // Layout: banner, kpi, formatos, proteção, ajuda
-  await etapa("layout", () =>
-    googleFetch("POST", `/spreadsheets/${created.spreadsheetId}:batchUpdate`, token, {
-      requests: buildLayoutRequests(ids),
-    }),
-  );
+  await etapa("layout", () => googleFetch("POST", `/spreadsheets/${created.spreadsheetId}:batchUpdate`, token, layoutCall(ids)));
 
   // Conteúdo estático: cabeçalhos, banner, ajuda
-  await etapa("conteúdo", () =>
-    googleFetch("POST", `/spreadsheets/${created.spreadsheetId}/values:batchUpdate`, token, {
-      valueInputOption: "USER_ENTERED",
-      data: buildStaticValues(),
-    }),
-  );
+  await etapa("conteúdo", () => googleFetch("POST", `/spreadsheets/${created.spreadsheetId}/values:batchUpdate`, token, staticValuesCall()));
 
   // Gráficos
-  await etapa("gráficos", () =>
-    googleFetch("POST", `/spreadsheets/${created.spreadsheetId}:batchUpdate`, token, {
-      requests: buildChartRequests(ids),
-    }),
-  );
+  await etapa("gráficos", () => googleFetch("POST", `/spreadsheets/${created.spreadsheetId}:batchUpdate`, token, chartsCall(ids)));
 
   return {
     spreadsheetId: created.spreadsheetId,
@@ -210,18 +137,9 @@ async function createWorkbook(token: string, email: string): Promise<{ spreadshe
 }
 
 async function pushData(token: string, spreadsheetId: string, input: SyncInput): Promise<void> {
-  const batch = buildSyncBatch(input);
-  if (batch.clearRanges.length) {
-    await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchClear`, token, {
-      ranges: batch.clearRanges,
-    });
-  }
-  if (batch.valueRanges.length) {
-    await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchUpdate`, token, {
-      valueInputOption: "USER_ENTERED",
-      data: batch.valueRanges,
-    });
-  }
+  const { clear, update } = pushDataCalls(input);
+  if (clear) await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchClear`, token, clear);
+  if (update) await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchUpdate`, token, update);
 }
 
 interface Props {
