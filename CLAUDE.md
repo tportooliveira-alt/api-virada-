@@ -1,6 +1,6 @@
 # CLAUDE.md — Virada App (`api-virada-`)
 
-> Fonte de verdade do projeto. Atualizado: 2026-06-17.
+> Fonte de verdade do projeto. Atualizado: 2026-09-11.
 > Apesar do nome `api-virada-`, **NÃO é uma API** — é o **Virada App**: controle financeiro
 > mobile-first (PWA) vendido como infoproduto (upsell R$ 97 / R$ 197 do Código da Virada).
 > Ordem de trabalho acordada: **1º arquitetura + funcionalidade · 2º design.**
@@ -24,7 +24,31 @@ Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (Indexe
 3. **Python isolado** em `tools/automacao-python/` (28 scripts de automação — fora do runtime).
 4. **Planilha "plugada" (auto-sync)** implementada em `components/GoogleSyncButton.tsx`: depois de criar a planilha + logar 1x, cada mudança sincroniza sozinha (debounce 4s, com baseline anti-loop). A 1ª vez continua manual.
 5. **Removidos:** 2 testes mortos (`scripts/test_finance.js`, `test_performance.js`) e `content/ebook.backup.md` (duplicado).
-6. **Planilha VIVA — fórmulas dentro do Google Sheets (2026-06-17).** Antes a planilha era número morto (calculava em JS e colava o valor). Agora o `lib/sheets/builder.ts` injeta **fórmulas reais** que recalculam: Dashboard (`=SOMA`, `=A6-D6`, `=CONT.VALORES`, `=SOMASE`), Dívidas/Metas/Fluxo/Resumo (`=SE`, `=MÁXIMO`, `=B2-C2`...). KPIs do Dashboard ficam fixos em `buildStaticValues` (criação) e o `buildSyncBatch` NÃO os sobrescreve. Sintaxe obrigatória **pt-BR** (`SOMA` não `SUM`, separador `;`) porque a planilha é `locale: pt_BR` + `USER_ENTERED` (inglês daria `#NOME?`). Ver as fórmulas sem credencial: `npx tsx scripts/dump-formulas.ts`. Painéis laterais `K4:K7` também são fórmula (`=CONT.VALORES`, `=SOMA`, `=SOMASE`, `=MÁXIMO`, `=MÍNIMO`, `=CONT.SE`, `=MÉDIA`; moeda via `=TEXTO(...;"R$ #.##0,00")` p/ não depender de formato de célula). Ainda ESTÁTICOS (snapshot proposital): o "Resumo mensal" do Dashboard (`G12:J21`, agregação por mês — fórmula seria frágil) e campos textuais compostos dos painéis (datas, nomes de mês, prioridade crítica, melhor progresso).
+6. **Planilha "viva" (fórmulas dentro do Google Sheets) — PENDENTE, não está no código.**
+   Estado real (verificado em 2026-09-11, `npx tsx scripts/dump-formulas.ts` + `git log -S`):
+   a **única** fórmula que o `lib/sheets/builder.ts` injeta é a barra `SPARKLINE` do
+   Dashboard (`sparkBar`, células `C12:C21` e `K12:K21`):
+   `=SE(N(x)=0;"";SPARKLINE(ABS(x);{"charttype"\"bar";"max"\MÁXIMO(MÁXIMO(..);-MÍNIMO(..));"color1"\SE(N(x)<0;"#EF4444";"#22C55E")}))`
+   — mês negativo entra em vermelho com a barra do módulo. **Risco residual:** essa fórmula é
+   validada **só por sintaxe** (`test-sheets-build.ts`/`test-planilha-bordas.ts` conferem
+   `SE/MÁXIMO/MÍNIMO/ABS`, `;` e `\`); não há credencial Google aqui, então ninguém a viu
+   renderizar de verdade — se der `#ERRO!` na planilha do cliente, começa por ela.
+   **Todo o resto é VALOR gravado pelo sync** (`buildSyncBatch` → `values.batchUpdate`):
+   KPIs do Dashboard `A6/D6/G6/J6` (**mês corrente**, = `getDashboardMetrics` do Início) e
+   `A8/D8/G8/J8` ("Desde o início"), comparativo `G12:J21` (10 últimos meses do **calendário**
+   até o corrente, zerando os parados), painéis laterais `K4:K7` de todas as abas, "Em aberto"
+   de Dívidas, "Faltando/Progresso" de Metas, Fluxo e Resumo — tudo calculado em JS
+   (`buildTotals`, `buildDailyCashFlow`, `buildMonthlySummary`) e colado a cada sync. Nunca
+   existiu `=SOMA`, `=SOMASE`, `=CONT.VALORES` ou `=TEXTO` no builder (zero ocorrências no
+   histórico git). O que continua valendo como regra pra quando for feito: sintaxe **pt-BR**
+   (`SOMA` não `SUM`, separador `;`) porque a planilha é `locale: pt_BR` + `USER_ENTERED`
+   (inglês daria `#NOME?`). A "planilha viva" com `SOMASES` e painéis dirigidos por filtro é
+   a **fase seguinte** do cluster planilha.
+   **Pendência fora do reparo de 2026-09-11:** a grade de cada aba de dados nasce com
+   `MAX_DATA_ROWS + 10` linhas (1.010); acima de ~1.009 lançamentos o `values.batchUpdate`
+   é recusado inteiro. Precisa de `appendDimension` (crescer a grade antes de gravar) — o
+   Resumo Mensal já é limitado por construção (`fillMonthGaps`: preenche buracos só nos
+   últimos 24 meses e trata ano fora de [corrente − 10, corrente + 1] como dado suspeito).
 
 ## Decisões tomadas (2026-09-05)
 
@@ -46,6 +70,22 @@ Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (Indexe
    `DEPLOY_URL.txt` agora distingue **produção** (VPS, com `data/` persistente pro SQLite)
    de **preview** (Vercel, só pra abrir no celular — lá o SQLite de compradores NÃO funciona,
    disco efêmero; é o conflito #2 do RELATORIO).
+
+## Decisões tomadas (2026-09-11) — contratos de cálculo
+
+10. **Estorno = marca no original, não contra-lançamento.** `Expense`/`Income` ganharam
+    `estornadoEm?: string` (AAAA-MM-DD). `estornar()` do provider (`applyEstorno`, função pura)
+    só preenche esse campo; o lançamento continua no histórico e **sai de todo total**
+    (entradas, gastos, saldo, por categoria, por impulso, fluxo, resumo mensal). Quem agrega
+    usa `semEstornados(lista)` / `isEstornado(tx)` de `lib/types.ts` antes de somar. Motivo: o
+    contra-lançamento em receita inflava "Entradas" e punha categoria de despesa ("Lazer") em
+    receita. Testes: `scripts/test-estorno.ts`, `scripts/test-estorno-totais.ts`.
+11. **Dívida "em aberto" = `aberta` OU `negociando`.** Helper `isOpenDebt(debt)` em
+    `lib/types.ts`. App usava `!== "quitada"` e a prévia `=== "aberta"` (R$ em "negociando"
+    sumiam numa tela). Todos usam o helper.
+12. **Teste de mês corrente usa mês LOCAL** (`toInputDate().slice(0, 7)`), nunca
+    `toISOString()` (UTC): entre 21h e 0h do último dia do mês em UTC-3 o teste inventava
+    lançamentos do mês seguinte.
 
 ## ⚠️ Dois artefatos de "planilha" — NÃO confundir
 
@@ -74,9 +114,14 @@ npm install
 npm run dev            # localhost:3000 → abre /app/inicio
 npm run typecheck      # tsc --noEmit (passou: 0 erros)
 npm run lint
-# testes TS reais (265 asserts):
+# testes TS reais (scripts/test-*.ts, assert próprio, sem framework):
 npx tsx scripts/test-sheets-build.ts
 npx tsx scripts/test-app-completo.ts
+npx tsx scripts/test-estorno.ts
+npx tsx scripts/test-estorno-totais.ts
+npx tsx scripts/test-deletions.ts
+npx tsx scripts/test-admin-session.ts
+npx tsx scripts/test-webhooks.ts
 ```
 **Login em dev:** sem `.env.local`, em `localhost` aparece o botão "⚙ Entrar como Dev (localhost)" (bypass — `AuthGate.tsx`).
 

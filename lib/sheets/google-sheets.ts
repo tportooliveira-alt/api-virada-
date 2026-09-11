@@ -9,13 +9,13 @@
 import { google, sheets_v4 } from "googleapis";
 import {
   HEADERS,
-  MAX_DATA_ROWS,
   TAB,
   buildChartRequests,
   buildLayoutRequests,
   buildSheetSpecs,
   buildStaticValues,
   buildSyncBatch,
+  dataClearRange,
 } from "./builder";
 import type { Row, SyncInput } from "./builder";
 
@@ -126,11 +126,13 @@ async function applySync(spreadsheetId: string, input: SyncInput, opts: { onlyDe
   let clearRanges = batch.clearRanges;
   let valueRanges = batch.valueRanges;
 
+  // Só até a última coluna de dados: "A2:Z" apagava os rótulos e notas da
+  // coluna J, escritos uma única vez na criação da planilha.
   if (opts.onlyDebts) {
-    clearRanges = [`${TAB.dividas}!A2:Z${MAX_DATA_ROWS}`];
+    clearRanges = [dataClearRange("dividas")];
     valueRanges = valueRanges.filter((v) => v.range.startsWith(TAB.dividas));
   } else if (opts.onlyGoals) {
-    clearRanges = [`${TAB.metas}!A2:Z${MAX_DATA_ROWS}`];
+    clearRanges = [dataClearRange("metas")];
     valueRanges = valueRanges.filter((v) => v.range.startsWith(TAB.metas));
   }
 

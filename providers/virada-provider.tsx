@@ -27,7 +27,7 @@ import type {
   Profile,
   ViradaData,
 } from "@/lib/types";
-import { createId, storageKey } from "@/lib/utils";
+import { createId, storageKey, toInputDate } from "@/lib/utils";
 import { missions } from "@/lib/constants";
 import { loadData, saveData, clearData } from "@/lib/db/virada-store";
 
@@ -49,17 +49,7 @@ interface ViradaContextValue extends ViradaData {
   removeGoal: (id: string) => void;
   updateGoalCurrentValue: (id: string, value: number) => void;
   toggleMission: (id: string) => void;
-  estornar: (tx: {
-    id: string;
-    type: "expense" | "income";
-    description: string;
-    value: number;
-    category: string;
-    paymentMethod?: string;
-    nature?: string;
-    scope?: string;
-    date: string;
-  }) => void;
+  estornar: (tx: EstornoTarget) => void;
   addPoints: (points: number, reason: string) => void;
   saveImpulseCheck: (payload: ImpulseCheckPayload) => void;
   resetLocalData: () => void;
@@ -106,6 +96,83 @@ function readSheetMeta(): { sheetUrl: string | null; lastSync: string | null } {
 
 function newId(prefix: string) {
   return createId(prefix);
+}
+
+// ─── Estorno (função pura, testável fora do React) ────────────────────────────
+// Contrato em lib/types.ts (isEstornado / semEstornados): estornar NÃO cria
+// lançamento contrário — marca o original com `estornadoEm`. Ele segue no
+// histórico e todo total o ignora. Idempotente: estornar de novo não re-marca.
+
+export interface EstornoTarget {
+  id: string;
+  type: "expense" | "income";
+}
+
+function marcarEstorno<T extends { id: string; estornadoEm?: string }>(items: T[], id: string, hoje: string): T[] {
+  return items.map((item) => (item.id === id && !item.estornadoEm ? { ...item, estornadoEm: hoje } : item));
+}
+
+export function applyEstorno(prev: ViradaData, tx: EstornoTarget, hoje = toInputDate()): ViradaData {
+  if (tx.type === "expense") {
+    if (!prev.expenses.some((e) => e.id === tx.id)) return prev;
+    return { ...prev, expenses: marcarEstorno(prev.expenses, tx.id, hoje) };
+  }
+  if (!prev.incomes.some((i) => i.id === tx.id)) return prev;
+  return { ...prev, incomes: marcarEstorno(prev.incomes, tx.id, hoje) };
+}
+
+// ─── Migração de estornos ANTIGOS (função pura, testável fora do React) ───────
+// Antes do contrato acima, estornar criava um contra-lançamento de tipo oposto
+// com descrição `ESTORNO — ${descrição do original}`, mesmo valor e mesma data.
+// Quem estornou naquela época tem esses pares no IndexedDB: "Entradas" infladas
+// e categoria de despesa dentro de receita. Aqui cada par vira o contrato novo:
+// o original recebe `estornadoEm` (data do contra-lançamento) e o contra-lançamento
+// sai. Sem par (órfão) nada é apagado. Determinística e idempotente — roda a cada
+// carga sem efeito na 2ª vez, porque não sobra "ESTORNO — " com par.
+
+const PREFIXO_ESTORNO_ANTIGO = "ESTORNO — ";
+
+type Lancamento = { id: string; description: string; value: number; date: string; estornadoEm?: string };
+
+const cents = (value: number) => Math.round(value * 100);
+
+// Original de um contra-lançamento: mesma descrição (sem o prefixo), mesmo valor,
+// data até a do estorno, ainda não estornado. Empate → o mais recente; entre datas
+// iguais, a ordem da lista (o app põe o mais novo primeiro).
+function acharOriginal<T extends Lancamento>(candidatos: T[], contra: Lancamento): T | undefined {
+  const descricao = contra.description.slice(PREFIXO_ESTORNO_ANTIGO.length);
+  return candidatos
+    .filter(
+      (item) =>
+        !item.estornadoEm &&
+        item.description === descricao &&
+        cents(item.value) === cents(contra.value) &&
+        item.date <= contra.date,
+    )
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+}
+
+function migrarPares<O extends Lancamento, C extends Lancamento>(originais: O[], contras: C[]) {
+  let migrados = 0;
+  let listaOriginais = originais;
+  const listaContras = contras.filter((contra) => {
+    if (!contra.description.startsWith(PREFIXO_ESTORNO_ANTIGO)) return true;
+    const original = acharOriginal(listaOriginais, contra);
+    if (!original) return true; // órfão: fica como está
+    listaOriginais = listaOriginais.map((item) => (item === original ? { ...item, estornadoEm: contra.date } : item));
+    migrados += 1;
+    return false;
+  });
+  return { originais: listaOriginais, contras: listaContras, migrados };
+}
+
+export function migrarEstornosAntigos(data: ViradaData): { data: ViradaData; migrados: number } {
+  // despesa estornada → contra-lançamento em receitas; receita estornada → em despesas
+  const deDespesas = migrarPares(data.expenses, data.incomes);
+  const deReceitas = migrarPares(deDespesas.contras, deDespesas.originais);
+  const migrados = deDespesas.migrados + deReceitas.migrados;
+  if (migrados === 0) return { data, migrados };
+  return { data: { ...data, expenses: deReceitas.contras, incomes: deReceitas.originais }, migrados };
 }
 
 const ViradaContext = createContext<ViradaContextValue | null>(null);
@@ -171,6 +238,19 @@ export function ViradaProvider({ children }: PropsWithChildren) {
             await saveData(legacy);
           } catch {
             // migra em memória mesmo se a 1ª escrita falhar
+          }
+        }
+      }
+
+      // Pares "ESTORNO — X" do formato antigo viram o contrato novo (uma vez; depois é no-op).
+      if (loaded) {
+        const migracao = migrarEstornosAntigos(loaded);
+        if (migracao.migrados > 0) {
+          loaded = migracao.data;
+          try {
+            await saveData(loaded);
+          } catch {
+            // segue em memória; a próxima gravação persiste
           }
         }
       }
@@ -308,41 +388,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
 
     // ── Estorno ───────────────────────────────────────────────────────────
     estornar: (tx) => {
-      if (tx.type === "expense") {
-        update((prev) => ({
-          ...prev,
-          incomes: [
-            {
-              id: newId("income"),
-              description: `ESTORNO — ${tx.description}`,
-              value: tx.value,
-              category: (tx.category as Income["category"]) ?? "Outros",
-              date: tx.date,
-              scope: (tx.scope as Income["scope"]) ?? "casa",
-              source: "app",
-            },
-            ...prev.incomes,
-          ],
-        }));
-      } else {
-        update((prev) => ({
-          ...prev,
-          expenses: [
-            {
-              id: newId("expense"),
-              description: `ESTORNO — ${tx.description}`,
-              value: tx.value,
-              category: (tx.category as Expense["category"]) ?? "Outros",
-              paymentMethod: (tx.paymentMethod as Expense["paymentMethod"]) ?? "Outro",
-              nature: "essencial",
-              date: tx.date,
-              scope: (tx.scope as Expense["scope"]) ?? "casa",
-              source: "app",
-            },
-            ...prev.expenses,
-          ],
-        }));
-      }
+      update((prev) => applyEstorno(prev, tx));
     },
 
     // ── Impulso ───────────────────────────────────────────────────────────

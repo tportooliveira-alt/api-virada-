@@ -8,14 +8,12 @@
 import { useState, useMemo } from "react";
 import { useVirada } from "@/providers/virada-provider";
 import { ExpenseChart } from "@/components/ExpenseChart";
+import { isEstornado, isOpenDebt, semEstornados } from "@/lib/types";
+import { getGoalProgress, groupTopCategories, roundMoney, savingsRate } from "@/lib/utils";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function brl(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-function pct(a: number, b: number) {
-  if (b === 0) return "—";
-  return ((a / b) * 100).toFixed(1) + "%";
+  return roundMoney(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 // ─── Mini barra sparkline ─────────────────────────────────────────────────────
@@ -147,42 +145,38 @@ export default function PlanilhaDemoPage() {
   const data = useVirada();
   const [activeTab, setActiveTab] = useState("dashboard");
 
-  const totalInc = data.incomes.reduce((s, i) => s + i.value, 0);
-  const totalExp = data.expenses.reduce((s, e) => s + e.value, 0);
-  const balance  = totalInc - totalExp;
-  const totalDebt = data.debts.filter(d => d.status === "aberta").reduce((s, d) => s + d.totalValue, 0);
-  const economia = totalInc > 0 ? ((totalInc - totalExp) / totalInc * 100).toFixed(1) : "0";
+  // Totais, gráficos, fluxo e resumo: sem estornados (contrato em lib/types.ts).
+  // As tabelas continuam listando tudo, com selo ESTORNADO.
+  const incomes  = useMemo(() => semEstornados(data.incomes), [data.incomes]);
+  const expenses = useMemo(() => semEstornados(data.expenses), [data.expenses]);
 
-  // Gastos por categoria
-  const expByCat = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const e of data.expenses) map[e.category] = (map[e.category] ?? 0) + e.value;
-    return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [data.expenses]);
+  const totalInc = roundMoney(incomes.reduce((s, i) => s + i.value, 0));
+  const totalExp = roundMoney(expenses.reduce((s, e) => s + e.value, 0));
+  const balance  = roundMoney(totalInc - totalExp);
+  const openDebts = data.debts.filter(isOpenDebt);
+  const totalDebt = roundMoney(openDebts.reduce((s, d) => s + d.totalValue, 0));
+  const economia = savingsRate(totalInc, totalExp);
 
-  // Receitas por categoria
-  const incByCat = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const i of data.incomes) map[i.category] = (map[i.category] ?? 0) + i.value;
-    return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [data.incomes]);
+  // Gastos / receitas por categoria: maiores + "Outros", % fechando 100
+  const expByCat = useMemo(() => groupTopCategories(expenses, PIE_COLORS.length), [expenses]);
+  const incByCat = useMemo(() => groupTopCategories(incomes, PIE_COLORS.length), [incomes]);
 
   // Fluxo por dia
   const byDate = useMemo(() => {
     const map = new Map<string, { inc: number; exp: number }>();
-    for (const i of data.incomes)  { const d = i.date.split("T")[0]; const p = map.get(d) ?? { inc: 0, exp: 0 }; p.inc += i.value; map.set(d, p); }
-    for (const e of data.expenses) { const d = e.date.split("T")[0]; const p = map.get(d) ?? { inc: 0, exp: 0 }; p.exp += e.value; map.set(d, p); }
+    for (const i of incomes)  { const d = i.date.split("T")[0]; const p = map.get(d) ?? { inc: 0, exp: 0 }; p.inc += i.value; map.set(d, p); }
+    for (const e of expenses) { const d = e.date.split("T")[0]; const p = map.get(d) ?? { inc: 0, exp: 0 }; p.exp += e.value; map.set(d, p); }
     let acc = 0;
     return [...map.entries()].sort().map(([date, { inc, exp }]) => {
-      acc += inc - exp;
-      return { date, inc, exp, dia: inc - exp, acc };
+      acc = roundMoney(acc + inc - exp);
+      return { date, inc, exp, dia: roundMoney(inc - exp), acc };
     });
-  }, [data.incomes, data.expenses]);
+  }, [incomes, expenses]);
 
   // Resumo mensal
   const byMonth = useMemo(() => {
     const map = new Map<string, { inc: number; exp: number; count: number }>();
-    for (const t of [...data.incomes, ...data.expenses]) {
+    for (const t of [...incomes, ...expenses]) {
       const m = t.date.slice(0, 7);
       const p = map.get(m) ?? { inc: 0, exp: 0, count: 0 };
       if ("paymentMethod" in t) p.exp += t.value; else p.inc += t.value;
@@ -190,7 +184,7 @@ export default function PlanilhaDemoPage() {
       map.set(m, p);
     }
     return [...map.entries()].sort();
-  }, [data.incomes, data.expenses]);
+  }, [incomes, expenses]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -201,10 +195,10 @@ export default function PlanilhaDemoPage() {
           <div className="space-y-5">
             {/* KPIs */}
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <KPI label="Receitas" value={brl(totalInc)}  sub={`${data.incomes.length} lançamentos`} color="#22C55E" emoji="📥" />
-              <KPI label="Gastos"   value={brl(totalExp)}  sub={`${data.expenses.length} lançamentos`} color="#EF4444" emoji="📤" />
+              <KPI label="Receitas" value={brl(totalInc)}  sub={`${incomes.length} lançamentos`} color="#22C55E" emoji="📥" />
+              <KPI label="Gastos"   value={brl(totalExp)}  sub={`${expenses.length} lançamentos`} color="#EF4444" emoji="📤" />
               <KPI label="Saldo"    value={brl(balance)}   sub={balance >= 0 ? "✅ Positivo" : "⚠️ Negativo"} color={balance >= 0 ? "#3B82F6" : "#F97316"} emoji="💰" />
-              <KPI label="Economia" value={economia + "%"} sub="do total de receitas" color="#A855F7" emoji="🏦" />
+              <KPI label="Sobrou do que entrou" value={economia === null ? "—" : `${economia}%`} sub="saldo dividido pelas receitas" color="#A855F7" emoji="🏦" />
             </div>
 
             {/* Gráfico de gastos */}
@@ -218,18 +212,18 @@ export default function PlanilhaDemoPage() {
               <div className="rounded-xl border border-virada-line bg-white p-4">
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-red-700">Gastos por Categoria</p>
                 <div className="flex gap-4">
-                  <MiniPie data={expByCat.map(([,v]) => ({ value: v }))} />
+                  <MiniPie data={expByCat} />
                   <div className="flex-1 space-y-2">
-                    {expByCat.slice(0, 5).map(([cat, val], i) => (
-                      <div key={cat}>
+                    {expByCat.map((c, i) => (
+                      <div key={c.name}>
                         <div className="flex justify-between text-xs mb-0.5">
                           <div className="flex items-center gap-1.5">
                             <div className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i] }} />
-                            <span className="text-ink-600">{cat}</span>
+                            <span className="text-ink-600">{c.name}</span>
                           </div>
-                          <span className="font-semibold text-ink-900">{pct(val, totalExp)}</span>
+                          <span className="font-semibold text-ink-900">{c.pct}%</span>
                         </div>
-                        <Bar value={val} total={totalExp} color={PIE_COLORS[i]} />
+                        <Bar value={c.value} total={totalExp} color={PIE_COLORS[i]} />
                       </div>
                     ))}
                   </div>
@@ -243,18 +237,18 @@ export default function PlanilhaDemoPage() {
               <div className="rounded-xl border border-virada-line bg-white p-4">
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-green-700">Receitas por Categoria</p>
                 <div className="flex gap-4">
-                  <MiniPie data={incByCat.map(([,v]) => ({ value: v }))} />
+                  <MiniPie data={incByCat} />
                   <div className="flex-1 space-y-2">
-                    {incByCat.slice(0, 5).map(([cat, val], i) => (
-                      <div key={cat}>
+                    {incByCat.map((c, i) => (
+                      <div key={c.name}>
                         <div className="flex justify-between text-xs mb-0.5">
                           <div className="flex items-center gap-1.5">
                             <div className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i] }} />
-                            <span className="text-ink-600">{cat}</span>
+                            <span className="text-ink-600">{c.name}</span>
                           </div>
-                          <span className="font-semibold text-ink-900">{pct(val, totalInc)}</span>
+                          <span className="font-semibold text-ink-900">{c.pct}%</span>
                         </div>
-                        <Bar value={val} total={totalInc} color={PIE_COLORS[i]} />
+                        <Bar value={c.value} total={totalInc} color={PIE_COLORS[i]} />
                       </div>
                     ))}
                   </div>
@@ -271,10 +265,10 @@ export default function PlanilhaDemoPage() {
               <p className="mb-3 text-xs font-bold uppercase tracking-wider text-ink-500">Status Geral</p>
               <div className="grid gap-2 text-xs">
                 {[
-                  { label: "Dívidas abertas", value: data.debts.filter(d=>d.status==="aberta").length, unit: "dívidas", color: totalDebt > 0 ? "#EF4444" : "#22C55E" },
+                  { label: "Dívidas em aberto", value: openDebts.length, unit: "dívidas", color: totalDebt > 0 ? "#EF4444" : "#22C55E" },
                   { label: "Total em dívidas", value: brl(totalDebt), unit: "", color: totalDebt > 0 ? "#EF4444" : "#22C55E" },
                   { label: "Metas ativas", value: data.goals.length, unit: "metas", color: "#A855F7" },
-                  { label: "Lançamentos", value: data.incomes.length + data.expenses.length, unit: "total", color: "#3B82F6" },
+                  { label: "Lançamentos", value: incomes.length + expenses.length, unit: "total", color: "#3B82F6" },
                 ].map(item => (
                   <div key={item.label} className="flex items-center justify-between rounded-lg bg-ink-50 px-3 py-2">
                     <span className="text-ink-500">{item.label}</span>
@@ -295,12 +289,12 @@ export default function PlanilhaDemoPage() {
             headers={["Tipo","Descrição","Valor","Categoria","Data","Pagamento","Natureza","Escopo"]}
             rows={[
               ...data.expenses.map(e => [
-                <Chip key="t" label="GASTO" color="#EF4444" />,
+                <Chip key="t" label={isEstornado(e) ? "ESTORNADO" : "GASTO"} color={isEstornado(e) ? "#64748B" : "#EF4444"} />,
                 e.description, brl(e.value), e.category, e.date,
                 e.paymentMethod ?? "—", e.nature ?? "—", e.scope ?? "casa"
               ]),
               ...data.incomes.map(i => [
-                <Chip key="t" label="RECEITA" color="#22C55E" />,
+                <Chip key="t" label={isEstornado(i) ? "ESTORNADO" : "RECEITA"} color={isEstornado(i) ? "#64748B" : "#22C55E"} />,
                 i.description, brl(i.value), i.category, i.date, "—", "—", i.scope ?? "casa"
               ]),
             ]}
@@ -317,8 +311,12 @@ export default function PlanilhaDemoPage() {
         return (
           <SheetTable
             headers={["Descrição","Valor","Categoria","Data","Escopo"]}
-            rows={data.incomes.map(i => [i.description, <span key="v" className="font-semibold text-green-700">{brl(i.value)}</span>, i.category, i.date, i.scope ?? "casa"])}
-            totalsRow={["TOTAL RECEITAS", <span key="t" className="text-green-700">{brl(totalInc)}</span>, `${data.incomes.length} registros`, "", ""]}
+            rows={data.incomes.map(i => [
+              isEstornado(i) ? <span key="d">{i.description} <Chip label="ESTORNADO" color="#64748B" /></span> : i.description,
+              <span key="v" className={isEstornado(i) ? "text-ink-400 line-through" : "font-semibold text-green-700"}>{brl(i.value)}</span>,
+              i.category, i.date, i.scope ?? "casa",
+            ])}
+            totalsRow={["TOTAL RECEITAS", <span key="t" className="text-green-700">{brl(totalInc)}</span>, `${incomes.length} registros`, "", ""]}
           />
         );
 
@@ -328,15 +326,15 @@ export default function PlanilhaDemoPage() {
           <SheetTable
             headers={["Descrição","Valor","Categoria","Data","Pagamento","Natureza"]}
             rows={data.expenses.map(e => [
-              e.description,
-              <span key="v" className="font-semibold text-red-700">{brl(e.value)}</span>,
+              isEstornado(e) ? <span key="d">{e.description} <Chip label="ESTORNADO" color="#64748B" /></span> : e.description,
+              <span key="v" className={isEstornado(e) ? "text-ink-400 line-through" : "font-semibold text-red-700"}>{brl(e.value)}</span>,
               e.category, e.date,
               e.paymentMethod ?? "—",
               e.nature === "impulso"
                 ? <Chip key="n" label="IMPULSO" color="#F97316" />
                 : <Chip key="n" label="ESSENCIAL" color="#3B82F6" />,
             ])}
-            totalsRow={["TOTAL GASTOS", <span key="t" className="text-red-700">{brl(totalExp)}</span>, `${data.expenses.length} registros`, "", "", ""]}
+            totalsRow={["TOTAL GASTOS", <span key="t" className="text-red-700">{brl(totalExp)}</span>, `${expenses.length} registros`, "", "", ""]}
           />
         );
 
@@ -350,7 +348,7 @@ export default function PlanilhaDemoPage() {
               d.priority === "alta" ? <Chip key="p" label="ALTA" color="#EF4444" /> : d.priority === "média" ? <Chip key="p" label="MÉDIA" color="#F97316" /> : <Chip key="p" label="BAIXA" color="#22C55E" />,
               d.status === "quitada" ? <Chip key="s" label="QUITADA" color="#22C55E" /> : d.status === "negociando" ? <Chip key="s" label="NEGOCIANDO" color="#F5C542" /> : <Chip key="s" label="ABERTA" color="#EF4444" />,
             ])}
-            totalsRow={["TOTAL EM DÍVIDAS", <span key="t" className="text-red-700">{brl(totalDebt)}</span>, "", "", "", `${data.debts.filter(d=>d.status==="aberta").length} abertas`]}
+            totalsRow={["TOTAL EM DÍVIDAS", <span key="t" className="text-red-700">{brl(totalDebt)}</span>, "", "", "", `${openDebts.length} em aberto`]}
           />
         );
 
@@ -360,15 +358,15 @@ export default function PlanilhaDemoPage() {
           <SheetTable
             headers={["Meta","Valor Alvo","Valor Atual","Progresso","Faltando","Tipo"]}
             rows={data.goals.map(g => {
-              const prog = g.targetValue > 0 ? (g.currentValue / g.targetValue * 100) : 0;
-              const falta = Math.max(g.targetValue - g.currentValue, 0);
+              const prog = getGoalProgress(g);
+              const falta = Math.max(roundMoney(g.targetValue - g.currentValue), 0);
               return [
                 g.name, brl(g.targetValue), brl(g.currentValue),
                 <div key="p" className="flex items-center gap-2">
                   <div className="h-1.5 w-16 rounded-full bg-ink-200">
-                    <div className="h-full rounded-full bg-purple-500" style={{ width: `${Math.min(prog, 100)}%` }} />
+                    <div className="h-full rounded-full bg-purple-500" style={{ width: `${prog}%` }} />
                   </div>
-                  <span className="text-purple-700">{prog.toFixed(0)}%</span>
+                  <span className="text-purple-700">{prog}%</span>
                 </div>,
                 <span key="f" className="text-ink-500">{brl(falta)}</span>,
                 g.type,
@@ -397,18 +395,18 @@ export default function PlanilhaDemoPage() {
       case "resumo":
         return (
           <SheetTable
-            headers={["Mês/Ano","Entradas","Saídas","Resultado","Lançamentos","Economia %"]}
+            headers={["Mês/Ano","Entradas","Saídas","Resultado","Lançamentos","Sobrou %"]}
             rows={byMonth.map(([month, { inc, exp, count }]) => {
-              const result = inc - exp;
-              const eco = inc > 0 ? (result / inc * 100) : 0;
+              const result = roundMoney(inc - exp);
+              const eco = savingsRate(inc, exp);
               return [
                 <span key="m" className="font-semibold text-ink-900">{month}</span>,
                 <span key="i" className="text-green-700">{brl(inc)}</span>,
                 <span key="e" className="text-red-700">{brl(exp)}</span>,
                 <span key="r" className={`font-bold ${result >= 0 ? "text-blue-700" : "text-orange-300"}`}>{brl(result)}</span>,
                 count,
-                <span key="p" className={eco >= 20 ? "text-green-700" : eco >= 0 ? "text-yellow-300" : "text-red-700"}>
-                  {eco.toFixed(1)}%
+                <span key="p" className={eco === null ? "text-ink-500" : eco >= 20 ? "text-green-700" : eco >= 0 ? "text-yellow-300" : "text-red-700"}>
+                  {eco === null ? "—" : `${eco}%`}
                 </span>,
               ];
             })}

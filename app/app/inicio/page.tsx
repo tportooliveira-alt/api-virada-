@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowDown, ArrowRight, ArrowUp, ExternalLink, Mic, Table } from "lucide-react";
 import { ExpenseChart } from "@/components/ExpenseChart";
+import { isEstornado } from "@/lib/types";
 import { formatCurrency, formatDate, getDashboardMetrics } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
 
@@ -42,6 +43,7 @@ export default function InicioPage() {
   const monthCount = metrics.monthExpenses.length + metrics.monthIncomes.length;
   const impulseCount = metrics.monthExpenses.filter((item) => item.nature === "impulso").length;
 
+  // Histórico mostra tudo, inclusive estornados (com selo) — só os totais os ignoram.
   const latest = [
     ...data.expenses.map((item) => ({
       id: item.id,
@@ -50,6 +52,7 @@ export default function InicioPage() {
       value: -item.value,
       date: item.date,
       scope: item.scope ?? "casa",
+      estornado: isEstornado(item),
     })),
     ...data.incomes.map((item) => ({
       id: item.id,
@@ -58,6 +61,7 @@ export default function InicioPage() {
       value: item.value,
       date: item.date,
       scope: item.scope ?? "casa",
+      estornado: isEstornado(item),
     })),
   ]
     // data mais recente primeiro; no mesmo dia, o maior valor primeiro
@@ -164,10 +168,19 @@ export default function InicioPage() {
                           <span className="block truncate text-sm font-semibold text-ink-900">{item.label}</span>
                           <span className="mt-0.5 block text-xs text-ink-500">
                             {formatDate(item.date)} · {item.category} · {item.scope === "empresa" ? "Empresa" : "Casa"}
+                            {item.estornado && (
+                              <span className="ml-1.5 inline-flex rounded-full bg-ink-100 px-1.5 py-0.5 text-[11px] font-bold text-ink-600">
+                                Estornado
+                              </span>
+                            )}
                           </span>
                         </span>
                       </span>
-                      <strong className={`money shrink-0 text-sm ${income ? "text-green-700" : "text-ink-900"}`}>
+                      <strong
+                        className={`money shrink-0 text-sm ${
+                          item.estornado ? "text-ink-400 line-through" : income ? "text-green-700" : "text-ink-900"
+                        }`}
+                      >
                         {signed(item.value)}
                       </strong>
                     </div>

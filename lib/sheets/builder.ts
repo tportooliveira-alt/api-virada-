@@ -22,11 +22,13 @@ import {
   setColumnWidth,
   setRowHeight,
 } from "./styles";
+import { isOpenDebt, semEstornados, type DebtStatus } from "../types";
+import { savingsRate } from "../utils";
 
 export type Row = Record<string, string | number | null | undefined>;
 
 type TabKey = keyof typeof TAB;
-type DataTabKey = Exclude<TabKey, "dashboard" | "ajuda">;
+export type DataTabKey = Exclude<TabKey, "dashboard" | "ajuda">;
 type ValueRange = { range: string; values: unknown[][] };
 
 type PanelMeta = {
@@ -77,7 +79,7 @@ export const HEADERS: Partial<Record<TabKey, string[]>> = {
  * atrasada, reaplica o visual sozinho no próximo "Atualizar agora".
  * Só valores mudam sem bump.
  */
-export const LAYOUT_VERSION = "2026-09-04.1";
+export const LAYOUT_VERSION = "2026-09-11.1";
 
 // Cores das barras de participação do Dashboard — mesma sequência da legenda
 // da pizza no design (Planilha Virada - Redesign).
@@ -178,8 +180,8 @@ const PANEL_META: Record<DataTabKey, PanelMeta> = {
 };
 
 export interface SyncInput {
-  expenses: Array<{ id: string; description: string; value: number; category: string; date: string; paymentMethod?: string; nature?: string; scope?: string; source?: string }>;
-  incomes: Array<{ id: string; description: string; value: number; category: string; date: string; scope?: string; source?: string }>;
+  expenses: Array<{ id: string; description: string; value: number; category: string; date: string; paymentMethod?: string; nature?: string; scope?: string; source?: string; estornadoEm?: string }>;
+  incomes: Array<{ id: string; description: string; value: number; category: string; date: string; scope?: string; source?: string; estornadoEm?: string }>;
   debts: Array<{ id: string; name: string; totalValue: number; installmentValue: number; dueDate: string; priority: string; status: string }>;
   goals: Array<{ id: string; name: string; targetValue: number; currentValue: number; type: string }>;
 }
@@ -224,10 +226,20 @@ function buildDashboardLayout(requests: unknown[], sheetId: number) {
 
   requests.push(setRowHeight(sheetId, 4, 5, 22));
   requests.push(setRowHeight(sheetId, 5, 6, 52));
+  // Linhas 7–8 (eram separador) carregam o bloco "Desde o início" dentro do mesmo
+  // cartão: o KPI grande é o mês corrente (igual ao Início do app) e o acumulado
+  // do histórico fica logo abaixo, menor e rotulado — nenhum se passa pelo outro.
+  requests.push(setRowHeight(sheetId, 6, 7, 18));
+  requests.push(setRowHeight(sheetId, 7, 8, 30));
   [0, 3, 6, 9].forEach((startCol) => {
+    const gold = startCol === 6;
     requests.push(mergeCells(sheetId, 4, 5, startCol, startCol + 3));
     requests.push(mergeCells(sheetId, 5, 6, startCol, startCol + 3));
+    requests.push(mergeCells(sheetId, 6, 7, startCol, startCol + 3));
+    requests.push(mergeCells(sheetId, 7, 8, startCol, startCol + 3));
     requests.push(repeatCell(sheetId, range(4, 5, startCol, startCol + 3), STYLE.kpiLabel));
+    requests.push(repeatCell(sheetId, range(6, 7, startCol, startCol + 3), gold ? STYLE.kpiLabelSubGold : STYLE.kpiLabelSub));
+    requests.push(repeatCell(sheetId, range(7, 8, startCol, startCol + 3), gold ? STYLE.kpiValueSubGold : STYLE.kpiValueSub));
   });
   requests.push(repeatCell(sheetId, range(5, 6, 0, 3), STYLE.kpiValue));
   requests.push(repeatCell(sheetId, range(5, 6, 3, 6), STYLE.kpiValue));
@@ -242,9 +254,8 @@ function buildDashboardLayout(requests: unknown[], sheetId: number) {
   requests.push(setRowHeight(sheetId, 32, 33, 28));
   requests.push(setRowHeight(sheetId, 33, 34, 24));
 
-  // v2: linhas separadoras finas (3–4, 7–8, 22)
+  // v2: linhas separadoras finas (3–4, 22)
   requests.push(setRowHeight(sheetId, 2, 4, 12));
-  requests.push(setRowHeight(sheetId, 6, 8, 12));
   requests.push(setRowHeight(sheetId, 21, 22, 12));
   // v2: colunas C:E e K:L viram barras de participação (SPARKLINE) ao lado das tabelas
   for (let r = 11; r < 21; r++) {
@@ -412,7 +423,14 @@ function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
   requests.push(dashboardNumber(5, 6, 3, 4, { type: "CURRENCY", pattern: FORMAT.brlPlain }, "LEFT"));
   requests.push(dashboardNumber(5, 6, 6, 7, { type: "CURRENCY", pattern: FORMAT.brlPlain }, "LEFT"));
   requests.push(dashboardNumber(5, 6, 9, 10, { type: "NUMBER", pattern: FORMAT.intCount }, "LEFT"));
+  requests.push(dashboardNumber(7, 8, 0, 1, { type: "CURRENCY", pattern: FORMAT.brlPlain }, "LEFT"));
+  requests.push(dashboardNumber(7, 8, 3, 4, { type: "CURRENCY", pattern: FORMAT.brlPlain }, "LEFT"));
+  requests.push(dashboardNumber(7, 8, 6, 7, { type: "CURRENCY", pattern: FORMAT.brlPlain }, "LEFT"));
+  requests.push(dashboardNumber(7, 8, 9, 10, { type: "NUMBER", pattern: FORMAT.intCount }, "LEFT"));
 
+  // Mês do comparativo entra como data (AAAA-MM-01), igual à aba Resumo: texto
+  // "08/2026" o Sheets pode ler como 01/08/2026 e mostrar diferente em cada aba.
+  requests.push(dashboardNumber(11, 21, 6, 7, { type: "DATE", pattern: FORMAT.monthYear }, "LEFT"));
   requests.push(dashboardNumber(11, 21, 1, 2, { type: "CURRENCY", pattern: FORMAT.brlPlain }));
   requests.push(dashboardNumber(11, 21, 7, 8, { type: "CURRENCY", pattern: FORMAT.brlPlain }));
   requests.push(dashboardNumber(11, 21, 8, 9, { type: "CURRENCY", pattern: FORMAT.brlPlain }));
@@ -429,6 +447,7 @@ function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
 
 function applyConditionals(requests: unknown[], ids: Record<string, number>) {
   requests.push(...condFormatPositiveNegative(ids[TAB.dashboard], 5, 6, 6, 7));
+  requests.push(...condFormatPositiveNegative(ids[TAB.dashboard], 7, 8, 6, 7));
   requests.push(...condFormatPositiveNegative(ids[TAB.fluxo], 1, MAX_DATA_ROWS + 1, 3, 5));
   requests.push(...condFormatPositiveNegative(ids[TAB.resumo], 1, MAX_DATA_ROWS + 1, 3, 5));
   requests.push(...condFormatProgressBands(ids[TAB.metas], 1, MAX_DATA_ROWS + 1, 5, 6));
@@ -446,8 +465,11 @@ export function buildStaticValues() {
   data.push(
     { range: `${TAB.dashboard}!A1`, values: [["CÓDIGO DA VIRADA • BASE FINANCEIRA CLARA E ESTRUTURADA"]] },
     { range: `${TAB.dashboard}!A2`, values: [[`Atualizado em ${new Date().toLocaleString("pt-BR")}`]] },
-    { range: `${TAB.dashboard}!A5`, values: [["ENTRADAS DO PERÍODO", "", "", "SAÍDAS DO PERÍODO", "", "", "SALDO ATUAL", "", "", "LANÇAMENTOS", "", ""]] },
+    // Mesmos rótulos da tela Início do app — o comprador compara os dois.
+    { range: `${TAB.dashboard}!A5`, values: [["Entradas neste mês", "", "", "Gastos neste mês", "", "", "Em caixa neste mês", "", "", "Lançamentos no mês", "", ""]] },
     { range: `${TAB.dashboard}!A6`, values: [[0, "", "", 0, "", "", 0, "", "", 0, "", ""]] },
+    { range: `${TAB.dashboard}!A7`, values: [["Desde o início · Entradas", "", "", "Desde o início · Gastos", "", "", "Desde o início · Em caixa", "", "", "Desde o início · Lançamentos", "", ""]] },
+    { range: `${TAB.dashboard}!A8`, values: [[0, "", "", 0, "", "", 0, "", "", 0, "", ""]] },
     { range: `${TAB.dashboard}!A9`, values: [["Top categorias de gasto"], ["As dez categorias com maior saída financeira no período sincronizado."]] },
     { range: `${TAB.dashboard}!G9`, values: [["Comparativo mensal"], ["Leitura mensal de entradas, saídas e resultado para enxergar tendência."]] },
     { range: `${TAB.dashboard}!A11`, values: [["Categoria", "Total"]] },
@@ -507,32 +529,39 @@ export function buildSyncBatch(input: SyncInput) {
   const expenses = input.expenses ?? [];
   const debts = input.debts ?? [];
   const goals = input.goals ?? [];
-  const allRows = buildLedgerRows(incomes, expenses);
+  // Contrato de estorno (lib/types.ts): as listas mostram o histórico inteiro
+  // (com selo), mas todo total — KPI, fluxo, resumo, categorias, painéis — só
+  // enxerga os válidos. Filtra ANTES de agregar, nunca depois.
+  const validIncomes = semEstornados(incomes);
+  const validExpenses = semEstornados(expenses);
+  const historico = buildLedgerRows(incomes, expenses);
+  const validos = buildLedgerRows(validIncomes, validExpenses);
 
-  const lancamentos = allRows.map((row) => [
+  const lancamentos = historico.map((row) => [
     formatDate(row.date),
     row.type === "income" ? "Entrada" : "Saída",
-    row.description,
-    row.category,
+    texto(descricaoComSelo(row.description, row.estornadoEm)),
+    texto(row.category),
     Number(row.amount) || 0,
-    row.paymentMethod ?? "",
-    row.nature ?? "",
-    row.scope ?? "",
-    row.source ?? "",
+    texto(row.paymentMethod ?? ""),
+    texto(row.nature ?? ""),
+    texto(row.scope ?? ""),
+    texto(row.source ?? ""),
   ]);
 
-  const receitas = sortByDate(incomes).map((row) => [formatDate(row.date), row.description, row.category, row.value, row.scope ?? "", row.source ?? "app"]);
-  const despesas = sortByDate(expenses).map((row) => [formatDate(row.date), row.description, row.category, row.value, row.paymentMethod ?? "", row.nature ?? "", row.scope ?? ""]);
-  const dividas = sortDebts(debts).map((debt) => [debt.name, formatDate(debt.dueDate), debt.priority, debt.status, debt.installmentValue, debt.totalValue, debt.status === "quitada" ? 0 : debt.totalValue]);
+  const receitas = sortByDate(incomes).map((row) => [formatDate(row.date), texto(descricaoComSelo(row.description, row.estornadoEm)), texto(row.category), row.value, texto(row.scope ?? ""), texto(row.source ?? "app")]);
+  const despesas = sortByDate(expenses).map((row) => [formatDate(row.date), texto(descricaoComSelo(row.description, row.estornadoEm)), texto(row.category), row.value, texto(row.paymentMethod ?? ""), texto(row.nature ?? ""), texto(row.scope ?? "")]);
+  const dividas = sortDebts(debts).map((debt) => [texto(debt.name), formatDate(debt.dueDate), texto(debt.priority), texto(debt.status), debt.installmentValue, debt.totalValue, debtIsOpen(debt) ? debt.totalValue : 0]);
   const metas = goals.map((goal) => {
     const faltando = Math.max(goal.targetValue - goal.currentValue, 0);
-    const progresso = goal.targetValue > 0 ? goal.currentValue / goal.targetValue : 0;
-    return [goal.name, goal.type, goal.targetValue, goal.currentValue, faltando, progresso];
+    return [texto(goal.name), texto(goal.type), goal.targetValue, goal.currentValue, faltando, goalProgress(goal)];
   });
 
-  const fluxo = buildDailyCashFlow(allRows);
-  const resumo = buildMonthlySummary(allRows);
-  const totals = buildTotals(incomes, expenses, debts, goals, allRows, fluxo, resumo);
+  const mes = localMonthKey();
+  const fluxo = buildDailyCashFlow(validos);
+  const porMes = aggregateByMonth(validos);
+  const resumo = buildMonthlySummary(porMes, mes);
+  const totals = buildTotals(validIncomes, validExpenses, debts, goals, validos, fluxo, resumo, buildDashboardMonthRows(porMes, mes), mes);
 
   return {
     clearRanges: buildClearRanges(),
@@ -551,6 +580,7 @@ function buildLedgerRows(incomes: SyncInput["incomes"], expenses: SyncInput["exp
       date: income.date,
       scope: income.scope ?? null,
       source: income.source ?? "app",
+      estornadoEm: income.estornadoEm ?? null,
     })),
     ...expenses.map((expense) => ({
       id: expense.id,
@@ -563,6 +593,7 @@ function buildLedgerRows(incomes: SyncInput["incomes"], expenses: SyncInput["exp
       nature: expense.nature ?? null,
       scope: expense.scope ?? null,
       source: expense.source ?? "app",
+      estornadoEm: expense.estornadoEm ?? null,
     })),
   ].sort((a, b) => String(a.date).localeCompare(String(b.date)));
 }
@@ -579,33 +610,104 @@ function buildDailyCashFlow(rows: Row[]) {
   });
 
   let running = 0;
-  const fluxo = [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, values]) => {
+  // Sem lançamentos a aba fica vazia — uma linha [hoje, 0, 0, 0, 0] seria dado inventado.
+  return [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, values]) => {
     const result = roundMoney(values.income - values.expense);
     running = roundMoney(running + result);
     return [formatDate(date), values.income, values.expense, result, running];
   });
-
-  return fluxo.length ? fluxo : [[formatDate(new Date().toISOString().slice(0, 10)), 0, 0, 0, 0]];
 }
 
-function buildMonthlySummary(rows: Row[]) {
-  const byMonth = new Map<string, { income: number; expense: number; count: number }>();
+type MonthTotals = { income: number; expense: number; count: number };
+const MES_VAZIO: MonthTotals = { income: 0, expense: 0, count: 0 };
+
+function aggregateByMonth(rows: Row[]) {
+  const byMonth = new Map<string, MonthTotals>();
   rows.forEach((row) => {
     const month = String(row.date).slice(0, 7);
-    const current = byMonth.get(month) ?? { income: 0, expense: 0, count: 0 };
+    const current = byMonth.get(month) ?? { ...MES_VAZIO };
     const value = Number(row.amount) || 0;
     if (row.type === "income") current.income = roundMoney(current.income + value);
     else current.expense = roundMoney(current.expense + value);
     current.count += 1;
     byMonth.set(month, current);
   });
+  return byMonth;
+}
 
+function buildMonthlySummary(byMonth: Map<string, MonthTotals>, mesCorrente: string) {
   let running = 0;
-  return [...byMonth.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([month, values]) => {
+  return fillMonthGaps([...byMonth.keys()], mesCorrente).map((month) => {
+    const values = byMonth.get(month) ?? MES_VAZIO;
     const result = roundMoney(values.income - values.expense);
     running = roundMoney(running + result);
-    return [`${month}-01`, values.income, values.expense, result, running, values.income > 0 ? result / values.income : 0, values.count];
+    return [`${month}-01`, values.income, values.expense, result, running, economia(values), values.count];
   });
+}
+
+// Coluna Economia = savingsRate do app (lib/utils.ts, % inteiro) em fração, porque
+// a coluna tem formato PERCENT. Sem entradas não existe taxa: "—" (0,0% mentiria
+// num mês só com gasto). Negativo é informação real — não trava em zero.
+function economia(values: MonthTotals) {
+  const taxa = savingsRate(values.income, values.expense);
+  return taxa === null ? "—" : taxa / 100;
+}
+
+// Quantos meses, contando o corrente, o Resumo preenche com zeros entre o
+// primeiro e o último mês com movimento.
+const JANELA_PREENCHIMENTO = 24;
+
+// Meses sem movimento entre o primeiro e o último entram zerados: jan, mar, mai
+// viravam três barras contíguas no comparativo, escondendo os dois meses parados.
+//
+// A janela é limitada por construção — a tela aceita qualquer data válida, e um
+// ano digitado errado ("1026-09-05", "2206-01-05") preenchia mais de mil meses:
+// a aba tem MAX_DATA_ROWS linhas, e como o values.batchUpdate é um só, a API
+// recusava TUDO e nada sincronizava. Regra:
+//  - só preenche entre o primeiro e o último mês com movimento, e só dentro dos
+//    últimos JANELA_PREENCHIMENTO meses até o mês corrente (nunca pro futuro);
+//  - mês fora de [ano corrente − 10, ano corrente + 1] é dado suspeito: fica na
+//    lista como está (o usuário precisa vê-lo pra corrigir), mas não puxa a
+//    janela até ele.
+// Assim o Resumo tem no máximo (meses com movimento + 24) linhas; o corte final
+// em MAX_DATA_ROWS é só cinto de segurança.
+function fillMonthGaps(months: string[], mesCorrente: string): string[] {
+  const all = new Set(months);
+  const anoCorrente = Number(mesCorrente.slice(0, 4));
+  const sadios = months
+    .filter((month) => /^\d{4}-(0[1-9]|1[0-2])$/.test(month))
+    .filter((month) => Number(month.slice(0, 4)) >= anoCorrente - 10 && Number(month.slice(0, 4)) <= anoCorrente + 1)
+    .sort();
+  if (sadios.length) {
+    const inicioJanela = shiftMonth(mesCorrente, -(JANELA_PREENCHIMENTO - 1));
+    const de = sadios[0] > inicioJanela ? sadios[0] : inicioJanela;
+    const ate = sadios[sadios.length - 1] < mesCorrente ? sadios[sadios.length - 1] : mesCorrente;
+    for (let key = de; key <= ate; key = shiftMonth(key, 1)) all.add(key);
+  }
+  return [...all].sort().slice(-MAX_DATA_ROWS);
+}
+
+// "AAAA-MM" deslocado n meses (n negativo volta no tempo).
+function shiftMonth(key: string, n: number) {
+  const [year, month] = key.split("-").map(Number);
+  return localMonthKey(new Date(year, month - 1 + n, 1));
+}
+
+// Mesma regra do app (getGoalProgress): entre 0 e 100%. Sem teto, 2.500 numa
+// meta de 1.000 virava 250% na planilha; sem piso, valor atual negativo dava −10%
+// enquanto o app mostrava 0%.
+function goalProgress(goal: { targetValue: number; currentValue: number }) {
+  return goal.targetValue > 0 ? Math.min(1, Math.max(0, goal.currentValue / goal.targetValue)) : 0;
+}
+
+function goalReached(goal: { targetValue: number; currentValue: number }) {
+  return goal.targetValue > 0 && roundMoney(goal.currentValue) >= roundMoney(goal.targetValue);
+}
+
+// Mês corrente em data LOCAL: toISOString() é UTC e, à noite no Brasil, já
+// está no dia (ou mês) seguinte — o KPI mudaria de mês antes do app.
+function localMonthKey(now = new Date()) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function buildTotals(
@@ -616,47 +718,75 @@ function buildTotals(
   allRows: Row[],
   fluxo: unknown[][],
   resumo: unknown[][],
+  resumoDashboardRows: unknown[][],
+  mes: string,
 ) {
   const totalEntradas = roundMoney(incomes.reduce((sum, item) => sum + item.value, 0));
   const totalSaidas = roundMoney(expenses.reduce((sum, item) => sum + item.value, 0));
   const saldo = roundMoney(totalEntradas - totalSaidas);
+
+  // KPIs principais = o que a tela Início mostra (getDashboardMetrics: mês corrente)
+  const doMes = <T extends { date: string }>(items: T[]) => items.filter((item) => String(item.date).slice(0, 7) === mes);
+  const entradasMes = roundMoney(doMes(incomes).reduce((sum, item) => sum + item.value, 0));
+  const gastosMes = roundMoney(doMes(expenses).reduce((sum, item) => sum + item.value, 0));
+  const caixaMes = roundMoney(entradasMes - gastosMes);
+  const lancamentosMes = doMes(incomes).length + doMes(expenses).length;
+
   const orderedIncomes = sortByDate(incomes);
   const orderedExpenses = sortByDate(expenses);
-  const debtOpenTotal = roundMoney(debts.reduce((sum, item) => sum + (item.status === "quitada" ? 0 : item.totalValue), 0));
+  const openDebts = debts.filter(debtIsOpen);
+  const debtOpenTotal = roundMoney(openDebts.reduce((sum, item) => sum + item.totalValue, 0));
   const quitadas = debts.filter((item) => item.status === "quitada").length;
-  const bestMeta = goals.map((goal) => ({ name: goal.name, progress: goal.targetValue > 0 ? goal.currentValue / goal.targetValue : 0 })).sort((a, b) => b.progress - a.progress)[0];
-  const realFluxo = fluxo.filter((row) => !(Number(row[1]) === 0 && Number(row[2]) === 0 && Number(row[3]) === 0 && Number(row[4]) === 0));
-  const bestMonth = resumo.length ? resumo.reduce((best, row) => (Number(row[3]) > Number(best[3]) ? row : best), resumo[0]) : null;
-  const worstMonth = resumo.length ? resumo.reduce((best, row) => (Number(row[3]) < Number(best[3]) ? row : best), resumo[0]) : null;
+  const bestMeta = goals
+    .map((goal) => ({ name: goal.name, progress: goalProgress(goal), reached: goalReached(goal) }))
+    .sort((a, b) => b.progress - a.progress)[0];
+  // Painel do Resumo só enxerga meses COM movimento: as linhas zeradas ficam na
+  // aba (série do gráfico), mas jan +500 e mar +300 não podem dar "Pior mês:
+  // fev (R$ 0,00)" nem "3 meses no histórico".
+  const mesesComMovimento = resumo.filter((row) => Number(row[6]) > 0);
+  const bestMonth = mesesComMovimento.length ? mesesComMovimento.reduce((best, row) => (Number(row[3]) > Number(best[3]) ? row : best), mesesComMovimento[0]) : null;
+  const worstMonth = mesesComMovimento.length ? mesesComMovimento.reduce((best, row) => (Number(row[3]) < Number(best[3]) ? row : best), mesesComMovimento[0]) : null;
+  const taxas = mesesComMovimento.map((row) => row[5]).filter((value): value is number => typeof value === "number");
+  const economiaMedia = taxas.length ? formatPercent(taxas.reduce((sum, value) => sum + value, 0) / taxas.length) : "—";
+  // Com um dia só, melhor e pior dia são o mesmo — rotula em vez de parecer bug.
+  const diaUnico = fluxo.length === 1 ? " (dia único)" : "";
+
+  const panel = {
+    lancamentos: [[String(allRows.length)], [formatMoney(totalEntradas)], [formatMoney(totalSaidas)], [formatPeriodText(allRows)]],
+    receitas: [[String(incomes.length)], [formatMoney(totalEntradas)], [formatMoney(maxValue(incomes))], [orderedIncomes.length ? formatDate(orderedIncomes[orderedIncomes.length - 1].date) : "—"]],
+    despesas: [[String(expenses.length)], [formatMoney(totalSaidas)], [formatMoney(maxValue(expenses))], [orderedExpenses.length ? formatDate(orderedExpenses[orderedExpenses.length - 1].date) : "—"]],
+    dividas: [[String(debts.length)], [formatMoney(debtOpenTotal)], [String(quitadas)], [highestPriority(openDebts)]],
+    metas: [[String(goals.length)], [formatMoney(goals.reduce((sum, item) => sum + item.targetValue, 0))], [formatMoney(goals.reduce((sum, item) => sum + item.currentValue, 0))], [bestMeta ? `${bestMeta.name} (${formatPercent(bestMeta.progress)})${bestMeta.reached ? " · meta batida" : ""}` : "—"]],
+    fluxo: [[String(fluxo.length)], [fluxo.length ? formatMoney(maxColumn(fluxo, 3)) + diaUnico : "—"], [fluxo.length ? formatMoney(minColumn(fluxo, 3)) + diaUnico : "—"], [formatMoney(Number(fluxo[fluxo.length - 1]?.[4]) || 0)]],
+    resumo: [[String(mesesComMovimento.length)], [bestMonth ? `${formatMonth(bestMonth[0])} (${formatMoney(Number(bestMonth[3]) || 0)})` : "—"], [worstMonth ? `${formatMonth(worstMonth[0])} (${formatMoney(Number(worstMonth[3]) || 0)})` : "—"], [economiaMedia]],
+  };
 
   return {
+    entradasMes,
+    gastosMes,
+    caixaMes,
+    lancamentosMes,
     totalEntradas,
     totalSaidas,
     saldo,
     totalLancamentos: allRows.length,
     topCategoriasRows: buildTopCategoryRows(expenses),
-    resumoDashboardRows: buildDashboardMonthRows(resumo),
-    panel: {
-      lancamentos: [[String(allRows.length)], [formatMoney(totalEntradas)], [formatMoney(totalSaidas)], [formatPeriodText(allRows)]],
-      receitas: [[String(incomes.length)], [formatMoney(totalEntradas)], [formatMoney(maxValue(incomes))], [orderedIncomes.length ? formatDate(orderedIncomes[orderedIncomes.length - 1].date) : "Sem entradas"]],
-      despesas: [[String(expenses.length)], [formatMoney(totalSaidas)], [formatMoney(maxValue(expenses))], [orderedExpenses.length ? formatDate(orderedExpenses[orderedExpenses.length - 1].date) : "Sem saídas"]],
-      dividas: [[String(debts.length)], [formatMoney(debtOpenTotal)], [String(quitadas)], [highestPriority(debts)]],
-      metas: [[String(goals.length)], [formatMoney(goals.reduce((sum, item) => sum + item.targetValue, 0))], [formatMoney(goals.reduce((sum, item) => sum + item.currentValue, 0))], [bestMeta ? `${bestMeta.name} (${formatPercent(bestMeta.progress)})` : "Sem metas"]],
-      fluxo: [[String(realFluxo.length || fluxo.length)], [formatMoney(maxColumn(fluxo, 3))], [formatMoney(minColumn(fluxo, 3))], [formatMoney(Number(fluxo[fluxo.length - 1]?.[4]) || 0)]],
-      resumo: [[String(resumo.length)], [bestMonth ? `${formatMonth(bestMonth[0])} (${formatMoney(Number(bestMonth[3]) || 0)})` : "Sem meses"], [worstMonth ? `${formatMonth(worstMonth[0])} (${formatMoney(Number(worstMonth[3]) || 0)})` : "Sem meses"], [formatPercent(avgColumn(resumo, 5))]],
-    },
+    resumoDashboardRows,
+    // Painel é sempre texto (moeda formatada, "—", nome de meta): passa pelo mesmo
+    // apóstrofo das listas — "-R$ 800,33" e um nome de meta com "=" iriam pro parser.
+    panel: Object.fromEntries(Object.entries(panel).map(([key, rows]) => [key, rows.map((row) => [texto(row[0])])])) as Record<keyof typeof panel, string[][]>,
   };
+}
+
+// Aberto em A1 sem linha final ("A2:I") limpa até o fim da coluna: com "A2:I1000"
+// a linha 1001 (o 1000º lançamento) nunca era apagada e virava fantasma.
+export function dataClearRange(key: DataTabKey) {
+  return `${TAB[key]}!A2:${MAIN_RANGE_END[key]}`;
 }
 
 function buildClearRanges() {
   return [
-    `${TAB.lancamentos}!A2:${MAIN_RANGE_END.lancamentos}${MAX_DATA_ROWS}`,
-    `${TAB.receitas}!A2:${MAIN_RANGE_END.receitas}${MAX_DATA_ROWS}`,
-    `${TAB.despesas}!A2:${MAIN_RANGE_END.despesas}${MAX_DATA_ROWS}`,
-    `${TAB.dividas}!A2:${MAIN_RANGE_END.dividas}${MAX_DATA_ROWS}`,
-    `${TAB.metas}!A2:${MAIN_RANGE_END.metas}${MAX_DATA_ROWS}`,
-    `${TAB.fluxo}!A2:${MAIN_RANGE_END.fluxo}${MAX_DATA_ROWS}`,
-    `${TAB.resumo}!A2:${MAIN_RANGE_END.resumo}${MAX_DATA_ROWS}`,
+    ...DATA_TABS.map(dataClearRange),
     `${TAB.dashboard}!A12:B21`,
     `${TAB.dashboard}!G12:J21`,
   ];
@@ -677,15 +807,19 @@ function buildValueRanges(input: {
     ...(lancamentos.length ? [{ range: `${TAB.lancamentos}!A2`, values: lancamentos }] : []),
     ...(receitas.length ? [{ range: `${TAB.receitas}!A2`, values: receitas }] : []),
     ...(despesas.length ? [{ range: `${TAB.despesas}!A2`, values: despesas }] : []),
-    { range: `${TAB.dividas}!A2`, values: dividas.length ? dividas : [["Sem dívidas em aberto", "", "baixa", "quitada", 0, 0, 0]] },
+    ...(dividas.length ? [{ range: `${TAB.dividas}!A2`, values: dividas }] : []),
     ...(metas.length ? [{ range: `${TAB.metas}!A2`, values: metas }] : []),
-    { range: `${TAB.fluxo}!A2`, values: fluxo },
+    ...(fluxo.length ? [{ range: `${TAB.fluxo}!A2`, values: fluxo }] : []),
     ...(resumo.length ? [{ range: `${TAB.resumo}!A2`, values: resumo }] : []),
     { range: `${TAB.dashboard}!A2`, values: [[`Atualizado em ${new Date().toLocaleString("pt-BR")}`]] },
-    { range: `${TAB.dashboard}!A6`, values: [[totals.totalEntradas]] },
-    { range: `${TAB.dashboard}!D6`, values: [[totals.totalSaidas]] },
-    { range: `${TAB.dashboard}!G6`, values: [[totals.saldo]] },
-    { range: `${TAB.dashboard}!J6`, values: [[totals.totalLancamentos]] },
+    { range: `${TAB.dashboard}!A6`, values: [[totals.entradasMes]] },
+    { range: `${TAB.dashboard}!D6`, values: [[totals.gastosMes]] },
+    { range: `${TAB.dashboard}!G6`, values: [[totals.caixaMes]] },
+    { range: `${TAB.dashboard}!J6`, values: [[totals.lancamentosMes]] },
+    { range: `${TAB.dashboard}!A8`, values: [[totals.totalEntradas]] },
+    { range: `${TAB.dashboard}!D8`, values: [[totals.totalSaidas]] },
+    { range: `${TAB.dashboard}!G8`, values: [[totals.saldo]] },
+    { range: `${TAB.dashboard}!J8`, values: [[totals.totalLancamentos]] },
     { range: `${TAB.dashboard}!A12:B21`, values: totals.topCategoriasRows },
     { range: `${TAB.dashboard}!G12:J21`, values: totals.resumoDashboardRows },
     { range: `${TAB.lancamentos}!K4:K7`, values: totals.panel.lancamentos },
@@ -701,14 +835,22 @@ function buildValueRanges(input: {
 function buildTopCategoryRows(expenses: SyncInput["expenses"]) {
   const byCategory = new Map<string, number>();
   expenses.forEach((expense) => byCategory.set(expense.category, roundMoney((byCategory.get(expense.category) || 0) + expense.value)));
-  const rows = [...byCategory.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([category, total]) => [category, total]);
+  const rows = [...byCategory.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([category, total]) => [texto(category), total]);
   // Sem categoria nenhuma, a grade fica em branco: escrever "Sem dados" numa
   // linha com barra colorida parece produto inacabado, não planilha vazia.
   return padRows(10, ["", ""], rows);
 }
 
-function buildDashboardMonthRows(resumo: unknown[][]) {
-  return padRows(10, ["", "", "", ""], resumo.slice(-10).map((row) => [formatMonth(row[0]), row[1], row[2], row[3]]));
+// Comparativo do Dashboard = os 10 últimos meses do CALENDÁRIO até o corrente,
+// zerando os sem movimento. Eram "as 10 últimas linhas do Resumo": com um ano
+// digitado errado ("2062-01") o comparativo mostrava 2061-04..2062-01 zerados e
+// os meses reais sumiam.
+function buildDashboardMonthRows(byMonth: Map<string, MonthTotals>, mesCorrente: string) {
+  return Array.from({ length: 10 }, (_, i) => {
+    const month = shiftMonth(mesCorrente, i - 9);
+    const values = byMonth.get(month) ?? MES_VAZIO;
+    return [`${month}-01`, values.income, values.expense, roundMoney(values.income - values.expense)];
+  });
 }
 
 function pieChart(dashboard: number, rowIndex: number, columnIndex: number, widthPixels: number, heightPixels: number) {
@@ -800,9 +942,36 @@ function source(sheetId: number, startRowIndex: number, endRowIndex: number, sta
   return { sheetId, startRowIndex, endRowIndex, startColumnIndex, endColumnIndex };
 }
 
-// Barra horizontal proporcional ao máximo da coluna. Sintaxe pt_BR (locale definido em createSpreadsheet).
+// Barra horizontal proporcional ao maior módulo da coluna. Sintaxe pt_BR (locale
+// definido em createSpreadsheet): SE/MÁXIMO/MÍNIMO, ";" entre argumentos e "\"
+// entre colunas do literal de matriz. Mês negativo entra em vermelho com a barra
+// do valor absoluto — com "N(x)>0" o mês de −2.000 (o que mais importa) sumia.
+// A escala é MÁXIMO(MÁXIMO;-MÍNIMO) porque MÁXIMO(ABS(intervalo)) exigiria ARRAYFORMULA.
 function sparkBar(cell: string, maxRange: string, color = "#22C55E") {
-  return `=SE(N(${cell})>0;SPARKLINE(${cell};{"charttype"\\"bar";"max"\\MÁXIMO(${maxRange});"color1"\\"${color}"});"")`;
+  const escala = `MÁXIMO(MÁXIMO(${maxRange});-MÍNIMO(${maxRange}))`;
+  return `=SE(N(${cell})=0;"";SPARKLINE(ABS(${cell});{"charttype"\\"bar";"max"\\${escala};"color1"\\SE(N(${cell})<0;"#EF4444";"${color}")}))`;
+}
+
+// Com USER_ENTERED a célula é lida como se digitada: "=almoço" vira fórmula
+// (#NOME?), "- 50 do mercado" tenta virar número (#ERROR!), "@x" vira menção e o
+// apóstrofo inicial some. Apóstrofo na frente é o jeito do Sheets de dizer "isto é
+// texto" — e ele não aparece na célula. Números e datas não passam por aqui.
+function texto(value: unknown): string {
+  const s = value == null ? "" : String(value);
+  return /^[=+\-@'\t\r]/.test(s) ? `'${s}` : s;
+}
+
+// Selo do estorno na lista: o lançamento continua no histórico, mas quem lê a
+// aba precisa ver por que ele não entra nos totais.
+function descricaoComSelo(description: unknown, estornadoEm: unknown) {
+  const base = description == null ? "" : String(description);
+  return estornadoEm ? `${base} (ESTORNADO em ${formatDate(estornadoEm)})` : base;
+}
+
+// SyncInput carrega status como string (vem do wrapper server-side também);
+// o contrato é o mesmo isOpenDebt de lib/types.ts.
+function debtIsOpen(debt: { status: string }) {
+  return isOpenDebt({ status: debt.status as DebtStatus });
 }
 
 function padRows(length: number, filler: unknown[], rows: unknown[][] = []) {
@@ -815,8 +984,12 @@ function sortByDate<T extends { date: string }>(rows: T[]) {
   return [...rows].sort((a, b) => String(a.date).localeCompare(String(b.date)));
 }
 
+// Abertas primeiro (prioridade, depois maior valor); quitadas por último — uma
+// quitada de R$ 0 não pode aparecer entre abertas de R$ 5.000.
 function sortDebts(debts: SyncInput["debts"]) {
-  return [...debts].sort(priorityOrder);
+  return [...debts].sort((a, b) =>
+    Number(!debtIsOpen(a)) - Number(!debtIsOpen(b)) || priorityOrder(a, b) || b.totalValue - a.totalValue,
+  );
 }
 
 function maxValue(rows: Array<{ value: number }>) {
@@ -829,10 +1002,6 @@ function maxColumn(rows: unknown[][], column: number) {
 
 function minColumn(rows: unknown[][], column: number) {
   return rows.length ? Math.min(...rows.map((row) => Number(row[column]) || 0)) : 0;
-}
-
-function avgColumn(rows: unknown[][], column: number) {
-  return rows.length ? rows.reduce((sum, row) => sum + (Number(row[column]) || 0), 0) / rows.length : 0;
 }
 
 function formatDate(date: unknown): string {
@@ -859,7 +1028,7 @@ function formatPercent(value: number) {
 }
 
 function formatPeriodText(rows: Row[]) {
-  if (!rows.length) return "Sem dados";
+  if (!rows.length) return "—";
   return `${formatDate(rows[0].date)} até ${formatDate(rows[rows.length - 1].date)}`;
 }
 
@@ -867,9 +1036,10 @@ function roundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-function highestPriority(debts: SyncInput["debts"]) {
-  if (!debts.length) return "Sem dívidas";
-  const priority = sortDebts(debts)[0]?.priority ?? "Sem prioridade";
+// Recebe só as dívidas EM ABERTO: com tudo quitado dizia "Prioridade mais crítica: Alta".
+function highestPriority(openDebts: SyncInput["debts"]) {
+  if (!openDebts.length) return "—";
+  const priority = sortDebts(openDebts)[0].priority;
   return priority.charAt(0).toUpperCase() + priority.slice(1);
 }
 

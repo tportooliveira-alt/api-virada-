@@ -204,6 +204,44 @@ export const STYLE: Record<string, CellFormat> = {
     borders: { bottom: border(slate200), left: border(slate200), right: border(slate200) },
     numberFormat: { type: "NUMBER", pattern: FORMAT.intCount },
   },
+  // Linha secundária do mesmo cartão ("Desde o início"): rótulo e número menores,
+  // sem borda superior — continua o cartão do KPI do mês em vez de abrir outro.
+  kpiLabelSub: {
+    backgroundColor: white,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "BOTTOM",
+    padding: { top: 4, right: 14, bottom: 0, left: 14 },
+    textFormat: text(8, slate400, true),
+    borders: { left: border(slate200), right: border(slate200) },
+    wrapStrategy: "CLIP",
+  },
+  kpiValueSub: {
+    backgroundColor: white,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "TOP",
+    padding: { top: 0, right: 14, bottom: 8, left: 14 },
+    textFormat: text(12, slate700, true),
+    borders: { bottom: border(slate200), left: border(slate200), right: border(slate200) },
+    numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
+  },
+  kpiLabelSubGold: {
+    backgroundColor: greenSoft,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "BOTTOM",
+    padding: { top: 4, right: 14, bottom: 0, left: 14 },
+    textFormat: text(8, greenDeep, true),
+    borders: { left: border(greenLine), right: border(greenLine) },
+    wrapStrategy: "CLIP",
+  },
+  kpiValueSubGold: {
+    backgroundColor: greenSoft,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "TOP",
+    padding: { top: 0, right: 14, bottom: 8, left: 14 },
+    textFormat: text(12, greenDeep, true),
+    borders: { bottom: border(greenLine), left: border(greenLine), right: border(greenLine) },
+    numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
+  },
 
   // Dashboard: células com SPARKLINE ao lado das tabelas
   sparkCell: {

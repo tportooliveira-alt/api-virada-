@@ -52,6 +52,8 @@ export interface Expense {
   nature: ExpenseNature;
   scope?: TransactionScope;
   source?: TransactionSource;
+  /** Data (AAAA-MM-DD) em que o lançamento foi estornado. Ver `isEstornado`. */
+  estornadoEm?: string;
 }
 
 export interface Income {
@@ -62,6 +64,25 @@ export interface Income {
   date: string;
   scope?: TransactionScope;
   source?: TransactionSource;
+  /** Data (AAAA-MM-DD) em que o lançamento foi estornado. Ver `isEstornado`. */
+  estornadoEm?: string;
+}
+
+// ─── Contrato de ESTORNO (app, planilha e prévia seguem isto) ────────────────
+// Estornar NÃO cria lançamento contrário: marca o original com `estornadoEm`.
+// O lançamento continua no histórico (aparece nas listas), mas fica FORA de
+// todo total: entradas, gastos, saldo, por categoria, por impulso, fluxo e
+// resumo mensal. Quem agrega usa `semEstornados(lista)` antes de somar.
+// Estornar com um contra-lançamento em receita inflava "Entradas" e criava
+// categoria de despesa dentro de receita (ex.: "Lazer"), por isso a marca.
+
+export function isEstornado(tx: { estornadoEm?: string }): boolean {
+  return Boolean(tx.estornadoEm);
+}
+
+/** Lista só com os lançamentos que contam para os totais. */
+export function semEstornados<T extends { estornadoEm?: string }>(items: T[]): T[] {
+  return items.filter((item) => !isEstornado(item));
 }
 
 export interface Debt {
@@ -72,6 +93,14 @@ export interface Debt {
   dueDate: string;
   priority: DebtPriority;
   status: DebtStatus;
+}
+
+// ─── Contrato de DÍVIDA EM ABERTO (app, planilha e prévia seguem isto) ───────
+// "Em aberto" = "aberta" OU "negociando". Uma dívida negociando ainda é devida;
+// só "quitada" sai dos totais. Lista explícita (e não `!== "quitada"`) para um
+// status novo não entrar nos totais sem decisão.
+export function isOpenDebt(debt: Pick<Debt, "status">): boolean {
+  return debt.status === "aberta" || debt.status === "negociando";
 }
 
 export interface Goal {

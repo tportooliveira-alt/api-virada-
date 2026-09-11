@@ -6,7 +6,8 @@
 
 // ─── Imports diretos dos módulos do app ──────────────────────────────────────
 import { buildSyncBatch, SyncInput } from "../lib/sheets/builder";
-import { getDashboardMetrics, getGoalProgress, sumValues } from "../lib/utils";
+import { getDashboardMetrics, getGoalProgress, sumValues, toInputDate } from "../lib/utils";
+import { isOpenDebt } from "../lib/types";
 import type { ViradaData, Expense, Income, Debt, Goal } from "../lib/types";
 
 // ─── Utilitários de teste ─────────────────────────────────────────────────────
@@ -190,11 +191,21 @@ if (resVR) {
 
 section("D) Dívidas");
 
-const openDebts = debts.filter((d) => d.status !== "quitada");
+// Contrato (lib/types.ts): "em aberto" = aberta OU negociando. A prévia usava
+// status === "aberta" e sumia com R$ 10.000 em "negociando" numa tela.
+const openDebts = debts.filter(isOpenDebt);
 const totalDebtsOpen = openDebts.reduce((s, d) => s + d.totalValue, 0);
 
-assertEq(openDebts.length, 3, "3 dívidas não quitadas (aberta + aberta + negociando)");
+assertEq(openDebts.length, 3, "3 dívidas em aberto (aberta + aberta + negociando)");
 assertCloseTo(totalDebtsOpen, 18000.00, "totalDívidasAbertas = 3000 + 5000 + 10000 = 18000");
+assert(isOpenDebt(debts[2]), "isOpenDebt: 'negociando' conta como em aberto (R$ 10.000 não some)");
+assert(isOpenDebt(debts[0]), "isOpenDebt: 'aberta' conta como em aberto");
+assert(!isOpenDebt(debts[3]), "isOpenDebt: 'quitada' NÃO conta como em aberto");
+assertCloseTo(
+  totalDebtsOpen - debts.filter((d) => d.status === "aberta").reduce((s, d) => s + d.totalValue, 0),
+  10000.00,
+  "regra antiga da prévia (status === 'aberta') deixava R$ 10.000 de fora — o helper corrige",
+);
 
 // Verificar que a quitada NÃO está no total
 const quitada = debts.find((d) => d.status === "quitada");
@@ -249,11 +260,11 @@ if (metVR) {
     assertEq(missing, expectedMissing, `Meta "${name}": faltando = max(target - current, 0)`);
     assert(missing >= 0, `Meta "${name}": faltando >= 0 (nunca negativo)`);
 
-    // Progresso entre 0 e 1
-    const expectedProgress = targetValue > 0 ? currentValue / targetValue : 0;
-    assertCloseTo(progress, expectedProgress, `Meta "${name}": progresso = current/target`, 4);
-    // Progresso pode ultrapassar 1 se currentValue > targetValue, mas deve ser >= 0
-    assert(progress >= 0, `Meta "${name}": progresso >= 0`);
+    // Progresso entre 0 e 1 — mesma regra do app (getGoalProgress): teto 1, piso 0.
+    // 5.200 de 5.000 é 100%, não 104%.
+    const expectedProgress = targetValue > 0 ? Math.min(1, Math.max(0, currentValue / targetValue)) : 0;
+    assertCloseTo(progress, expectedProgress, `Meta "${name}": progresso = min(1, max(0, current/target))`, 4);
+    assert(progress >= 0 && progress <= 1, `Meta "${name}": progresso entre 0 e 1`);
   }
 }
 
@@ -288,18 +299,23 @@ if (desVR) {
   assertEq((desVR.values as unknown[][]).length, 3, "Despesas tem exatamente 3 linhas de dados");
 }
 
-// Dashboard A6 = 2500, D6 = 2100, G6 = 400
-const dashA6 = batch.valueRanges.find((vr) => vr.range === "Dashboard!A6");
-const dashD6 = batch.valueRanges.find((vr) => vr.range === "Dashboard!D6");
-const dashG6 = batch.valueRanges.find((vr) => vr.range === "Dashboard!G6");
-
-assert(dashA6 !== undefined, "valueRanges contém Dashboard!A6");
-assert(dashD6 !== undefined, "valueRanges contém Dashboard!D6");
-assert(dashG6 !== undefined, "valueRanges contém Dashboard!G6");
-
-if (dashA6) assertEq((dashA6.values as unknown[][])[0][0], 2500, "Dashboard A6 = 2500 (receitas exatas)");
-if (dashD6) assertEq((dashD6.values as unknown[][])[0][0], 2100, "Dashboard D6 = 2100 (despesas exatas)");
-if (dashG6) assertEq((dashG6.values as unknown[][])[0][0], 400,  "Dashboard G6 = 400 (saldo exato)");
+// Dashboard: linha 6 é o MÊS CORRENTE (o que a tela Início mostra); linha 8 é
+// "Desde o início". Os fixtures são de 2026-04, então o histórico vai em A8/D8/G8
+// e A6/D6/G6 têm que bater com getDashboardMetrics para o MESMO dado — assim o
+// assert não depende do mês em que o teste roda.
+const dashCell = (cell: string) => batch.valueRanges.find((vr) => vr.range === `Dashboard!${cell}`)?.values?.[0]?.[0];
+for (const cell of ["A6", "D6", "G6", "J6", "A8", "D8", "G8", "J8"]) {
+  assert(dashCell(cell) !== undefined, `valueRanges contém Dashboard!${cell}`);
+}
+assertEq(dashCell("A8"), 2500, "Dashboard A8 = 2500 (entradas desde o início)");
+assertEq(dashCell("D8"), 2100, "Dashboard D8 = 2100 (gastos desde o início)");
+assertEq(dashCell("G8"), 400,  "Dashboard G8 = 400 (em caixa desde o início)");
+assertEq(dashCell("J8"), 6,    "Dashboard J8 = 6 lançamentos desde o início");
+const metricsFixture = getDashboardMetrics(viradaData);
+assertEq(dashCell("A6"), metricsFixture.incomeMonth,  "Dashboard A6 = getDashboardMetrics().incomeMonth para o mesmo dado");
+assertEq(dashCell("D6"), metricsFixture.expenseMonth, "Dashboard D6 = getDashboardMetrics().expenseMonth");
+assertEq(dashCell("G6"), metricsFixture.balanceMonth, "Dashboard G6 = getDashboardMetrics().balanceMonth");
+assertEq(dashCell("J6"), metricsFixture.monthIncomes.length + metricsFixture.monthExpenses.length, "Dashboard J6 = lançamentos do mês corrente");
 
 // Verificar que nenhum valor numérico tem erro de ponto flutuante (>2 casas decimais)
 function hasFloatError(v: unknown): boolean {
@@ -377,8 +393,10 @@ assert(countDecimalPlaces(rounded) <= 2, "0.1 + 0.2 arredondado tem ≤ 2 casas 
 
 section("H) getDashboardMetrics (sanidade com dados do mês atual)");
 
-// Criar dados com data do mês atual para acionar isFromCurrentMonth
-const currentMonth = new Date().toISOString().slice(0, 7); // "2026-04"
+// Criar dados com data do mês atual para acionar isFromCurrentMonth.
+// Mês LOCAL (mesma lógica de toInputDate): toISOString() é UTC e, entre 21h e
+// 0h do último dia do mês em UTC-3, inventaria lançamentos do mês seguinte.
+const currentMonth = toInputDate().slice(0, 7); // "2026-04"
 const currentDate = `${currentMonth}-15`;
 
 const dataThisMonth: ViradaData = {
@@ -404,6 +422,16 @@ assertCloseTo(metrics.expenseMonth, 1000.00, "getDashboardMetrics: expenseMonth 
 assertCloseTo(metrics.balanceMonth, 1500.00, "getDashboardMetrics: balanceMonth = 1500.00");
 assertCloseTo(metrics.openDebtsTotal, 2000.00, "getDashboardMetrics: openDebtsTotal = 2000 (não inclui quitada)");
 assertCloseTo(metrics.estimatedEconomy, 300.00, "getDashboardMetrics: estimatedEconomy = 300 (só impulso)");
+
+// Com dado do mês corrente, o KPI grande da planilha (linha 6) mostra o mesmo
+// número do Início — e coincide com o "Desde o início" porque só há um mês.
+const batchMesAtual = buildSyncBatch(dataThisMonth as SyncInput);
+const kpi = (cell: string) => batchMesAtual.valueRanges.find((vr) => vr.range === `Dashboard!${cell}`)?.values?.[0]?.[0];
+assertEq(kpi("A6"), 2500, "planilha A6 = 2500 (entradas do mês corrente = incomeMonth)");
+assertEq(kpi("D6"), 1000, "planilha D6 = 1000 (gastos do mês corrente = expenseMonth)");
+assertEq(kpi("G6"), 1500, "planilha G6 = 1500 (em caixa no mês = balanceMonth)");
+assertEq(kpi("J6"), 4, "planilha J6 = 4 lançamentos no mês");
+assertEq(kpi("A8"), 2500, "planilha A8 = 2500 (único mês = desde o início)");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RESULTADO FINAL
