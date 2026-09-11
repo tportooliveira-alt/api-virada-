@@ -1,6 +1,6 @@
-import { Debt, Expense, Goal, Income, Mission, ViradaData } from "@/lib/types";
-import { isOpenDebt, semEstornados } from "@/lib/types";
-import { missions } from "@/lib/constants";
+import { BudgetPhase, Debt, Expense, Goal, Income, Mission, PocketKey, ViradaData } from "@/lib/types";
+import { debtRemaining, isOpenDebt, semEstornados } from "@/lib/types";
+import { BUDGET_PRESETS, missions, POCKET_BY_CATEGORY, POCKETS } from "@/lib/constants";
 
 export const storageKey = "virada-app:v1";
 
@@ -97,6 +97,31 @@ export function inPeriod(date: string, period: Period, today = toInputDate()) {
   if (period === "mes") return date.slice(0, 7) === today.slice(0, 7);
   if (period === "ano") return date.slice(0, 4) === today.slice(0, 4);
   return isWithinLastDays(date, period === "7d" ? 7 : 30, today);
+}
+
+// Soma meses a uma data "AAAA-MM-DD" mantendo o dia; se o mês de destino não
+// tem esse dia, cai no último (31/01 → 28/02, ou 29/02 em bissexto). Sem
+// new Date("AAAA-MM-DD") (é UTC) e sem setMonth (31/01 + 1 mês viraria 03/03).
+export function addMonths(date: string, months: number) {
+  const [year, month, day] = date.split("-").map(Number);
+  const first = new Date(year, month - 1 + months, 1);
+  const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  return toInputDate(new Date(first.getFullYear(), first.getMonth(), Math.min(day, lastDay)));
+}
+
+// "AAAA-MM" ± n meses, só aritmética — serve pra navegar por mês nas telas.
+export function shiftMonth(monthKey: string, months: number) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const index = year * 12 + (month - 1) + months;
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
+}
+
+// Dias de `hoje` até `date` (negativo = já passou), no calendário local.
+// Pra "vence em N dias" / "venceu há N dias".
+export function diasAte(date: string, hoje = toInputDate()) {
+  const [y1, m1, d1] = hoje.split("-").map(Number);
+  const [y2, m2, d2] = date.split("-").map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
 }
 
 export function isFromCurrentMonth(date: string) {
@@ -214,6 +239,98 @@ export function getDashboardMetrics(data: ViradaData) {
     openDebts,
     missionProgress,
   };
+}
+
+// ─── Três bolsos ─────────────────────────────────────────────────────────────
+// Só gastos de casa (scope "casa" ou ausente) e não estornados entram. Meta
+// (depósito em reserva) NÃO entra em bolso nenhum: não tem data, só currentValue.
+
+export type RendaOrigem = "informada" | "media3m" | "mes" | "nenhuma";
+export type PocketEstado = "verde" | "vermelho" | "sem_alvo";
+
+export interface Pocket {
+  key: PocketKey;
+  label: string;
+  alvo: number;
+  gasto: number;
+  /** alvo − gasto; negativo = "passou R$ X" */
+  sobra: number;
+  estado: PocketEstado;
+}
+
+export interface PocketsResult {
+  fase: BudgetPhase;
+  renda: { valor: number; origem: RendaOrigem };
+  bolsos: Pocket[];
+}
+
+const isCasa = (tx: { scope?: string }) => tx.scope !== "empresa";
+
+// Categoria manda; "Compra" e "Outros" (e categoria desconhecida de dado antigo)
+// decidem pela natureza: impulso → vida, essencial → contas.
+export function pocketOf(expense: Pick<Expense, "category" | "nature">): PocketKey {
+  const fixo = POCKET_BY_CATEGORY[expense.category] ?? "por_natureza";
+  if (fixo !== "por_natureza") return fixo;
+  return expense.nature === "impulso" ? "vida" : "contas";
+}
+
+export function budgetPhaseOf(data: Pick<ViradaData, "settings">): BudgetPhase {
+  return data.settings?.budgetPhase ?? "organizando";
+}
+
+// Renda do mês: informada em Conta; senão média dos 3 meses ANTERIORES que
+// tiveram entrada (mês sem entrada não conta como zero); senão o que entrou no
+// próprio mês; senão "nenhuma" — a tela avisa, nunca R$ 0 silencioso.
+function rendaDoMes(data: ViradaData, monthKey: string): PocketsResult["renda"] {
+  const informada = data.settings?.expectedIncome;
+  if (typeof informada === "number" && informada > 0) return { valor: roundMoney(informada), origem: "informada" };
+
+  const entradas = semEstornados(data.incomes).filter(isCasa);
+  const somaMes = (key: string) => roundMoney(sumValues(entradas.filter((i) => i.date.slice(0, 7) === key), (i) => i.value));
+
+  const anteriores = [1, 2, 3].map((k) => somaMes(shiftMonth(monthKey, -k))).filter((v) => v > 0);
+  if (anteriores.length > 0) {
+    return { valor: roundMoney(anteriores.reduce((s, v) => s + v, 0) / anteriores.length), origem: "media3m" };
+  }
+  const mes = somaMes(monthKey);
+  if (mes > 0) return { valor: mes, origem: "mes" };
+  return { valor: 0, origem: "nenhuma" };
+}
+
+export function getPockets(data: ViradaData, monthKey?: string, hoje = toInputDate()): PocketsResult {
+  const key = monthKey ?? hoje.slice(0, 7);
+  const fase = budgetPhaseOf(data);
+  const renda = rendaDoMes(data, key);
+  const pct = BUDGET_PRESETS[fase];
+
+  const gastos = semEstornados(data.expenses).filter((e) => isCasa(e) && e.date.slice(0, 7) === key);
+  const bolsos = POCKETS.map(({ key: pocket, label }) => {
+    const alvo = roundMoney(renda.valor * pct[pocket]);
+    const gasto = roundMoney(sumValues(gastos.filter((e) => pocketOf(e) === pocket), (e) => e.value));
+    const sobra = roundMoney(alvo - gasto);
+    // Comparação em centavos: 0,10 + 0,20 não pode ficar "vermelho" contra 0,30.
+    const estado: PocketEstado = alvo <= 0 ? "sem_alvo" : Math.round(gasto * 100) > Math.round(alvo * 100) ? "vermelho" : "verde";
+    return { key: pocket, label, alvo, gasto, sobra, estado };
+  });
+
+  return { fase, renda, bolsos };
+}
+
+// Sugestão, nunca troca sozinha: quem decide a fase é a pessoa (em Conta).
+export function sugerirFaseVirada(data: ViradaData) {
+  return budgetPhaseOf(data) === "organizando" && data.debts.some((d) => isOpenDebt(d) && d.totalValue > 0);
+}
+
+// O que vence de cada dívida em aberto: a parcela (ou o que falta, se for menor
+// ou se a dívida não tem parcela). Depósitos em meta ficam fora: não têm data.
+function parcelaDevida(debt: Debt) {
+  const restante = debtRemaining(debt);
+  return debt.installmentValue > 0 ? Math.min(debt.installmentValue, restante) : restante;
+}
+
+export function dividasVencendoNoMes(data: ViradaData, monthKey: string) {
+  const vencendo = data.debts.filter((d) => isOpenDebt(d) && d.dueDate.slice(0, 7) === monthKey);
+  return { total: roundMoney(sumValues(vencendo, parcelaDevida)), quantidade: vencendo.length };
 }
 
 // Dia 31 fica na última missão (o `%` mandava de volta pra missão 1).

@@ -25,13 +25,16 @@
  * do Next e não renderizam fora do navegador: a lógica delas vive em lib/utils.ts (testada
  * aqui) e o teste confere, no fonte, que cada tela chama esses helpers e não a conta antiga.
  *
- * Roda com: npx tsx scripts/test-calculos-telas.ts   (TZ=America/Sao_Paulo por padrão;
- * as partes sensíveis a fuso rodam também em UTC — o Node aceita trocar process.env.TZ em execução)
+ * Roda com: npx tsx scripts/test-calculos-telas.ts   (e de novo com TZ=UTC na linha de comando).
+ *
+ * NUNCA troque process.env.TZ no meio da execução: "hoje" (abaixo) é calculado UMA vez e
+ * passado explicitamente; o ExpenseChart calcula o dele na hora de renderizar. Com o fuso
+ * trocado entre um e outro, no dia 1º entre 0h e 3h UTC os dois "hoje" caíam em meses
+ * diferentes e 27 asserts quebravam. Quer outro fuso? TZ=UTC npx tsx scripts/test-calculos-telas.ts
  */
 
-if (!process.env.TZ) process.env.TZ = "America/Sao_Paulo";
-
 import { readFileSync } from "node:fs";
+
 import React, { createElement } from "react";
 import { renderToString } from "react-dom/server";
 
@@ -136,16 +139,12 @@ const fontes = {
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
-// A1 — dia 1º do mês / fuso horário (roda em America/Sao_Paulo E em UTC)
+// A1 — dia 1º do mês / fuso horário (rodar o script em America/Sao_Paulo E em UTC)
 // ═════════════════════════════════════════════════════════════════════════════
 
-for (const tz of ["America/Sao_Paulo", "UTC"]) {
-  process.env.TZ = tz;
-  // "hoje" é o do fuso em teste (à 1h UTC ainda é ontem em São Paulo)
-  const hojeTz = toInputDate();
-  const ym = hojeTz.slice(0, 7);
-  const ano = hojeTz.slice(0, 4);
-  section(`A1 · dia 1º do mês no ExpenseChart — TZ=${tz} (hoje ${hojeTz})`);
+{
+  const tz = process.env.TZ ?? "(fuso do sistema)";
+  section(`A1 · dia 1º do mês no ExpenseChart — TZ=${tz} (hoje ${hoje})`);
 
   const dia1 = `${ym}-01`;
   const { text } = renderChart({
@@ -161,10 +160,9 @@ for (const tz of ["America/Sao_Paulo", "UTC"]) {
   const primeiroJan = renderChart({ expenses: [ex(500, { date: `${ano}-01-01` })], incomes: [], defaultPeriod: "ano" });
   assertEq(cardValue(primeiroJan.text, "Saídas"), brl(500), "'Ano' inclui 1º de janeiro");
 
-  assertEq(inPeriod(dia1, "mes", hojeTz), true, `inPeriod('${dia1}', 'mes') = true`);
-  assertEq(inPeriod(`${ano}-01-01`, "ano", hojeTz), true, "inPeriod(1º de janeiro, 'ano') = true");
+  assertEq(inPeriod(dia1, "mes", hoje), true, `inPeriod('${dia1}', 'mes') = true`);
+  assertEq(inPeriod(`${ano}-01-01`, "ano", hoje), true, "inPeriod(1º de janeiro, 'ano') = true");
 }
-process.env.TZ = "America/Sao_Paulo";
 
 // ═════════════════════════════════════════════════════════════════════════════
 // A8 / A9 — janela de dias única (7d = hoje + 6 anteriores; 30d = hoje + 29), sem futuro
@@ -190,17 +188,11 @@ section("A8 · A9 · janela '7 dias' / '30 dias' (helper único, por texto de da
   assertEq(isWithinLastDays("2025-12-28", 7, "2026-01-03"), true, "janela cruza a virada do ano (28/12 entra em 7d de 03/01)");
   assertEq(isWithinLastDays("2025-12-27", 7, "2026-01-03"), false, "27/12 fica fora de 7d de 03/01");
 
-  for (const tz of ["America/Sao_Paulo", "UTC"]) {
-    process.env.TZ = tz;
-    const hojeTz = toInputDate();
-    const serieTz: Expense[] = [];
-    for (let k = -40; k <= 3; k++) serieTz.push(ex(10, { date: shift(k, hojeTz) }));
-    const sete = renderChart({ expenses: serieTz, incomes: [], defaultPeriod: "7d" });
-    assertEq(cardValue(sete.text, "Saídas"), brl(70), `ExpenseChart '7d' soma exatamente 7 dias (TZ=${tz}, hoje ${hojeTz})`);
-    const trinta = renderChart({ expenses: serieTz, incomes: [], defaultPeriod: "30d" });
-    assertEq(cardValue(trinta.text, "Saídas"), brl(300), `ExpenseChart '30d' soma exatamente 30 dias (TZ=${tz})`);
-  }
-  process.env.TZ = "America/Sao_Paulo";
+  // mesma série no ExpenseChart (o "hoje" dele é o do processo — o mesmo `hoje` daqui)
+  const sete = renderChart({ expenses: serie, incomes: [], defaultPeriod: "7d" });
+  assertEq(cardValue(sete.text, "Saídas"), brl(70), `ExpenseChart '7d' soma exatamente 7 dias (hoje ${hoje})`);
+  const trinta = renderChart({ expenses: serie, incomes: [], defaultPeriod: "30d" });
+  assertEq(cardValue(trinta.text, "Saídas"), brl(300), "ExpenseChart '30d' soma exatamente 30 dias");
 
   assert(!/function inPeriod/.test(fontes.relatorios) && /inPeriod\(/.test(fontes.relatorios), "Relatórios usa o inPeriod de lib/utils (não tem mais o seu próprio)");
   assert(!/new Date\(i\.date\)/.test(fontes.chart) && /inPeriod\(/.test(fontes.chart), "ExpenseChart usa o inPeriod de lib/utils (sem new Date('AAAA-MM-DD'))");

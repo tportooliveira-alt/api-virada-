@@ -1,4 +1,4 @@
-import { ExtraIncomeIdea, Goal, Income, Debt, Expense, Lesson, Mission } from "@/lib/types";
+import { BudgetPhase, ExpenseCategory, ExtraIncomeIdea, Goal, Income, Debt, Expense, Lesson, Mission, PocketKey } from "@/lib/types";
 
 export const expenseCategories = [
   "Mercado",
@@ -37,6 +37,49 @@ export const paymentMethods = ["Pix", "Dinheiro", "Débito", "Crédito", "Boleto
 export const debtPriorities = ["baixa", "média", "alta"] as const;
 export const debtStatuses = ["aberta", "negociando", "quitada"] as const;
 export const goalTypes = ["reserva", "dívida", "economia", "renda extra"] as const;
+
+// ─── Três bolsos (content/ebook.md, "A regra dos três bolsos") ───────────────
+// Presets fixos, sem percentual editável e sem teto por categoria. Gasto com
+// scope "empresa" fica fora dos bolsos (regra em getPockets, lib/utils.ts).
+
+export const POCKETS: ReadonlyArray<{ key: PocketKey; label: string }> = [
+  { key: "contas", label: "Contas" },
+  { key: "dividas", label: "Dívidas e reserva" },
+  { key: "vida", label: "Vida" },
+];
+
+// "por_natureza": impulso → vida, essencial → contas (ver pocketOf em lib/utils.ts).
+export const POCKET_BY_CATEGORY: Record<ExpenseCategory, PocketKey | "por_natureza"> = {
+  Mercado: "contas",
+  Aluguel: "contas",
+  Energia: "contas",
+  Água: "contas",
+  Internet: "contas",
+  Transporte: "contas",
+  Saúde: "contas",
+  Educação: "contas",
+  Impostos: "contas",
+  Fornecedor: "contas",
+  Estoque: "contas",
+  Marketing: "contas",
+  Funcionário: "contas",
+  Dívida: "dividas",
+  Cartão: "dividas",
+  Lazer: "vida",
+  Delivery: "vida",
+  Compra: "por_natureza",
+  Outros: "por_natureza",
+};
+
+export const BUDGET_PRESETS: Record<BudgetPhase, Record<PocketKey, number>> = {
+  organizando: { contas: 0.5, dividas: 0.3, vida: 0.2 },
+  virada: { contas: 0.5, dividas: 0.4, vida: 0.1 },
+};
+
+export const BUDGET_PHASES: ReadonlyArray<{ key: BudgetPhase; label: string; split: string; hint: string }> = [
+  { key: "organizando", label: "Organizando", split: "50/30/20", hint: "Metade pras contas, 30% pra dívidas e reserva, 20% pra vida." },
+  { key: "virada", label: "Fase de virada", split: "50/40/10", hint: "Aperta a vida pra 10% e manda 40% pra sair da dívida mais rápido." },
+];
 
 const currentDate = new Date();
 const year = currentDate.getFullYear();

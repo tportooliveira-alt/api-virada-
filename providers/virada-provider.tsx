@@ -19,6 +19,7 @@ import {
 } from "react";
 import type {
   Debt,
+  DebtPayment,
   DebtStatus,
   Expense,
   Goal,
@@ -26,8 +27,10 @@ import type {
   Income,
   Profile,
   ViradaData,
+  ViradaSettings,
 } from "@/lib/types";
-import { createId, storageKey, toInputDate } from "@/lib/utils";
+import { debtPaid, isEstornado, isOpenDebt } from "@/lib/types";
+import { addMonths, createId, roundMoney, storageKey, toInputDate } from "@/lib/utils";
 import { missions } from "@/lib/constants";
 import { loadData, saveData, clearData } from "@/lib/db/virada-store";
 
@@ -40,11 +43,22 @@ interface ViradaContextValue extends ViradaData {
   isAdmin: boolean;
   addExpense: (payload: Omit<Expense, "id">) => string;
   removeExpense: (id: string) => void;
+  /** false = não achou ou está estornado (nada muda). */
+  updateExpense: (id: string, patch: ExpensePatch) => boolean;
+  /** "Desfazer" de Excluir: volta com o MESMO id; se o id já existe, não duplica. */
+  restoreExpense: (expense: Expense) => void;
   addIncome: (payload: Omit<Income, "id">) => string;
   removeIncome: (id: string) => void;
+  updateIncome: (id: string, patch: IncomePatch) => boolean;
+  restoreIncome: (income: Income) => void;
   addDebt: (payload: Omit<Debt, "id">) => void;
   removeDebt: (id: string) => void;
   updateDebtStatus: (id: string, status: DebtStatus) => void;
+  /** "Paguei a parcela": null = dívida não achada/quitada ou valor inválido. */
+  payDebtInstallment: (debtId: string, value?: number) => { paymentId: string; expenseId: string } | null;
+  undoDebtPayment: (paymentId: string) => void;
+  settings: ViradaSettings | undefined;
+  setSettings: (patch: Partial<ViradaSettings>) => void;
   addGoal: (payload: Omit<Goal, "id">) => void;
   removeGoal: (id: string) => void;
   updateGoalCurrentValue: (id: string, value: number) => void;
@@ -173,6 +187,148 @@ export function migrarEstornosAntigos(data: ViradaData): { data: ViradaData; mig
   const migrados = deDespesas.migrados + deReceitas.migrados;
   if (migrados === 0) return { data, migrados };
   return { data: { ...data, expenses: deReceitas.contras, incomes: deReceitas.originais }, migrados };
+}
+
+// ─── Editar / restaurar lançamento (funções puras, testáveis fora do React) ───
+// Patch NUNCA troca o id nem mexe em `estornadoEm` (estornar é o applyEstorno).
+// Item estornado não edita: devolve o mesmo estado (a tela avisa antes).
+
+export type ExpensePatch = Partial<Omit<Expense, "id" | "estornadoEm">>;
+export type IncomePatch = Partial<Omit<Income, "id" | "estornadoEm">>;
+
+function aplicarPatch<T extends { id: string; estornadoEm?: string }>(items: T[], id: string, patch: Partial<T>): T[] | null {
+  const alvo = items.find((item) => item.id === id);
+  if (!alvo || isEstornado(alvo)) return null;
+  const resto: Partial<T> = { ...patch };
+  delete resto.id;
+  delete resto.estornadoEm;
+  return items.map((item) => (item.id === id ? { ...item, ...resto } : item));
+}
+
+export function applyUpdateExpense(prev: ViradaData, id: string, patch: ExpensePatch): ViradaData {
+  const expenses = aplicarPatch(prev.expenses, id, patch as Partial<Expense>);
+  return expenses ? { ...prev, expenses } : prev;
+}
+
+export function applyUpdateIncome(prev: ViradaData, id: string, patch: IncomePatch): ViradaData {
+  const incomes = aplicarPatch(prev.incomes, id, patch as Partial<Income>);
+  return incomes ? { ...prev, incomes } : prev;
+}
+
+export function applyRestoreExpense(prev: ViradaData, expense: Expense): ViradaData {
+  if (prev.expenses.some((e) => e.id === expense.id)) return prev;
+  return { ...prev, expenses: [expense, ...prev.expenses] };
+}
+
+export function applyRestoreIncome(prev: ViradaData, income: Income): ViradaData {
+  if (prev.incomes.some((i) => i.id === income.id)) return prev;
+  return { ...prev, incomes: [income, ...prev.incomes] };
+}
+
+export function applySetSettings(prev: ViradaData, patch: Partial<ViradaSettings>): ViradaData {
+  return { ...prev, settings: { ...prev.settings, ...patch } };
+}
+
+// ─── "Paguei a parcela" (funções puras, testáveis fora do React) ──────────────
+// Cria um gasto "Dívida" de hoje ligado à dívida (debtId), soma em paidValue,
+// avança o vencimento 1 mês e quita sozinho quando paidValue >= totalValue.
+// O payment guarda o vencimento/status/pago anteriores pro Desfazer devolver o
+// estado EXATO (31/01 → 28/02 não tem volta por conta; chave ausente fica ausente).
+
+export interface DebtPaymentResult {
+  data: ViradaData;
+  paymentId: string;
+  expenseId: string;
+}
+
+// Forma de pagamento do gasto mais recente (por data; empate = ordem da lista,
+// que já é do mais novo pro mais velho). Sem gasto: Pix.
+function ultimaFormaDePagamento(expenses: Expense[]): Expense["paymentMethod"] {
+  let recente: Expense | undefined;
+  for (const e of expenses) if (!recente || e.date > recente.date) recente = e;
+  return recente?.paymentMethod ?? "Pix";
+}
+
+export function applyDebtPayment(
+  prev: ViradaData,
+  debtId: string,
+  opts: { value?: number; hoje?: string; paymentId?: string; expenseId?: string } = {},
+): DebtPaymentResult | null {
+  const debt = prev.debts.find((d) => d.id === debtId);
+  if (!debt || !isOpenDebt(debt)) return null;
+  const value = roundMoney(opts.value ?? debt.installmentValue);
+  if (!(value > 0)) return null;
+
+  const hoje = opts.hoje ?? toInputDate();
+  const paymentId = opts.paymentId ?? createId("payment");
+  const expenseId = opts.expenseId ?? createId("expense");
+  const pago = roundMoney(debtPaid(debt) + value);
+
+  const payment: DebtPayment = {
+    id: paymentId,
+    date: hoje,
+    value,
+    expenseId,
+    prevDueDate: debt.dueDate,
+    prevStatus: debt.status,
+    ...(debt.paidValue !== undefined ? { prevPaidValue: debt.paidValue } : {}),
+  };
+  const expense: Expense = {
+    id: expenseId,
+    description: debt.name,
+    value,
+    category: "Dívida",
+    date: hoje,
+    paymentMethod: ultimaFormaDePagamento(prev.expenses),
+    nature: "essencial",
+    scope: "casa",
+    source: "app",
+    debtId,
+  };
+  const atualizada: Debt = {
+    ...debt,
+    paidValue: pago,
+    payments: [...(debt.payments ?? []), payment],
+    dueDate: addMonths(debt.dueDate, 1),
+    status: Math.round(pago * 100) >= Math.round(debt.totalValue * 100) ? "quitada" : debt.status,
+  };
+
+  return {
+    data: {
+      ...prev,
+      debts: prev.debts.map((d) => (d.id === debtId ? atualizada : d)),
+      expenses: [expense, ...prev.expenses],
+    },
+    paymentId,
+    expenseId,
+  };
+}
+
+export function applyUndoDebtPayment(prev: ViradaData, paymentId: string): ViradaData {
+  const debt = prev.debts.find((d) => d.payments?.some((p) => p.id === paymentId));
+  const payment = debt?.payments?.find((p) => p.id === paymentId);
+  if (!debt || !payment) return prev;
+
+  const semHistorico: Debt = { ...debt };
+  delete semHistorico.paidValue;
+  delete semHistorico.payments;
+  const restantes = (debt.payments ?? []).filter((p) => p.id !== paymentId);
+  const pago = roundMoney(debtPaid(debt) - payment.value);
+  const revertida: Debt = {
+    ...semHistorico,
+    dueDate: payment.prevDueDate ?? addMonths(debt.dueDate, -1),
+    status: payment.prevStatus ?? (isOpenDebt(debt) ? debt.status : "aberta"),
+  };
+  // Dívida antiga não tinha essas chaves: se o desfazer as zera, elas somem de novo
+  // (`payments` só existe enquanto há pelo menos um pagamento).
+  if (restantes.length > 0) revertida.payments = restantes;
+  if (payment.prevPaidValue !== undefined || restantes.length > 0 || pago !== 0) revertida.paidValue = pago;
+
+  return {
+    ...prev,
+    debts: prev.debts.map((d) => (d.id === debt.id ? revertida : d)),
+    expenses: prev.expenses.filter((e) => e.id !== payment.expenseId),
+  };
 }
 
 const ViradaContext = createContext<ViradaContextValue | null>(null);
@@ -330,6 +486,15 @@ export function ViradaProvider({ children }: PropsWithChildren) {
     removeExpense: (id) => {
       update((prev) => ({ ...prev, expenses: prev.expenses.filter((e) => e.id !== id) }));
     },
+    updateExpense: (id, patch) => {
+      const alvo = data.expenses.find((e) => e.id === id);
+      if (!alvo || isEstornado(alvo)) return false;
+      update((prev) => applyUpdateExpense(prev, id, patch));
+      return true;
+    },
+    restoreExpense: (expense) => {
+      update((prev) => applyRestoreExpense(prev, expense));
+    },
 
     // ── Receitas ──────────────────────────────────────────────────────────
     addIncome: (payload) => {
@@ -342,6 +507,15 @@ export function ViradaProvider({ children }: PropsWithChildren) {
     },
     removeIncome: (id) => {
       update((prev) => ({ ...prev, incomes: prev.incomes.filter((i) => i.id !== id) }));
+    },
+    updateIncome: (id, patch) => {
+      const alvo = data.incomes.find((i) => i.id === id);
+      if (!alvo || isEstornado(alvo)) return false;
+      update((prev) => applyUpdateIncome(prev, id, patch));
+      return true;
+    },
+    restoreIncome: (income) => {
+      update((prev) => applyRestoreIncome(prev, income));
     },
 
     // ── Dívidas ───────────────────────────────────────────────────────────
@@ -359,6 +533,23 @@ export function ViradaProvider({ children }: PropsWithChildren) {
         ...prev,
         debts: prev.debts.map((d) => (d.id === id ? { ...d, status } : d)),
       }));
+    },
+    payDebtInstallment: (debtId, value) => {
+      // Ids gerados aqui (fora do updater) pra devolver ao chamador — o toast "Desfazer" precisa deles.
+      const ids = { paymentId: newId("payment"), expenseId: newId("expense") };
+      const teste = applyDebtPayment(data, debtId, { value, ...ids });
+      if (!teste) return null;
+      update((prev) => applyDebtPayment(prev, debtId, { value, ...ids })?.data ?? prev);
+      return ids;
+    },
+    undoDebtPayment: (paymentId) => {
+      update((prev) => applyUndoDebtPayment(prev, paymentId));
+    },
+
+    // ── Preferências (renda esperada, fase) ───────────────────────────────
+    settings: data.settings,
+    setSettings: (patch) => {
+      update((prev) => applySetSettings(prev, patch));
     },
 
     // ── Metas ─────────────────────────────────────────────────────────────
