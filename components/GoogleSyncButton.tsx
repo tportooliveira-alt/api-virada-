@@ -207,6 +207,14 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   const pedirTokenRef = useRef(pedirToken);
   pedirTokenRef.current = pedirToken;
 
+  // Quem toca no botão ANTES de o script do Google chegar fica na fila. Isso
+  // acontece de verdade ao abrir /app/conta direto (recarregando, por link, ou
+  // voltando pro app já nessa tela): o primeiro toque não fazia nada e só o
+  // segundo funcionava. Agora o pedido dispara sozinho quando o cliente fica
+  // pronto.
+  const pedidoPendenteRef = useRef(false);
+  const conectarAgoraRef = useRef<() => void>(() => {});
+
   useEffect(() => {
     const init = getInitTokenClient();
     if (!gisLoaded || !init || !clientId) return;
@@ -253,12 +261,33 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       // Popup fechado na cara, bloqueado pelo navegador etc.
       error_callback: (err) => falhou(err.type ?? err.message ?? "popup"),
     });
+
+    if (pedidoPendenteRef.current) {
+      pedidoPendenteRef.current = false;
+      conectarAgoraRef.current();
+    }
   }, [gisLoaded, clientId]);
+
+  function conectarAgora() {
+    setSyncing(true);
+    if (tokenValido(token, Date.now())) {
+      void doSync(token.access_token);
+      return;
+    }
+    // Sem token válido. Se já existe planilha, essa pessoa já autorizou um dia:
+    // tenta renovar em silêncio antes de jogar um consentimento na cara dela.
+    pedirToken(Boolean(meta));
+  }
+  conectarAgoraRef.current = conectarAgora;
 
   function handleConnect() {
     if (!tokenClientRef.current) {
-      setStatus("err");
-      setErrMsg("O login do Google ainda está carregando. Aguarde alguns segundos e tente de novo.");
+      // Não é erro: o script do Google só não chegou ainda. Entra na fila e
+      // dispara sozinho (ver pedidoPendenteRef), sem exigir segundo toque.
+      pedidoPendenteRef.current = true;
+      setStatus("idle");
+      setErrMsg("");
+      setSyncing(true);
 
       // Tenta reanexar o script GIS caso tenha carregado parcialmente.
       const existing = document.getElementById("gis-script");
@@ -276,14 +305,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       return;
     }
 
-    setSyncing(true);
-    if (tokenValido(token, Date.now())) {
-      void doSync(token.access_token);
-      return;
-    }
-    // Sem token válido. Se já existe planilha, essa pessoa já autorizou um dia:
-    // tenta renovar em silêncio antes de jogar um consentimento na cara dela.
-    pedirToken(Boolean(meta));
+    conectarAgora();
   }
 
   function handleDisconnect() {

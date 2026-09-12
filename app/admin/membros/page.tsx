@@ -237,17 +237,18 @@ export default function AdminMembrosPage() {
   }
 
   if (authError) {
+    // O que fazer pra liberar é assunto de quem administra o servidor, não de
+    // quem está na tela: vai pro console, igual ao AuthGate.
+    console.error(
+      `[admin] acesso negado para ${adminEmail}: ${authError}. Para liberar, inclua esse e-mail em ADMIN_EMAILS no .env.local do servidor.`,
+    );
     return (
       <div className="min-h-screen bg-virada-bg p-6 text-virada-gray">
         <div className="mx-auto max-w-md rounded-lg border border-virada-line bg-virada-card p-6">
-          <h1 className="text-xl font-semibold text-ink-900">Acesso negado</h1>
-          <p className="mt-2 text-sm">{authError}</p>
-          <p className="mt-3 text-xs text-virada-slate">
-            Email atual: <code className="text-virada-gold">{adminEmail}</code>
-          </p>
-          <p className="mt-3 text-xs text-virada-slate">
-            No <code>.env.local</code> do servidor adicione:{" "}
-            <code className="text-virada-gold">ADMIN_EMAILS={adminEmail}</code>
+          <h1 className="text-xl font-semibold text-ink-900">Esta área é do dono do produto</h1>
+          <p className="mt-2 text-sm">
+            A conta <span className="text-virada-gold">{adminEmail}</span> não tem acesso ao painel de
+            vendas. Se você é cliente, é só voltar pro app — não tem nada aqui pra você.
           </p>
         </div>
       </div>
