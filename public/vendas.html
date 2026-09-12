@@ -537,8 +537,16 @@ window.OM_PLAYBACK = '{"mode":"loop"}';
           </button>
         </div>
 
-        <div id="resposta-faq-box" style="display:none; margin-top:12px; padding:14px; background:#F1F5F9; border-radius:10px; border-left:4px solid #047857; font-size:12px; line-height:1.55; color:#0F172A; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+        <div id="resposta-faq-box" style="display:none; margin-top:12px; padding:14px; background:#F0FDF4; border-radius:12px; border:1px solid #BBF7D0; border-left:4px solid #047857; font-size:12px; line-height:1.55; color:#0F172A; box-shadow:0 4px 12px rgba(4,120,87,0.08);">
           <div id="resposta-faq-texto"></div>
+          <div style="margin-top:14px; padding-top:10px; border-top:1px dashed #86EFAC; display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" onclick="fecharRespostaFAQ()" style="flex:1; min-width:130px; background:#FFFFFF; border:1px solid #CBD5E1; color:#475569; padding:8px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+              <span>▲</span> Fechar resposta
+            </button>
+            <button type="button" onclick="trocarAbaIA('dividas')" style="flex:1; min-width:140px; background:#047857; border:none; color:#FFFFFF; padding:8px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+              <span>🛑</span> Ir para Quitar Dívida
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -620,29 +628,52 @@ function fecharWidgetIA() {
   }
 }
 
+var _ultimaChaveFAQ = null;
+function fecharRespostaFAQ() {
+  var box = document.getElementById('resposta-faq-box');
+  if (box) box.style.display = 'none';
+  _ultimaChaveFAQ = null;
+}
+
 function trocarAbaIA(aba) {
   var abaDiv = document.getElementById('aba-dividas');
   var abaDuv = document.getElementById('aba-duvidas');
   var btnDiv = document.getElementById('tab-btn-dividas');
   var btnDuv = document.getElementById('tab-btn-duvidas');
+  var modal = document.getElementById('modal-antigravity-corpo');
   if (aba === 'dividas') {
-    abaDiv.style.display = 'block';
-    abaDuv.style.display = 'none';
-    btnDiv.style.background = '#FFFFFF';
-    btnDiv.style.color = '#047857';
-    btnDiv.style.borderBottom = '2px solid #047857';
-    btnDuv.style.background = 'transparent';
-    btnDuv.style.color = '#64748B';
-    btnDuv.style.borderBottom = '2px solid transparent';
+    if (abaDiv) abaDiv.style.display = 'block';
+    if (abaDuv) abaDuv.style.display = 'none';
+    if (btnDiv) {
+      btnDiv.style.background = '#FFFFFF';
+      btnDiv.style.color = '#047857';
+      btnDiv.style.borderBottom = '3px solid #047857';
+      btnDiv.style.fontWeight = '800';
+    }
+    if (btnDuv) {
+      btnDuv.style.background = 'transparent';
+      btnDuv.style.color = '#64748B';
+      btnDuv.style.borderBottom = '3px solid transparent';
+      btnDuv.style.fontWeight = '700';
+    }
   } else {
-    abaDiv.style.display = 'none';
-    abaDuv.style.display = 'block';
-    btnDuv.style.background = '#FFFFFF';
-    btnDuv.style.color = '#047857';
-    btnDuv.style.borderBottom = '2px solid #047857';
-    btnDiv.style.background = 'transparent';
-    btnDiv.style.color = '#64748B';
-    btnDiv.style.borderBottom = '2px solid transparent';
+    if (abaDiv) abaDiv.style.display = 'none';
+    if (abaDuv) abaDuv.style.display = 'block';
+    if (btnDuv) {
+      btnDuv.style.background = '#FFFFFF';
+      btnDuv.style.color = '#047857';
+      btnDuv.style.borderBottom = '3px solid #047857';
+      btnDuv.style.fontWeight = '800';
+    }
+    if (btnDiv) {
+      btnDiv.style.background = 'transparent';
+      btnDiv.style.color = '#64748B';
+      btnDiv.style.borderBottom = '3px solid transparent';
+      btnDiv.style.fontWeight = '700';
+    }
+  }
+  if (modal) {
+    modal.scrollTop = 0;
   }
 }
 
@@ -731,6 +762,11 @@ function mostrarRespostaFAQ(chave) {
   var box = document.getElementById('resposta-faq-box');
   var texto = document.getElementById('resposta-faq-texto');
   if (!box || !texto) return;
+  if (_ultimaChaveFAQ === chave && box.style.display === 'block') {
+    fecharRespostaFAQ();
+    return;
+  }
+  _ultimaChaveFAQ = chave;
 
   var respostas = {
     caro: '<p style="margin:0 0 6px; font-weight:800; color:#047857;">💰 O método se paga 60 vezes logo no primeiro mês:</p>' +
