@@ -324,12 +324,26 @@ window.OM_PLAYBACK = '{"mode":"loop"}';
   </section>
 
   
-  <!-- BOTÃO FLUTUANTE CONSULTORA & DÍVIDAS -->
-  <button type="button" onclick="abrirWidgetIA('dividas')" title="Consultora da Virada" style="position:fixed; right:20px; bottom:calc(20px + env(safe-area-inset-bottom, 0px)); z-index:90; display:flex; align-items:center; gap:10px; border-radius:999px; background:#FFFFFF; color:#0F172A; border:1px solid #E5E9F0; padding:12px 18px 12px 14px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 12px 32px rgba(15,23,42,0.18);" class="hv3">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>
-    Destravar Dívidas / Dúvidas
-    <span style="display:inline-block; width:8px; height:8px; background:#22C55E; border-radius:50%;"></span>
-  </button>
+  
+  <!-- BOTÃO FLUTUANTE ANTIGRAVITY COMPACTO (MOBILE & DESKTOP) -->
+  <div id="wrapper-balao-flutuante" style="position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom, 0px)); z-index:90; display:flex; align-items:center; gap:8px; pointer-events:auto;">
+    
+    <!-- Micro-balão de texto convidativo e discreto -->
+    <div id="tooltip-ia-flutuante" onclick="abrirWidgetIA('dividas')" style="cursor:pointer; background:rgba(15, 23, 42, 0.92); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.15); color:#FFFFFF; padding:8px 14px; border-radius:999px; font-size:12px; font-weight:700; box-shadow:0 10px 25px rgba(0,0,0,0.25); display:flex; align-items:center; gap:6px; transition:transform 0.2s ease, opacity 0.2s ease;">
+      <span style="display:inline-block; width:7px; height:7px; background:#22C55E; border-radius:50%; box-shadow:0 0 8px #22C55E;"></span>
+      <span>Destravar Dívidas</span>
+    </div>
+
+    <!-- Bolha circular compacta e tátil -->
+    <button type="button" id="btn-bolha-ia" onclick="abrirWidgetIA('dividas')" title="Consultora da Virada" style="position:relative; width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color:#FFFFFF; border:1.5px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 12px 28px rgba(0,0,0,0.3); transition:transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease; outline:none;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path>
+      </svg>
+      <!-- Indicador verde pulsante -->
+      <span style="position:absolute; top:2px; right:2px; width:12px; height:12px; background:#22C55E; border:2.5px solid #0F172A; border-radius:50%;"></span>
+    </button>
+  </div>
+
 
 
 <!-- WIDGET CONSULTORA DA VIRADA & DESTRAVAR DÍVIDAS -->
@@ -440,8 +454,8 @@ window.OM_PLAYBACK = '{"mode":"loop"}';
 function abrirWidgetIA(aba) {
   var modal = document.getElementById('modal-virada-ia');
   if (!modal) return;
-  var btnFloat = document.querySelector('button[title="Consultora da Virada"]');
-  if (btnFloat) btnFloat.style.display = 'none';
+  var wrap = document.getElementById('wrapper-balao-flutuante');
+  if (wrap) wrap.style.display = 'none';
   modal.style.display = 'flex';
   if (aba) trocarAbaIA(aba);
 }
@@ -449,8 +463,8 @@ function abrirWidgetIA(aba) {
 function fecharWidgetIA() {
   var modal = document.getElementById('modal-virada-ia');
   if (modal) modal.style.display = 'none';
-  var btnFloat = document.querySelector('button[title="Consultora da Virada"]');
-  if (btnFloat) btnFloat.style.display = 'flex';
+  var wrap = document.getElementById('wrapper-balao-flutuante');
+  if (wrap) wrap.style.display = 'flex';
 }
 
 function trocarAbaIA(aba) {
