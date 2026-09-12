@@ -77,7 +77,7 @@ export const HEADERS: Partial<Record<TabKey, string[]>> = {
  * atrasada, reaplica o visual sozinho no próximo "Atualizar agora".
  * Só valores mudam sem bump.
  */
-export const LAYOUT_VERSION = "2026-09-04.1";
+export const LAYOUT_VERSION = "2026-09-12.1";
 
 // Cores das barras de participação do Dashboard — mesma sequência da legenda
 // da pizza no design (Planilha Virada - Redesign).
@@ -410,8 +410,8 @@ function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
   // Dashboard: aplica apenas numberFormat nos blocos com valores para nao apagar o contraste dos cards.
   requests.push(dashboardNumber(5, 6, 0, 1, { type: "CURRENCY", pattern: FORMAT.brlPlain }, "LEFT"));
   requests.push(dashboardNumber(5, 6, 3, 4, { type: "CURRENCY", pattern: FORMAT.brlPlain }, "LEFT"));
-  requests.push(dashboardNumber(5, 6, 6, 7, { type: "CURRENCY", pattern: FORMAT.brlPlain }, "LEFT"));
-  requests.push(dashboardNumber(5, 6, 9, 10, { type: "NUMBER", pattern: FORMAT.intCount }, "LEFT"));
+  requests.push(dashboardNumber(5, 6, 6, 7, { type: "PERCENT", pattern: FORMAT.percent }, "LEFT"));
+  requests.push(dashboardNumber(5, 6, 9, 10, { type: "TEXT", pattern: "@" }, "LEFT"));
 
   requests.push(dashboardNumber(11, 21, 1, 2, { type: "CURRENCY", pattern: FORMAT.brlPlain }));
   requests.push(dashboardNumber(11, 21, 7, 8, { type: "CURRENCY", pattern: FORMAT.brlPlain }));

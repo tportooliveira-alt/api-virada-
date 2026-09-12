@@ -7,6 +7,7 @@
 
 import { useState, useMemo } from "react";
 import { useVirada } from "@/providers/virada-provider";
+import { getLocalUser } from "@/components/AuthGate";
 import { ExpenseChart } from "@/components/ExpenseChart";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -145,6 +146,9 @@ const TABS = [
 
 export default function PlanilhaDemoPage() {
   const data = useVirada();
+  // Email real da conta logada (mesma fonte da tela Conta). O provider cai num
+  // "local@virada.app" quando nao ha perfil local, e isso aparecia pra todo comprador.
+  const contaEmail = getLocalUser()?.email ?? null;
   const [activeTab, setActiveTab] = useState("dashboard");
 
   const totalInc = data.incomes.reduce((s, i) => s + i.value, 0);
@@ -430,7 +434,7 @@ export default function PlanilhaDemoPage() {
               <span className="text-lg">📊</span>
             </div>
             <div>
-              <p className="text-xs text-ink-500">Google Planilhas — {data.user?.email}</p>
+              <p className="text-xs text-ink-500">Google Planilhas{contaEmail ? ` — ${contaEmail}` : ""}</p>
               <p className="text-[13px] font-semibold text-ink-900 sm:text-sm">Virada Financeira — Dashboard Completo</p>
             </div>
           </div>
