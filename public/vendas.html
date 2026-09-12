@@ -323,7 +323,222 @@ window.OM_PLAYBACK = '{"mode":"loop"}';
     </div>
   </section>
 
-  <a href="https://wa.me/5577999872390?text=Oi!%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20C%C3%B3digo%20da%20Virada." data-whats data-whats-float title="Falar no WhatsApp" style="position:fixed; right:20px; bottom:20px; z-index:40; display:flex; align-items:center; gap:10px; border-radius:999px; background:#FFFFFF; color:#0F172A; border:1px solid #E5E9F0; padding:12px 18px 12px 14px; font-size:14px; font-weight:700; text-decoration:none; box-shadow:0 12px 32px rgba(15,23,42,0.18);" class="hv3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>Tirar dúvida</a>
+  
+  <!-- BOTÃO FLUTUANTE CONSULTORA & DÍVIDAS -->
+  <button type="button" onclick="abrirWidgetIA('dividas')" title="Consultora da Virada" style="position:fixed; right:20px; bottom:20px; z-index:90; display:flex; align-items:center; gap:10px; border-radius:999px; background:#FFFFFF; color:#0F172A; border:1px solid #E5E9F0; padding:12px 18px 12px 14px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 12px 32px rgba(15,23,42,0.18);" class="hv3">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>
+    Destravar Dívidas / Dúvidas
+    <span style="display:inline-block; width:8px; height:8px; background:#22C55E; border-radius:50%;"></span>
+  </button>
+
+
+<!-- WIDGET CONSULTORA DA VIRADA & DESTRAVAR DÍVIDAS -->
+<div id="modal-virada-ia" style="display:none; position:fixed; right:20px; bottom:84px; width:390px; max-width:calc(100vw - 32px); max-height:580px; background:#FFFFFF; border-radius:20px; box-shadow:0 24px 60px rgba(15,23,42,0.25); border:1px solid #E2E8F0; z-index:100; overflow:hidden; font-family:'Onest', sans-serif; flex-direction:column;">
+  
+  <!-- CABEÇALHO -->
+  <div style="background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color:#FFFFFF; padding:16px 18px; display:flex; align-items:center; justify-content:space-between;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="position:relative; width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #22C55E 0%, #15803D 100%); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; color:#FFF;">
+        ⚡
+        <span style="position:absolute; bottom:0; right:0; width:10px; height:10px; background:#22C55E; border:2px solid #0F172A; border-radius:50%;"></span>
+      </div>
+      <div>
+        <h4 style="margin:0; font-size:15px; font-weight:800; color:#FFFFFF;">Consultora da Virada</h4>
+        <p style="margin:0; font-size:11px; color:#94A3B8; display:flex; align-items:center; gap:4px;">
+          <span style="display:inline-block; width:6px; height:6px; background:#22C55E; border-radius:50%;"></span> Especialista online agora
+        </p>
+      </div>
+    </div>
+    <button onclick="fecharWidgetIA()" style="background:none; border:none; color:#94A3B8; font-size:22px; cursor:pointer; padding:4px; line-height:1;">&times;</button>
+  </div>
+
+  <!-- ABAS DE NAVEGAÇÃO -->
+  <div style="display:flex; border-bottom:1px solid #E2E8F0; background:#F8FAFC;">
+    <button id="tab-btn-dividas" onclick="trocarAbaIA('dividas')" style="flex:1; padding:12px 10px; border:none; background:#FFFFFF; font-size:13px; font-weight:700; color:#047857; border-bottom:2px solid #047857; cursor:pointer;">
+      🛑 Destravar Dívidas
+    </button>
+    <button id="tab-btn-duvidas" onclick="trocarAbaIA('duvidas')" style="flex:1; padding:12px 10px; border:none; background:transparent; font-size:13px; font-weight:600; color:#64748B; border-bottom:2px solid transparent; cursor:pointer;">
+      💬 Dúvidas da Compra
+    </button>
+  </div>
+
+  <!-- CONTEÚDO CORPO -->
+  <div style="flex:1; overflow-y:auto; padding:16px; font-size:13px; color:#1E293B;">
+    
+    <!-- ABA 1: DÍVIDAS -->
+    <div id="aba-dividas">
+      <div style="background:#FEF2F2; border-left:3px solid #EF4444; padding:10px 12px; border-radius:6px; margin-bottom:12px;">
+        <strong style="color:#991B1B; font-size:12px;">Simulador de Quitação com Desconto:</strong>
+        <p style="margin:4px 0 0; color:#7F1D1D; font-size:12px;">Calcule quanto você pode abater no acordo e saia dos juros abusivos.</p>
+      </div>
+
+      <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px; color:#475569;">Qual é a sua dívida principal?</label>
+      <select id="sel-tipo-divida" style="width:100%; padding:10px; border:1px solid #CBD5E1; border-radius:8px; margin-bottom:12px; font-size:13px; background:#FFF;">
+        <option value="rotativo">💳 Cartão de Crédito / Rotativo (Juros até 432% a.a.)</option>
+        <option value="cheque">🏦 Cheque Especial / Empréstimo Pessoal</option>
+        <option value="negativado">📋 Negativado no Serasa/SPC (Dívida Antiga)</option>
+        <option value="consignado">🚗 Financiamento / Consignado</option>
+      </select>
+
+      <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px; color:#475569;">Valor aproximado da dívida:</label>
+      <div style="display:flex; gap:6px; margin-bottom:10px;">
+        <button type="button" onclick="setValorDivida(3000)" style="flex:1; padding:6px; border:1px solid #CBD5E1; background:#F1F5F9; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600;">R$ 3 mil</button>
+        <button type="button" onclick="setValorDivida(10000)" style="flex:1; padding:6px; border:1px solid #CBD5E1; background:#F1F5F9; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600;">R$ 10 mil</button>
+        <button type="button" onclick="setValorDivida(25000)" style="flex:1; padding:6px; border:1px solid #CBD5E1; background:#F1F5F9; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600;">R$ 25 mil</button>
+      </div>
+      <input type="number" id="input-valor-divida" placeholder="Ou digite o valor exato (ex: 8500)" style="width:100%; box-sizing:border-box; padding:10px; border:1px solid #CBD5E1; border-radius:8px; margin-bottom:12px; font-size:13px;">
+
+      <button type="button" onclick="simularPlanoDivida()" style="width:100%; padding:12px; background:#047857; color:#FFFFFF; border:none; border-radius:10px; font-size:14px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(4,120,87,0.25);">
+        Calcular Estratégia de Quitação →
+      </button>
+
+      <div id="resultado-divida" style="display:none; margin-top:14px; padding:14px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:10px;">
+        <div id="conteudo-resultado-divida"></div>
+      </div>
+    </div>
+
+    <!-- ABA 2: DÚVIDAS DA COMPRA -->
+    <div id="aba-duvidas" style="display:none;">
+      <p style="margin:0 0 10px; color:#64748B; font-size:12px;">Dúvidas frequentes de quem vai começar hoje:</p>
+      
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button type="button" onclick="mostrarRespostaFAQ('mensalidade')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
+          ❓ Tem alguma mensalidade ou cobrança recorrente?
+        </button>
+        <button type="button" onclick="mostrarRespostaFAQ('drive')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
+          ❓ Como a planilha conecta no meu Google Drive?
+        </button>
+        <button type="button" onclick="mostrarRespostaFAQ('celular')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
+          ❓ Funciona no meu iPhone e Android?
+        </button>
+        <button type="button" onclick="mostrarRespostaFAQ('garantia')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
+          ❓ E se eu não gostar? Qual é a garantia?
+        </button>
+      </div>
+
+      <div id="resposta-faq-box" style="display:none; margin-top:12px; padding:12px; background:#F1F5F9; border-radius:8px; border-left:3px solid #047857; font-size:12px; line-height:1.5; color:#0F172A;">
+        <div id="resposta-faq-texto"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RODAPÉ WHATSAPP -->
+  <div style="padding:10px 16px; background:#F8FAFC; border-top:1px solid #E2E8F0; display:flex; align-items:center; justify-content:space-between; font-size:12px;">
+    <span style="color:#64748B;">Prefere pelo WhatsApp?</span>
+    <a href="https://wa.me/5577999872390?text=Oi!%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20C%C3%B3digo%20da%20Virada." target="_blank" style="display:flex; align-items:center; gap:6px; color:#15803D; font-weight:700; text-decoration:none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>
+      Atendimento WhatsApp
+    </a>
+  </div>
+</div>
+
+<script>
+function abrirWidgetIA(aba) {
+  var modal = document.getElementById('modal-virada-ia');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  if (aba) trocarAbaIA(aba);
+}
+
+function fecharWidgetIA() {
+  var modal = document.getElementById('modal-virada-ia');
+  if (modal) modal.style.display = 'none';
+}
+
+function trocarAbaIA(aba) {
+  var abaDiv = document.getElementById('aba-dividas');
+  var abaDuv = document.getElementById('aba-duvidas');
+  var btnDiv = document.getElementById('tab-btn-dividas');
+  var btnDuv = document.getElementById('tab-btn-duvidas');
+  if (aba === 'dividas') {
+    abaDiv.style.display = 'block';
+    abaDuv.style.display = 'none';
+    btnDiv.style.background = '#FFFFFF';
+    btnDiv.style.color = '#047857';
+    btnDiv.style.borderBottom = '2px solid #047857';
+    btnDuv.style.background = 'transparent';
+    btnDuv.style.color = '#64748B';
+    btnDuv.style.borderBottom = '2px solid transparent';
+  } else {
+    abaDiv.style.display = 'none';
+    abaDuv.style.display = 'block';
+    btnDuv.style.background = '#FFFFFF';
+    btnDuv.style.color = '#047857';
+    btnDuv.style.borderBottom = '2px solid #047857';
+    btnDiv.style.background = 'transparent';
+    btnDiv.style.color = '#64748B';
+    btnDiv.style.borderBottom = '2px solid transparent';
+  }
+}
+
+function setValorDivida(v) {
+  document.getElementById('input-valor-divida').value = v;
+}
+
+function simularPlanoDivida() {
+  var tipo = document.getElementById('sel-tipo-divida').value;
+  var valor = parseFloat(document.getElementById('input-valor-divida').value) || 5000;
+  var box = document.getElementById('resultado-divida');
+  var conteudo = document.getElementById('conteudo-resultado-divida');
+  
+  var descontoMin = 0.60;
+  var descontoMax = 0.85;
+  var tipoNome = "Cartão de Crédito (Rotativo)";
+  var perigo = "Se pagar o mínimo de juros, em 12 meses essa dívida pode triplicar!";
+
+  if (tipo === "cheque") {
+    tipoNome = "Cheque Especial / Empréstimo";
+    descontoMin = 0.50;
+    descontoMax = 0.75;
+    perigo = "Os juros correm diariamente corroendo todo o seu salário antes de sobrar.";
+  } else if (tipo === "negativado") {
+    tipoNome = "Dívida Antiga / Serasa / SPC";
+    descontoMin = 0.75;
+    descontoMax = 0.92;
+    perigo = "O banco já colocou essa dívida em prejuízo. Você tem poder de quitação por uma fração!";
+  } else if (tipo === "consignado") {
+    tipoNome = "Financiamento / Consignado";
+    descontoMin = 0.40;
+    descontoMax = 0.65;
+    perigo = "A amortização correta com o Método Avalanche elimina anos de parcelas.";
+  }
+
+  var valorAcordoMin = Math.round(valor * (1 - descontoMax));
+  var valorAcordoMax = Math.round(valor * (1 - descontoMin));
+  var economia = Math.round(valor - valorAcordoMin);
+
+  var html = '<h5 style="margin:0 0 6px; color:#065F46; font-size:13px; font-weight:800;">Estratégia Recomendada: ' + tipoNome + '</h5>' +
+    '<p style="margin:0 0 8px; font-size:12px; color:#1F2937;"><strong>⚠️ Risco atual:</strong> ' + perigo + '</p>' +
+    '<div style="background:#DCFCE7; border-radius:8px; padding:10px; margin-bottom:10px;">' +
+      '<p style="margin:0; font-size:11px; color:#166534;">Margem de Acordo com o Roteiro do Código da Virada:</p>' +
+      '<p style="margin:2px 0 0; font-size:15px; font-weight:800; color:#15803D;">De R$ ' + valor.toLocaleString('pt-BR') + ' para R$ ' + valorAcordoMin.toLocaleString('pt-BR') + ' a R$ ' + valorAcordoMax.toLocaleString('pt-BR') + '</p>' +
+      '<p style="margin:2px 0 0; font-size:11px; color:#166534;">Economia potencial de até <strong>R$ ' + economia.toLocaleString('pt-BR') + '</strong> no valor quitado.</p>' +
+    '</div>' +
+    '<p style="margin:0 0 10px; font-size:12px; color:#374151;">No <strong>Bônus 2 (Roteiro de Negociação)</strong> e no <strong>Capítulo 3 (Método Avalanche)</strong>, você tem os scripts prontos de ligação, cálculo exato de amortização e modelo de notificação para não aceitar refinanciamento furado.</p>' +
+    '<a href="https://pay.kiwify.com.br/QUVGK3y" target="_blank" style="display:block; text-align:center; padding:10px; background:#047857; color:#FFF; text-decoration:none; font-weight:800; font-size:13px; border-radius:8px; box-shadow:0 4px 10px rgba(4,120,87,0.3);">' +
+      'Destravar Código da Virada por R$ 47 →' +
+    '</a>';
+
+  conteudo.innerHTML = html;
+  box.style.display = 'block';
+}
+
+function mostrarRespostaFAQ(chave) {
+  var box = document.getElementById('resposta-faq-box');
+  var texto = document.getElementById('resposta-faq-texto');
+  var respostas = {
+    mensalidade: '<strong>Zero mensalidade!</strong> A maioria dos aplicativos cobra R$ 30 a R$ 40 por mês (mais de R$ 360/ano). O Código da Virada custa R$ 47 <em>uma única vez</em> com acesso vitalício e atualizações incluídas.',
+    drive: '<strong>Com 1 clique automático!</strong> Na tela Conta do aplicativo, você clica em "Conectar Google Planilhas" e permite o acesso. O sistema gera a planilha executiva com 9 abas completas direto no seu Google Drive pessoal. Seus lançamentos sincronizam em segundo plano.',
+    celular: '<strong>Funciona em ambos!</strong> No Android (Chrome) ou no iPhone (Safari), você toca em "Adicionar à tela de início" e ele se comporta como um aplicativo nativo rápido, sem ocupar espaço da memória e funcionando até offline.',
+    garantia: '<strong>Garantia incondicional de 7 dias pela Kiwify!</strong> Você testa o app, lê os livros, usa a planilha e os roteiros. Se achar que não valeu a pena, basta um toque para receber 100% do seu dinheiro de volta na hora, sem burocracia.'
+  };
+
+  texto.innerHTML = respostas[chave] || '';
+  box.style.display = 'block';
+}
+</script>
+
 </div>
 <script>
 (function () {
