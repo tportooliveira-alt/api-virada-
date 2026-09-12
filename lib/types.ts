@@ -39,8 +39,8 @@ export type AccessPlan = "basic" | "premium";
 export type AccessStatus = "active" | "blocked" | "cancelled";
 export type ParsedFinancialType = "expense" | "income" | "debt_payment" | "saving";
 export type TransactionScope = "casa" | "empresa";
-export type TransactionSource = "app" | "whatsapp" | "planilha";
-export type SheetProvider = "google_sheets" | "excel";
+export type TransactionSource = "app";
+export type SheetProvider = "google_sheets";
 
 export interface Expense {
   id: string;
@@ -89,16 +89,6 @@ export interface Mission {
   description: string;
 }
 
-export interface ExtraIncomeIdea {
-  id: string;
-  title: string;
-  category: string;
-  initialInvestment: string;
-  difficulty: string;
-  timeToStart: string;
-  steps: string[];
-  message: string;
-}
 
 export interface Lesson {
   id: string;

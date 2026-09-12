@@ -1,80 +1,141 @@
-# CLAUDE.md — Virada App (`api-virada-`)
+# CLAUDE.md — Código da Virada (`api-virada-`)
 
-> Fonte de verdade do projeto. Atualizado: 2026-06-17.
-> Apesar do nome `api-virada-`, **NÃO é uma API** — é o **Virada App**: controle financeiro
-> mobile-first (PWA) vendido como infoproduto (upsell R$ 97 / R$ 197 do Código da Virada).
-> Ordem de trabalho acordada: **1º arquitetura + funcionalidade · 2º design.**
+> Fonte de verdade do projeto. Atualizado: **2026-09-12**.
+> Apesar do nome `api-virada-`, **NÃO é uma API**: é o produto inteiro — a landing de
+> vendas + o app do comprador + a entrega.
+> **Este é o único repositório vivo.** `codigo-da-virada-mestre` (parou em 18/06) e
+> `codigo-da-virada-` (landing antiga, maio) são acervo — não trabalhar neles.
 
-## Arquitetura REAL (a verdade — confirmada no código, jun/2026)
+## O produto (set/2026)
 
-Três camadas independentes. **Não confundir.**
+**Código da Virada** — app de controle financeiro (PWA) + e-book de 5 capítulos +
+3 bônus. **R$ 47, pagamento único**, sem mensalidade. Ancorado em R$ 150.
+Checkout: **Kiwify** (`pay.kiwify.com.br/QUVGK3y`). Garantia de 7 dias.
+No ar em **codigodavirada.net.br**. Contato/vendas: **(77) 99939-5511**.
+
+Histórico: já foi esteira de 4 preços (R$ 9,90/17/67/197) até maio. **Não é mais** —
+qualquer doc que fale nisso está velho.
+
+## Arquitetura real — três camadas independentes
 
 | Camada | Onde vive | Tecnologia | Pra quê |
 |---|---|---|---|
-| **Dados financeiros** | no aparelho do cliente | **localStorage** (chave `virada-app:v1`) | lançamentos, dívidas, metas, missões — offline, privado |
-| **Acesso / "porteiro"** | servidor (VPS) | **better-sqlite3** (`data/access.db`) | lista de quem comprou (libera login via webhook) |
-| **Planilha** | Google do cliente | **googleapis** (`lib/sheets/`) | export + auto-sync ("planilha plugada") |
+| **Dados financeiros** | aparelho do cliente | **IndexedDB** (`lib/db/`, lib `idb`) | lançamentos, dívidas, metas — offline e privados |
+| **Acesso ("porteiro")** | VPS | **better-sqlite3** (`data/access.db`) | quem comprou; alimentado pelo webhook |
+| **Planilha** | Google Drive do cliente | **googleapis** (`lib/sheets/`) | 9 abas com fórmulas pt-BR |
 
-Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (localStorage) → exporta/sincroniza planilha (Google Sheets).
+Fluxo do comprador: paga na Kiwify → webhook grava o e-mail em `access.db` → `/obrigado`
+→ entra no app com a conta Google **do mesmo e-mail** (`components/AuthGate.tsx`) →
+usa offline → conecta a planilha quando quiser.
 
-## Decisões tomadas (2026-06-17)
+Stack: Next 14 (App Router), React 18, TypeScript strict, Tailwind. Sem Supabase.
 
-1. **SQLite na VPS, NÃO serverless.** Resolve o conflito #2 do RELATORIO (disco efêmero apagaria o banco de compradores). Deploy = VPS Hostinger (187.77.252.91) com `data/` persistente. Mais barato/simples pra vender app barato.
-2. **Supabase removido.** A migração Postgres (`supabase/`) era divergência não usada — apagada.
-3. **Python isolado** em `tools/automacao-python/` (28 scripts de automação — fora do runtime).
-4. **Planilha "plugada" (auto-sync)** implementada em `components/GoogleSyncButton.tsx`: depois de criar a planilha + logar 1x, cada mudança sincroniza sozinha (debounce 4s, com baseline anti-loop). A 1ª vez continua manual.
-5. **Removidos:** 2 testes mortos (`scripts/test_finance.js`, `test_performance.js`) e `content/ebook.backup.md` (duplicado).
-6. **Planilha VIVA — fórmulas dentro do Google Sheets (2026-06-17).** Antes a planilha era número morto (calculava em JS e colava o valor). Agora o `lib/sheets/builder.ts` injeta **fórmulas reais** que recalculam: Dashboard (`=SOMA`, `=A6-D6`, `=CONT.VALORES`, `=SOMASE`), Dívidas/Metas/Fluxo/Resumo (`=SE`, `=MÁXIMO`, `=B2-C2`...). KPIs do Dashboard ficam fixos em `buildStaticValues` (criação) e o `buildSyncBatch` NÃO os sobrescreve. Sintaxe obrigatória **pt-BR** (`SOMA` não `SUM`, separador `;`) porque a planilha é `locale: pt_BR` + `USER_ENTERED` (inglês daria `#NOME?`). Ver as fórmulas sem credencial: `npx tsx scripts/dump-formulas.ts`. Painéis laterais `K4:K7` também são fórmula (`=CONT.VALORES`, `=SOMA`, `=SOMASE`, `=MÁXIMO`, `=MÍNIMO`, `=CONT.SE`, `=MÉDIA`; moeda via `=TEXTO(...;"R$ #.##0,00")` p/ não depender de formato de célula). Ainda ESTÁTICOS (snapshot proposital): o "Resumo mensal" do Dashboard (`G12:J21`, agregação por mês — fórmula seria frágil) e campos textuais compostos dos painéis (datas, nomes de mês, prioridade crítica, melhor progresso).
+## A landing
 
-## ⚠️ Dois artefatos de "planilha" — NÃO confundir
+`/` e `/vendas` são **rewrite** (`next.config.mjs`) para `public/vendas.html` — não passam
+pelo App Router nem pelo AuthGate. O HTML é **gerado** por `scripts/build-vendas.mjs` a
+partir do export do Claude Design em `_design/claude-design/`. Editar o gerador, não o
+HTML solto — a não ser em ajuste pontual, que aí precisa voltar pro gerador depois.
 
-- **Prévia** (`app/app/planilha-demo/page.tsx`): componente React que IMITA o Google Sheets na tela do app. É só visual/demonstração. Quando o Thiago fala "a planilha", **NÃO é essa.**
-- **Planilha real** (`lib/sheets/builder.ts` + `google-sheets.ts` + `GoogleSyncButton.tsx`): gera o Google Sheets de verdade no Drive do cliente. **É essa** que importa para fórmulas/profissionalismo. Validação real exige credencial Google (não há `.env` aqui) — usar `scripts/test-sheets-build.ts` (offline) + `dump-formulas.ts`.
+⚠️ **Hoje o `vendas.html` no ar já divergiu do gerador**: o widget da consultora
+(botão flutuante + simulador de dívida + FAQ) e o rodapé com telefone e e-mail foram
+feitos direto no HTML e não existem no export do Claude Design. **Rodar
+`node scripts/build-vendas.mjs` agora apaga os dois.** Reconciliar antes de gerar
+de novo.
 
-## A "casa a organizar" — divergências a corrigir (arquitetura não bate)
+## Pegadinhas que já morderam (leia antes de mexer)
 
-O código é coerente (localStorage), mas **textos/docs/tipos mentem** sobre ele:
+1. **`LAYOUT_VERSION` (`lib/sheets/builder.ts`).** Mudou qualquer coisa no layout da
+   planilha? **Suba a versão.** O `upgradeLayout` (`components/GoogleSyncButton.tsx`) só
+   reaplica quando ela muda — senão quem já tem planilha nunca recebe o novo. Já
+   aconteceu duas vezes (04/09 e 12/09).
+2. **Valor novo em célula com formato velho.** Trocar o que vai numa célula do Dashboard
+   exige conferir o `numberFormat` correspondente (linhas ~411-414 do `builder.ts`).
+   Em 12/09 a taxa de sobra caiu numa célula CURRENCY e 23% virou "R$ 0,23".
+3. **Fórmulas em pt-BR.** A planilha é `locale: pt_BR` + `USER_ENTERED`: `SOMA` (não
+   `SUM`), separador `;`. Em inglês dá `#NOME?`. Ver sem credencial:
+   `npx tsx scripts/dump-formulas.ts`.
+4. **O e-mail da compra é a chave do acesso.** Comprou com um e-mail e tenta entrar com
+   outro = "conta não encontrada". Causa nº 1 de suporte.
+5. **Os dados do cliente estão no aparelho dele.** Trocou de celular, limpou o
+   navegador ou usou aba anônima: perdeu. A planilha é a cópia de segurança.
+6. **Rotas `/api/admin/*` exigem cookie de sessão assinado** (`lib/access/admin-session.ts`)
+   e `ADMIN_SESSION_SECRET` no ambiente. Sem o segredo, o painel admin fecha (fail-closed,
+   de propósito). Nunca voltar a autenticar admin por header de texto.
 
-- [ ] **UI diz "abas CSV locais"** (`app/app/inicio/page.tsx`) → não existe CSV. Trocar por "no seu aparelho" / localStorage.
-- [ ] **Comentário do provider** (`providers/virada-provider.tsx`) diz "deploy Netlify" → é VPS agora.
-- [ ] **RELATORIO** diz "IndexedDB" → é localStorage. Corrigir nota.
-- [ ] **`lib/types.ts`** prevê `SheetProvider="excel"` e `TransactionSource="whatsapp"/"planilha"` → verificar se implementados; se não, remover (YAGNI) ou marcar como futuro.
-- [ ] **`netlify.toml`** → neutralizar/remover (deploy é VPS).
-- [ ] Warnings de lint (`exhaustive-deps`) em AuthGate e GoogleSyncButton.
+7. **Escopo do Google: só `drive.file`.** É o único que o app pede
+   (`components/GoogleSyncButton.tsx`) e ele basta para criar e atualizar a planilha que o
+   próprio app cria. **Não voltar a pedir `spreadsheets`**: é escopo *sensível*, exige
+   verificação do Google e fazia o comprador ver "app não verificado" bem na hora de
+   conectar a planilha. Os escopos declarados no Google Cloud (projeto `virada-app` →
+   Auth Platform → Acesso a dados) precisam bater com os do código: hoje são `openid`,
+   `userinfo.email`, `userinfo.profile` e `drive.file`, todos não confidenciais.
+8. **Webhook sem `<PLATAFORMA>_ALLOWED_PRODUCTS` aceita qualquer produto.** Sem a env,
+   qualquer compra aprovada na mesma conta de venda vira membro ativo do app
+   (`lib/access/products.ts`). Vale o id **ou** o nome do produto, separados por vírgula.
 
-## Validação (como rodar)
+## Dois artefatos chamados "planilha" — não confundir
+
+- **Prévia** (`app/app/planilha-demo/page.tsx`): componente React que imita a aparência do
+  Google Sheets dentro do app. É visual. Quando o Thiago fala "a planilha", **não é essa**.
+- **Planilha real** (`lib/sheets/builder.ts` + `google-sheets.ts` + `GoogleSyncButton.tsx`):
+  cria o Google Sheets de verdade no Drive do cliente, 9 abas. **É essa que importa.**
+  A sincronização é **manual** — o cliente toca em "Atualizar agora".
+
+## Os agentes de venda/atendimento
+
+- `agente-whatsapp/CONHECIMENTO-DO-PRODUTO.md` — **a base**: produto, app tela a tela,
+  planilha, e-book capítulo a capítulo, bônus, suporte, e a lista do que **pode** e do que
+  **não pode** falar. Qualquer agente lê isto primeiro.
+- `agente-whatsapp/AGENTE.md` — comportamento no WhatsApp (Evolution API na VPS).
+- `agente-site/AGENTE-SITE.md` — comportamento no widget da landing.
+
+Mudou o produto? **Atualize o CONHECIMENTO junto**, ou os agentes passam a mentir.
+
+## Validação
 
 ```bash
 npm install
-npm run dev            # localhost:3000 → abre /app/inicio
-npm run typecheck      # tsc --noEmit (passou: 0 erros)
-npm run lint
-# testes TS reais (265 asserts):
-npx tsx scripts/test-sheets-build.ts
-npx tsx scripts/test-app-completo.ts
+npm run dev            # localhost:3000 → /app/inicio
+npm run test           # typecheck + lint + build (é isso que roda antes de subir)
+npx tsx scripts/test-sheets-build.ts        # planilha, offline
+npx tsx scripts/test-auditoria-matematica.ts
 ```
-**Login em dev:** sem `.env.local`, em `localhost` aparece o botão "⚙ Entrar como Dev (localhost)" (bypass — `AuthGate.tsx`).
+Não há CI: **rode `npm run test` antes de todo deploy.**
+Em dev sem `.env.local`, o AuthGate mostra o botão "Entrar como Dev (localhost)".
 
-## Design — Direção "Editorial Financeiro" (APLICADA 2026-06-17)
+## Deploy (produção)
 
-- **Lição:** tirar a "cara de IA" NÃO é trocar cor (find-replace ficou estranho). É **craft** — a skill `open_design/frontend-design` manda **herdar o design system existente**.
-- **Decisão:** o app HERDA a craft da **landing** (que já é boa), em vez de inverter pra claro. Unifica a identidade.
-- **Tokens (`tailwind.config.ts`):** dark premium `#0a0a0c` · verde-emerald `#34d399` · dourado `#f0a830` (cores reais da landing).
-- **Tipografia:** **Instrument Serif** (títulos h1/h2/h3, via `next/font` no `layout.tsx` + `globals.css`) + **Barlow** (corpo). Mesma da landing.
-- **Por que dark (não a paleta C clara):** o app tem 149 `text-white` hardcoded; inverter pra claro quebra tudo. Dark premium + serif resolve a cara de IA sem quebrar. (Paleta C clara arquivada — só com refactor dos 149 textos.)
-- Aplicado via tokens/fontes globais → **todas as 13 telas herdaram de uma vez**.
-- Falta: refinos de craft (espaçamento/hierarquia por tela) se quiser ir além.
+VPS Hostinger `vps-paperclip` (187.77.252.91) · pm2 `codigo-da-virada` · nginx na frente.
+Pasta: **`/var/www/codigo-da-virada`** (a `/opt/virada-app` é resto de maio — ignorar).
 
-## 🎨 Paleta C — "Verde suave & Creme" (planilha · NÃO PERDER)
+```bash
+ssh vps-paperclip "cd /var/www/codigo-da-virada && git pull --ff-only origin main && npm run build && pm2 restart codigo-da-virada"
+```
+`.env.local` da VPS (fora do git) tem: `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `KIWIFY_TOKEN`,
+`KIWIFY_ALLOWED_PRODUCTS`, `ADMIN_EMAILS`, `ADMIN_SESSION_SECRET`.
 
-Paleta oficial escolhida pra a **planilha** (clara, "dinheiro clássico e calmo", DESTACA valores — nada de cor escondida). Aplicada em `lib/sheets/styles.ts`:
-- **Creme:** `#F6F1E5` fundo · `#FFFFFF` card de KPI (valor salta) · `#EFE8D6` zebra/painel · `#DED5BF` bordas
-- **Verde:** `#5F9E6E` acento/positivo · `#2E5339` escuro (banner/headers) · `#DDEBE1` chip
-- **Texto/valores:** `#1E2A20` verde-grafite (alto contraste) · `#6A6E63` secundário
-- **Vermelho terroso:** `#B0473A` (negativo calmo) · **Bronze:** `#B98B2E` (acento mínimo)
-- Regra de ouro: valor sempre em alto contraste (escuro/verde/vermelho sobre creme claro).
+Webhook cadastrado na Kiwify (Apps → Webhooks), eventos compra aprovada / reembolso /
+chargeback, apontando para `/api/webhooks/kiwify?token=$KIWIFY_TOKEN`. **Sem ele o
+cliente paga e não recebe acesso, sem erro visível.**
 
-## Skills do arsenal a usar aqui
-- **Arquitetura/método:** `/superpowers` (brainstorming → writing-plans → TDD → verification).
-- **Design (fase 2):** `/open-design` → `frontend-design` (anti-AI-slop) + a paleta C.
-- **Disciplina sempre:** `/karpathy` (simplicidade, mudança cirúrgica).
+## Limpeza de 12/09 — o que saiu (não recriar)
+
+- `netlify.toml` e `supabase/migrations/` — deploy é VPS, não há Supabase.
+- `/app/renda-extra` + `ExtraIncomeIdeaCard` + `extraIncomeIdeas`: as 50 ideias saíram da
+  oferta em 04/09 e a rota seguia acessível por URL. O `content/ebook.md` também parou de
+  prometer esse bônus, e os PDFs foram regerados (`python scripts/build_pdfs.py`).
+- `/app/missoes` + `MissaoDoDia`: sem link em tela nenhuma e alimentado por um `addPoints`
+  vazio. Se a gamificação voltar, tem que religar a pontuação junto.
+- `/seed-test` continua existindo para dev, mas **não renderiza em produção** — ele grava
+  dados fictícios por cima dos lançamentos reais do comprador.
+
+Ainda de pé, por decisão: `lib/ai/advisor.ts` é mock e a tela `/app/aprender/ia` avisa
+que não foi lançada. `public/downloads/bonus-50-ideias.pdf` segue no repositório mas não
+é entregue nem citado.
+
+## Disciplina
+
+`/karpathy` sempre (simplicidade, mudança cirúrgica, nada de abstração especulativa).
+Design da planilha: paleta clara "Verde suave & Creme" em `lib/sheets/styles.ts` —
+regra de ouro, **valor sempre em alto contraste**.

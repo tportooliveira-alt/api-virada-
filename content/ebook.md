@@ -181,7 +181,6 @@ Cortar gasto tem teto. Aumentar renda não tem.
 - Especialização vendável: o que você sabe fazer melhor que a maioria? Vira curso, mentoria, consultoria.
 - Pequeno negócio local validado: pré-venda antes de qualquer investimento.
 
-(As 50 ideias completas estão no bônus "50 Ideias de Renda Extra".)
 
 ### A regra de ouro da renda extra na virada
 

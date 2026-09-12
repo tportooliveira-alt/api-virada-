@@ -57,6 +57,20 @@ const ACCOUNT_DATA = {
 export default function SeedTestPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
 
+  // Ferramenta de desenvolvimento. Em producao ela sobrescreveria os lancamentos
+  // reais do comprador com dados ficticios, entao nem renderiza.
+  if (process.env.NODE_ENV === "production") {
+    return (
+      <main className="mx-auto max-w-md p-6 text-center">
+        <h1 className="text-lg font-semibold text-ink-900">Ferramenta de desenvolvimento</h1>
+        <p className="mt-2 text-sm text-ink-500">Esta página não fica disponível no app publicado.</p>
+        <Link href="/app/inicio" className="mt-4 inline-block text-sm font-semibold text-green-700">
+          Voltar para o app
+        </Link>
+      </main>
+    );
+  }
+
   function popular() {
     setStatus("loading");
     try {

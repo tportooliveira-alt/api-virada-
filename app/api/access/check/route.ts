@@ -9,6 +9,7 @@
  */
 import { NextResponse } from "next/server";
 import { isMember } from "@/lib/access/members";
+import { ADMIN_COOKIE, createAdminSession } from "@/lib/access/admin-session";
 
 interface TokenInfo {
   aud?: string;
@@ -110,7 +111,7 @@ export async function POST(request: Request) {
     const admin = isAdminEmail(profile.email);
     const ativo = admin || isMember(profile.email);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       status: ativo ? "ativo" : "inativo",
       email: profile.email,
       sub: profile.sub,
@@ -118,6 +119,24 @@ export async function POST(request: Request) {
       picture: profile.picture,
       isAdmin: admin,
     });
+
+    // Admin confirmado pela Google: emite o cookie assinado que as rotas
+    // /api/admin/* exigem. Sem ADMIN_SESSION_SECRET o token e null e o
+    // painel simplesmente nao abre (fail-closed, de proposito).
+    if (admin) {
+      const session = createAdminSession(profile.email);
+      if (session) {
+        response.cookies.set(ADMIN_COOKIE, session, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: 12 * 60 * 60,
+        });
+      }
+    }
+
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Token Google inválido.";
     return NextResponse.json({ message }, { status: 401 });

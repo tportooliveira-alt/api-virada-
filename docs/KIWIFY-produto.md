@@ -25,7 +25,7 @@ depois, sem refazer o produto.
 | Preço | **R$ 47,00** (pagamento único) |
 | Parcelamento | Deixar o padrão do cartão |
 | Garantia | **7 dias** |
-| Suporte | tportooliveira@gmail.com · WhatsApp 77 99987-2390 |
+| Suporte | tportooliveira@gmail.com · WhatsApp 77 99939-5511 |
 
 ### Descrição (checkout)
 

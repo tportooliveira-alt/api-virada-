@@ -53,7 +53,7 @@ function conhecimento(): string {
 /** Roda o Claude do plano Max. Prompt vai por stdin (não cabe em argumento). */
 function perguntarAoClaude(prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const proc = spawn("claude", ["-p"], { timeout: TIMEOUT_MS });
+    const proc = spawn("claude", ["-p", "--model", "haiku"], { timeout: TIMEOUT_MS });
     let saida = "";
     let erro = "";
     proc.stdout.on("data", (d) => (saida += d.toString()));
@@ -66,6 +66,28 @@ function perguntarAoClaude(prompt: string): Promise<string> {
     proc.stdin.write(prompt);
     proc.stdin.end();
   });
+}
+
+/** Reserva: se o Claude estiver fora (limite/CLI), usa DeepSeek pra não travar a venda. */
+async function perguntarAoDeepSeek(prompt: string): Promise<string> {
+  const key = process.env.DEEPSEEK_API_KEY?.trim();
+  if (!key) throw new Error("DEEPSEEK_API_KEY ausente — sem reserva");
+  const res = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: "deepseek-chat",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 700,
+    }),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error(`deepseek HTTP ${res.status}`);
+  const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  const texto = data.choices?.[0]?.message?.content?.trim();
+  if (!texto) throw new Error("deepseek resposta vazia");
+  return texto;
 }
 
 /**
@@ -98,6 +120,11 @@ export async function responder(numero: string, texto: string): Promise<string> 
     "Responda só a mensagem do WhatsApp, no seu tom, sem preâmbulo e sem aspas.",
   ].join("\n");
 
-  const resposta = await perguntarAoClaude(prompt);
+  let resposta: string;
+  try {
+    resposta = await perguntarAoClaude(prompt); // primário: Claude (Haiku, custo zero via CLI)
+  } catch {
+    resposta = await perguntarAoDeepSeek(prompt); // reserva: DeepSeek, pra não travar a conversa
+  }
   return resposta.slice(0, 1200);
 }

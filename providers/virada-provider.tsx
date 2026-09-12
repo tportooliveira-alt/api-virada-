@@ -3,7 +3,7 @@
 /**
  * ViradaProvider — 100% local, zero servidor.
  * Dados ficam no celular do usuário (localStorage).
- * Sem login. Abre e usa. Deploy gratuito no Netlify.
+ * Dados no aparelho do cliente (IndexedDB). Deploy: VPS com pm2.
  */
 
 import {

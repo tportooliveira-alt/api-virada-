@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PropsWithChildren } from "react";
-import { BookOpen, CalendarDays, HandCoins, Smartphone } from "lucide-react";
+import { BookOpen, CalendarDays, FileSpreadsheet, HandCoins, Smartphone } from "lucide-react";
 import { BottomNav, isActivePath, mainNavItems } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { InstallNudge } from "@/components/InstallNudge";
@@ -27,8 +27,8 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
     subtitle: "Sua conta, sua planilha e onde ficam seus dados.",
   },
   "/app/planilha-demo": {
-    title: "Prévia da planilha",
-    subtitle: "Veja como seus dados ficam no Google Planilhas.",
+    title: "Planilha Executiva Google Sheets",
+    subtitle: "Visão em tempo real com 9 abas consolidadas e inteligência patrimonial.",
   },
   "/app/instalar": {
     title: "Instalar no celular",
@@ -36,11 +36,9 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   },
 };
 
-// Ferramentas e e-book são HTML/PDF estáticos fora do app (public/), por isso abrem
-// em aba nova e não entram no BottomNav — o menu de baixo segue com as 4 telas do design.
-// Vão direto no menu, sem passar por uma tela de "biblioteca": um clique a menos.
 const sidebarItems = [
   ...mainNavItems,
+  { href: "/app/planilha-demo", label: "Planilha Inteligente", icon: FileSpreadsheet },
   { href: "/biblioteca/negociacao/index.html", label: "Negociar dívida", icon: HandCoins, externo: true },
   { href: "/downloads/ebook-codigo-da-virada.pdf", label: "E-book", icon: BookOpen, externo: true },
   { href: "/app/instalar", label: "Instalar app", icon: Smartphone },
@@ -58,7 +56,6 @@ function MonthChip() {
 
 export function AppShell({ children }: PropsWithChildren) {
   const rawPath = usePathname();
-  // Remove barra final para normalizar: /app/lancar/ → /app/lancar
   const pathname = rawPath.replace(/\/$/, "") || "/";
   const meta = pageMeta[pathname] ?? pageMeta["/app/inicio"];
 
@@ -100,9 +97,9 @@ export function AppShell({ children }: PropsWithChildren) {
         </nav>
 
         <div className="mt-auto rounded-xl border border-ink-200 bg-white p-3.5">
-          <p className="text-[13px] font-semibold text-ink-900">Dados no seu celular</p>
+          <p className="text-[13px] font-semibold text-ink-900">Planilha Conectada</p>
           <p className="mt-1 text-xs leading-[18px] text-ink-500">
-            Seus lançamentos ficam guardados aqui. Sincronize com Google Planilhas quando quiser.
+            Seus dados locais refletem na Planilha Google Inteligente com diagnóstico de liberdade financeira.
           </p>
         </div>
       </aside>

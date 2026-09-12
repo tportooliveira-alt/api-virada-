@@ -6,6 +6,16 @@
 //
 // Uso: node scripts/build-vendas.mjs
 // Depois de re-exportar o projeto no Claude Design, basta rodar de novo.
+//
+// ⚠️ ATENCAO — LEIA ANTES DE RODAR (12/09/2026)
+// O public/vendas.html que esta no ar JA DIVERGIU deste gerador. Foram feitos
+// direto no HTML, e NAO existem no design exportado:
+//   1. o widget da consultora (botao flutuante, simulador de quitacao de divida,
+//      FAQ e atalho de WhatsApp) — ~216 linhas;
+//   2. o rodape com WhatsApp (77) 99939-5511 e o e-mail de contato visiveis.
+// Rodar este script AGORA sobrescreve o vendas.html e APAGA as duas coisas.
+// Antes de rodar: leve essas mudancas para o export do Claude Design (ou para
+// este gerador), ou faca uma copia do vendas.html e reaplique depois.
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -21,7 +31,7 @@ const OUT_JS = join(ROOT, "public", "vendas-hero.js");
 
 // Valores dos "Tweaks" do Claude Design. checkoutUrl e whatsapp ficam vazios
 // de propósito: são preenchidos direto no vendas.html (bloco CONFIG no topo).
-const PROPS = { checkoutUrl: "https://pay.kiwify.com.br/QUVGK3y", plataforma: "Kiwify", preco: 47, precoDepois: 150, horasOferta: 24, whatsapp: "5577999872390" };
+const PROPS = { checkoutUrl: "https://pay.kiwify.com.br/QUVGK3y", plataforma: "Kiwify", preco: 47, precoDepois: 150, horasOferta: 24, whatsapp: "5577999395511" };
 // TODO(kiwify): domínio final da landing (ex.: "https://codigodavirada.net.br"). Com ele, o og:image vira
 // URL absoluta — WhatsApp/Instagram só mostram a capa com URL absoluta. Vazio = fica relativo.
 const SITE_URL = "https://codigodavirada.net.br";
@@ -194,7 +204,7 @@ ${hoverCss}
   // Checkout do produto na Kiwify (Produtos > Links). Vazio = cai no WhatsApp.
   var CHECKOUT_URL = "https://pay.kiwify.com.br/QUVGK3y";
   // TODO(kiwify): WhatsApp do suporte, só números com DDI+DDD (ex.: "5575999990000"). Vazio = esconde o botão flutuante.
-  var WHATSAPP = "5577999872390";
+  var WHATSAPP = "5577999395511";
   // Duração da oferta por visitante, em horas (0 desliga a faixa amarela).
   var HORAS_OFERTA = ${PROPS.horasOferta};
 </script>

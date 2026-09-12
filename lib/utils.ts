@@ -17,6 +17,14 @@ export function formatCurrency(value: number) {
   }).format(value);
 }
 
+/** Numero com 1 casa em pt-BR: 23.4 -> "23,4". Usar em percentuais e meses. */
+export function formatDecimal(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(Number.isFinite(value) ? value : 0);
+}
+
 export function parseCurrencyInput(value: string) {
   const cleaned = value.trim().replace(/[^\d,.-]/g, "");
   if (!cleaned) return NaN;

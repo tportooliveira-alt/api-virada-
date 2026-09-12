@@ -12,6 +12,7 @@ const dbWal = `${dbFile}-wal`; if (existsSync(dbWal)) unlinkSync(dbWal);
 const dbShm = `${dbFile}-shm`; if (existsSync(dbShm)) unlinkSync(dbShm);
 
 import { parseWebhook } from "../lib/access/adapters";
+import { shouldProcessEvent } from "../lib/access/products";
 import { isMember, getMember, listMembers, upsertMember } from "../lib/access/members";
 
 let pass = 0, fail = 0;
@@ -123,6 +124,27 @@ console.log("\n[Normalização de email]");
 upsertMember({ email: "Pedro@GMAIL.com", platform: "hotmart" });
 check("upsert normaliza para minúsculas", isMember("PEDRO@gmail.com"));
 check("não cria duplicado por case", isMember("pedro@gmail.com") && getMember("Pedro@Gmail.com")?.email === "pedro@gmail.com");
+
+// ─── Filtro de produto (<PLATAFORMA>_ALLOWED_PRODUCTS) ───────────────────────
+console.log("\n[Filtro de produto]");
+const kiwifyBody = (product: Record<string, unknown>) => ({
+  webhook_event_type: "order_approved",
+  Customer: { email: "filtro@gmail.com", full_name: "Filtro" },
+  Product: product,
+  order_id: "KW-FILTRO",
+});
+
+delete process.env.KIWIFY_ALLOWED_PRODUCTS;
+check("sem env, aceita qualquer produto", shouldProcessEvent("kiwify", kiwifyBody({ product_id: "qualquer" })));
+
+process.env.KIWIFY_ALLOWED_PRODUCTS = "prod_cdv_123";
+check("aceita pelo product_id", shouldProcessEvent("kiwify", kiwifyBody({ product_id: "prod_cdv_123", product_name: "Código da Virada" })));
+check("recusa compra de outro produto", !shouldProcessEvent("kiwify", kiwifyBody({ product_id: "prod_outro", product_name: "Outro Curso" })));
+
+process.env.KIWIFY_ALLOWED_PRODUCTS = "Código da Virada";
+check("aceita pelo nome, ignorando maiúsculas", shouldProcessEvent("kiwify", kiwifyBody({ product_name: "CÓDIGO DA VIRADA" })));
+check("env da kiwify não afeta a hotmart", shouldProcessEvent("hotmart", { data: { product: { name: "Qualquer" } } }));
+delete process.env.KIWIFY_ALLOWED_PRODUCTS;
 
 console.log(`\nTotal: ${pass} passou, ${fail} falhou`);
 if (fail > 0) process.exit(1);
