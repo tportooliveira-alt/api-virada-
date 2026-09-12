@@ -19,4 +19,5 @@ Componentes reutilizáveis do app. Client components (PWA, offline-first).
 | `LocalStorageNotice.tsx` | Onboarding: onde ficam os dados |
 | `PremiumGate.tsx`, `EmptyState.tsx` | Estados de UI |
 
-> Estado global vem do `ViradaProvider` (ver `providers/`). Dados ficam no localStorage (`virada-app:v1`).
+> Estado global vem do `ViradaProvider` (ver `providers/`). Dados financeiros ficam no IndexedDB
+> (`lib/db/`), com migração única do localStorage antigo; conta e URL da planilha seguem no localStorage.
