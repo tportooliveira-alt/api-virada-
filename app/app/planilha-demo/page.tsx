@@ -5,7 +5,7 @@
  * Dados reais do app, formatação de analista financeiro.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useVirada } from "@/providers/virada-provider";
 import { ExpenseChart } from "@/components/ExpenseChart";
 
