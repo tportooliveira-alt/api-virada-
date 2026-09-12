@@ -47,11 +47,11 @@ export default function ObrigadoPage() {
         href="/app"
         className="mt-6 flex w-full items-center justify-center rounded-xl bg-green-500 py-4 text-base font-bold text-green-900 transition hover:bg-green-400"
       >
-        Abrir o app
+        Entrar com o Google
       </Link>
       <p className="mt-3 text-center text-xs text-ink-500">
-        Acabou de pagar? O acesso pode levar 1 a 2 minutos para aparecer. Se der &ldquo;conta não encontrada&rdquo;,
-        espere um pouco e tente de novo.
+        O próximo passo é o login do Google — o app abre logo depois. Acabou de pagar? O acesso pode levar
+        1 a 2 minutos para aparecer. Se der &ldquo;conta não encontrada&rdquo;, espere um pouco e tente de novo.
       </p>
 
       <h2 className="mt-10 text-lg font-semibold text-ink-900">O que veio junto</h2>

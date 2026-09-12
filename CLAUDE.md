@@ -63,6 +63,17 @@ de novo.
    e `ADMIN_SESSION_SECRET` no ambiente. Sem o segredo, o painel admin fecha (fail-closed,
    de propósito). Nunca voltar a autenticar admin por header de texto.
 
+7. **Escopo do Google: só `drive.file`.** É o único que o app pede
+   (`components/GoogleSyncButton.tsx`) e ele basta para criar e atualizar a planilha que o
+   próprio app cria. **Não voltar a pedir `spreadsheets`**: é escopo *sensível*, exige
+   verificação do Google e fazia o comprador ver "app não verificado" bem na hora de
+   conectar a planilha. Os escopos declarados no Google Cloud (projeto `virada-app` →
+   Auth Platform → Acesso a dados) precisam bater com os do código: hoje são `openid`,
+   `userinfo.email`, `userinfo.profile` e `drive.file`, todos não confidenciais.
+8. **Webhook sem `<PLATAFORMA>_ALLOWED_PRODUCTS` aceita qualquer produto.** Sem a env,
+   qualquer compra aprovada na mesma conta de venda vira membro ativo do app
+   (`lib/access/products.ts`). Vale o id **ou** o nome do produto, separados por vírgula.
+
 ## Dois artefatos chamados "planilha" — não confundir
 
 - **Prévia** (`app/app/planilha-demo/page.tsx`): componente React que imita a aparência do
@@ -102,7 +113,7 @@ Pasta: **`/var/www/codigo-da-virada`** (a `/opt/virada-app` é resto de maio —
 ssh vps-paperclip "cd /var/www/codigo-da-virada && git pull --ff-only origin main && npm run build && pm2 restart codigo-da-virada"
 ```
 `.env.local` da VPS (fora do git) tem: `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `KIWIFY_TOKEN`,
-`ADMIN_EMAILS`, `ADMIN_SESSION_SECRET`.
+`KIWIFY_ALLOWED_PRODUCTS`, `ADMIN_EMAILS`, `ADMIN_SESSION_SECRET`.
 
 Webhook cadastrado na Kiwify (Apps → Webhooks), eventos compra aprovada / reembolso /
 chargeback, apontando para `/api/webhooks/kiwify?token=$KIWIFY_TOKEN`. **Sem ele o

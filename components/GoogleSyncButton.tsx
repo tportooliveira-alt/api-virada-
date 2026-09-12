@@ -30,10 +30,11 @@ import {
   type SyncInput,
 } from "@/lib/sheets/builder";
 
-const SCOPES = [
-  "https://www.googleapis.com/auth/spreadsheets",
-  "https://www.googleapis.com/auth/drive.file",
-].join(" ");
+// Só drive.file. O Google marca este escopo como "não sensível (recomendado)" e ele
+// já autoriza criar e atualizar a planilha que o PRÓPRIO app cria (é o caso aqui).
+// O escopo "spreadsheets" é sensível: exigia verificação e fazia o comprador ver a
+// tela de "app não verificado" bem na hora de conectar a planilha.
+const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
 const STORAGE_KEY = "virada_google_token";
 const SHEET_KEY = "virada_sheet_meta";
