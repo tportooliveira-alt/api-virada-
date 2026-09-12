@@ -43,6 +43,98 @@ window.OM_PLAYBACK = '{"mode":"loop"}';
   // Duração da oferta por visitante, em horas (0 desliga a faixa amarela).
   var HORAS_OFERTA = 24;
 </script>
+
+<style id="antigravity-styles">
+  /* ANTIGRAVITY EXPERT DESIGN SYSTEM */
+  @keyframes antigravityFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+    70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+  }
+  .float-capsule {
+    animation: antigravityFloat 4s ease-in-out infinite;
+  }
+  .pulse-dot {
+    position: relative;
+    width: 8px;
+    height: 8px;
+    background: #22C55E;
+    border-radius: 50%;
+    animation: pulseGlow 2.5s infinite;
+  }
+  .backdrop-modal {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    z-index: 98; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .backdrop-modal.ativo {
+    opacity: 1; pointer-events: auto;
+  }
+
+  /* MODAL / BOTTOM SHEET DA CONSULTORA */
+  #modal-virada-ia {
+    position: fixed;
+    z-index: 99;
+    display: flex;
+    flex-direction: column;
+    background: #FFFFFF;
+    box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+  }
+
+  /* Mobile Bottom Sheet (< 640px) */
+  @media (max-width: 640px) {
+    #modal-virada-ia {
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      max-height: 88vh;
+      border-radius: 28px 28px 0 0;
+      transform: translateY(105%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    #modal-virada-ia.aberto {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .sheet-handle-bar {
+      display: block !important;
+    }
+  }
+
+  /* Desktop Floating Card (>= 641px) */
+  @media (min-width: 641px) {
+    #modal-virada-ia {
+      right: 24px;
+      bottom: 24px;
+      width: 410px;
+      max-height: 84vh;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transform: scale(0.92) translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+    }
+    #modal-virada-ia.aberto {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .sheet-handle-bar {
+      display: none !important;
+    }
+  }
+</style>
+
 </head>
 <body>
 <div>
@@ -325,146 +417,195 @@ window.OM_PLAYBACK = '{"mode":"loop"}';
 
   
   
-  <!-- BOTÃO FLUTUANTE ANTIGRAVITY COMPACTO (MOBILE & DESKTOP) -->
-  <div id="wrapper-balao-flutuante" style="position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom, 0px)); z-index:90; display:flex; align-items:center; gap:8px; pointer-events:auto;">
-    
-    <!-- Micro-balão de texto convidativo e discreto -->
-    <div id="tooltip-ia-flutuante" onclick="abrirWidgetIA('dividas')" style="cursor:pointer; background:rgba(15, 23, 42, 0.92); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.15); color:#FFFFFF; padding:8px 14px; border-radius:999px; font-size:12px; font-weight:700; box-shadow:0 10px 25px rgba(0,0,0,0.25); display:flex; align-items:center; gap:6px; transition:transform 0.2s ease, opacity 0.2s ease;">
-      <span style="display:inline-block; width:7px; height:7px; background:#22C55E; border-radius:50%; box-shadow:0 0 8px #22C55E;"></span>
-      <span>Destravar Dívidas</span>
-    </div>
-
-    <!-- Bolha circular compacta e tátil -->
-    <button type="button" id="btn-bolha-ia" onclick="abrirWidgetIA('dividas')" title="Consultora da Virada" style="position:relative; width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color:#FFFFFF; border:1.5px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 12px 28px rgba(0,0,0,0.3); transition:transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease; outline:none;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path>
-      </svg>
-      <!-- Indicador verde pulsante -->
-      <span style="position:absolute; top:2px; right:2px; width:12px; height:12px; background:#22C55E; border:2.5px solid #0F172A; border-radius:50%;"></span>
-    </button>
-  </div>
-
-
-
-<!-- WIDGET CONSULTORA DA VIRADA & DESTRAVAR DÍVIDAS -->
-<div id="modal-virada-ia" style="display:none; position:fixed; right:12px; left:12px; margin:0 auto; max-width:390px; bottom:84px; width:390px; max-width:calc(100vw - 32px); max-height:min(580px, 85vh); background:#FFFFFF; border-radius:20px; box-shadow:0 24px 60px rgba(15,23,42,0.25); border:1px solid #E2E8F0; z-index:100; overflow:hidden; font-family:'Onest', sans-serif; flex-direction:column;">
   
-  <!-- CABEÇALHO -->
-  <div style="background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color:#FFFFFF; padding:16px 18px; display:flex; align-items:center; justify-content:space-between;">
-    <div style="display:flex; align-items:center; gap:12px;">
-      <div style="position:relative; width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #22C55E 0%, #15803D 100%); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; color:#FFF;">
-        ⚡
-        <span style="position:absolute; bottom:0; right:0; width:10px; height:10px; background:#22C55E; border:2px solid #0F172A; border-radius:50%;"></span>
-      </div>
-      <div>
-        <h4 style="margin:0; font-size:15px; font-weight:800; color:#FFFFFF;">Consultora da Virada</h4>
-        <p style="margin:0; font-size:11px; color:#94A3B8; display:flex; align-items:center; gap:4px;">
-          <span style="display:inline-block; width:6px; height:6px; background:#22C55E; border-radius:50%;"></span> Especialista online agora
-        </p>
-      </div>
-    </div>
-    <button onclick="fecharWidgetIA()" style="background:none; border:none; color:#94A3B8; font-size:22px; cursor:pointer; padding:4px; line-height:1;">&times;</button>
+    <!-- BACKDROP BLUR ESCURO QUANDO MODAL ABRE -->
+  <div id="backdrop-modal-ia" class="backdrop-modal" onclick="fecharWidgetIA()"></div>
+
+  <!-- TRIGGER FLUTUANTE ANTIGRAVITY COMPACTO (CÁPSULA DINÂMICA) -->
+  <div id="wrapper-balao-flutuante" class="float-capsule" onclick="abrirWidgetIA('dividas')" title="Consultora da Virada" style="position:fixed; right:16px; bottom:calc(18px + env(safe-area-inset-bottom, 0px)); z-index:90; cursor:pointer; background:rgba(15, 23, 42, 0.94); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.18); color:#FFFFFF; padding:9px 15px 9px 12px; border-radius:999px; font-size:12px; font-weight:700; box-shadow:0 12px 32px rgba(0,0,0,0.42), 0 0 0 1px rgba(34,197,94,0.25); display:inline-flex; align-items:center; gap:8px; user-select:none; transition:transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;">
+    <span class="pulse-dot"></span>
+    <span id="txt-msg-rotativa" style="letter-spacing:-0.01em;">🛑 Destravar Dívidas</span>
+    <span style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; background:rgba(34,197,94,0.18); color:#22C55E; margin-left:2px;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </span>
   </div>
 
-  <!-- ABAS DE NAVEGAÇÃO -->
-  <div style="display:flex; border-bottom:1px solid #E2E8F0; background:#F8FAFC;">
-    <button id="tab-btn-dividas" onclick="trocarAbaIA('dividas')" style="flex:1; padding:12px 10px; border:none; background:#FFFFFF; font-size:13px; font-weight:700; color:#047857; border-bottom:2px solid #047857; cursor:pointer;">
-      🛑 Destravar Dívidas
-    </button>
-    <button id="tab-btn-duvidas" onclick="trocarAbaIA('duvidas')" style="flex:1; padding:12px 10px; border:none; background:transparent; font-size:13px; font-weight:600; color:#64748B; border-bottom:2px solid transparent; cursor:pointer;">
-      💬 Dúvidas da Compra
-    </button>
-  </div>
-
-  <!-- CONTEÚDO CORPO -->
-  <div style="flex:1; overflow-y:auto; padding:16px; font-size:13px; color:#1E293B;">
+  <!-- MODAL / BOTTOM SHEET DA CONSULTORA DA VIRADA -->
+  <div id="modal-virada-ia">
     
-    <!-- ABA 1: DÍVIDAS -->
-    <div id="aba-dividas">
-      <div style="background:#FEF2F2; border-left:3px solid #EF4444; padding:10px 12px; border-radius:6px; margin-bottom:12px;">
-        <strong style="color:#991B1B; font-size:12px;">Simulador de Quitação com Desconto:</strong>
-        <p style="margin:4px 0 0; color:#7F1D1D; font-size:12px;">Calcule quanto você pode abater no acordo e saia dos juros abusivos.</p>
+    <!-- BARRA DE ARRASTAR / HANDLE (BOTTOM SHEET NO MOBILE) -->
+    <div class="sheet-handle-bar" style="width:100%; padding-top:10px; padding-bottom:2px; background:#0F172A; text-align:center;">
+      <div style="width:42px; height:4px; background:rgba(255,255,255,0.3); border-radius:999px; margin:0 auto;"></div>
+    </div>
+
+    <!-- CABEÇALHO SLATE GLASS -->
+    <div style="padding:14px 18px; background:#0F172A; color:#FFFFFF; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.1);">
+      <div style="display:flex; align-items:center; gap:11px;">
+        <div style="position:relative; width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #10B981 0%, #047857 100%); display:flex; align-items:center; justify-content:center; color:#FFF; font-weight:900; font-size:18px; box-shadow:0 4px 12px rgba(16,185,129,0.35);">
+          ⚡
+          <span style="position:absolute; bottom:0; right:0; width:11px; height:11px; background:#22C55E; border:2px solid #0F172A; border-radius:50%;"></span>
+        </div>
+        <div>
+          <div style="font-size:15px; font-weight:800; letter-spacing:-0.02em; line-height:1.2;">Consultora da Virada</div>
+          <div style="font-size:11px; color:#34D399; font-weight:600; display:flex; align-items:center; gap:4px; margin-top:2px;">
+            <span style="width:6px; height:6px; background:#34D399; border-radius:50%; display:inline-block;"></span>
+            Especialista Financeira • Online
+          </div>
+        </div>
       </div>
+      <button type="button" onclick="fecharWidgetIA()" aria-label="Fechar" style="background:rgba(255,255,255,0.1); border:none; color:#CBD5E1; width:32px; height:32px; border-radius:50%; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">&times;</button>
+    </div>
 
-      <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px; color:#475569;">Qual é a sua dívida principal?</label>
-      <select id="sel-tipo-divida" style="width:100%; padding:10px; border:1px solid #CBD5E1; border-radius:8px; margin-bottom:12px; font-size:13px; background:#FFF;">
-        <option value="rotativo">💳 Cartão de Crédito / Rotativo (Juros até 432% a.a.)</option>
-        <option value="cheque">🏦 Cheque Especial / Empréstimo Pessoal</option>
-        <option value="negativado">📋 Negativado no Serasa/SPC (Dívida Antiga)</option>
-        <option value="consignado">🚗 Financiamento / Consignado</option>
-      </select>
-
-      <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px; color:#475569;">Valor aproximado da dívida:</label>
-      <div style="display:flex; gap:6px; margin-bottom:10px;">
-        <button type="button" onclick="setValorDivida(3000)" style="flex:1; padding:6px; border:1px solid #CBD5E1; background:#F1F5F9; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600;">R$ 3 mil</button>
-        <button type="button" onclick="setValorDivida(10000)" style="flex:1; padding:6px; border:1px solid #CBD5E1; background:#F1F5F9; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600;">R$ 10 mil</button>
-        <button type="button" onclick="setValorDivida(25000)" style="flex:1; padding:6px; border:1px solid #CBD5E1; background:#F1F5F9; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600;">R$ 25 mil</button>
-      </div>
-      <input type="number" id="input-valor-divida" placeholder="Ou digite o valor exato (ex: 8500)" style="width:100%; box-sizing:border-box; padding:10px; border:1px solid #CBD5E1; border-radius:8px; margin-bottom:12px; font-size:13px;">
-
-      <button type="button" onclick="simularPlanoDivida()" style="width:100%; padding:12px; background:#047857; color:#FFFFFF; border:none; border-radius:10px; font-size:14px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(4,120,87,0.25);">
-        Calcular Estratégia de Quitação →
+    <!-- ABAS DE NAVEGAÇÃO -->
+    <div style="display:flex; border-bottom:1px solid #E2E8F0; background:#F8FAFC;">
+      <button id="tab-btn-dividas" type="button" onclick="trocarAbaIA('dividas')" style="flex:1; padding:12px 10px; border:none; background:#FFFFFF; font-size:13px; font-weight:700; color:#047857; border-bottom:2px solid #047857; cursor:pointer;">
+        🛑 Quitar Dívida & Carta
       </button>
-
-      <div id="resultado-divida" style="display:none; margin-top:14px; padding:14px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:10px;">
-        <div id="conteudo-resultado-divida"></div>
-      </div>
+      <button id="tab-btn-duvidas" type="button" onclick="trocarAbaIA('duvidas')" style="flex:1; padding:12px 10px; border:none; background:transparent; font-size:13px; font-weight:600; color:#64748B; border-bottom:2px solid transparent; cursor:pointer;">
+        💬 Dúvidas da Compra
+      </button>
     </div>
 
-    <!-- ABA 2: DÚVIDAS DA COMPRA -->
-    <div id="aba-duvidas" style="display:none;">
-      <p style="margin:0 0 10px; color:#64748B; font-size:12px;">Dúvidas frequentes de quem vai começar hoje:</p>
+    <!-- CORPO COM SCROLL SUAVE -->
+    <div style="flex:1; overflow-y:auto; padding:16px; font-size:13px; color:#1E293B; -webkit-overflow-scrolling:touch;">
       
-      <div style="display:flex; flex-direction:column; gap:8px;">
-        <button type="button" onclick="mostrarRespostaFAQ('mensalidade')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
-          ❓ Tem alguma mensalidade ou cobrança recorrente?
+      <!-- ABA 1: DÍVIDAS E CARTA AO BANCO -->
+      <div id="aba-dividas">
+        <div style="background:#FEF2F2; border-left:3px solid #EF4444; padding:10px 12px; border-radius:8px; margin-bottom:12px;">
+          <strong style="color:#991B1B; font-size:12px; display:block;">Simulador de Quitação com Desconto:</strong>
+          <p style="margin:3px 0 0; color:#7F1D1D; font-size:12px; line-height:1.4;">Descubra a margem real de quitação e o poder da notificação extrajudicial do BACEN.</p>
+        </div>
+
+        <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px; color:#475569;">Qual é o tipo da sua dívida?</label>
+        <select id="sel-tipo-divida" style="width:100%; box-sizing:border-box; padding:10px; border:1px solid #CBD5E1; border-radius:8px; margin-bottom:12px; font-size:13px; background:#FFF; font-weight:500;">
+          <option value="rotativo">💳 Cartão de Crédito / Rotativo (Juros até 432% a.a.)</option>
+          <option value="cheque">🏦 Cheque Especial / Empréstimo Pessoal</option>
+          <option value="negativado">📋 Negativado no Serasa/SPC (Dívida Antiga)</option>
+          <option value="consignado">🚗 Financiamento / Consignado</option>
+        </select>
+
+        <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px; color:#475569;">Valor aproximado da dívida:</label>
+        <div style="display:flex; gap:6px; margin-bottom:10px;">
+          <button type="button" onclick="setValorDivida(3000)" style="flex:1; padding:7px 4px; border:1px solid #CBD5E1; background:#F1F5F9; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600; color:#1E293B;">R$ 3 mil</button>
+          <button type="button" onclick="setValorDivida(10000)" style="flex:1; padding:7px 4px; border:1px solid #CBD5E1; background:#F1F5F9; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600; color:#1E293B;">R$ 10 mil</button>
+          <button type="button" onclick="setValorDivida(25000)" style="flex:1; padding:7px 4px; border:1px solid #CBD5E1; background:#F1F5F9; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600; color:#1E293B;">R$ 25 mil</button>
+          <button type="button" onclick="setValorDivida(50000)" style="flex:1; padding:7px 4px; border:1px solid #CBD5E1; background:#F1F5F9; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600; color:#1E293B;">R$ 50 mil</button>
+        </div>
+        <input type="number" id="input-valor-divida" placeholder="Ou digite o valor exato (ex: 8500)" style="width:100%; box-sizing:border-box; padding:10px; border:1px solid #CBD5E1; border-radius:8px; margin-bottom:12px; font-size:13px; font-weight:600;">
+
+        <button type="button" onclick="simularPlanoDivida()" style="width:100%; padding:13px; background:#047857; color:#FFFFFF; border:none; border-radius:10px; font-size:14px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(4,120,87,0.3); transition:background 0.2s;" onmouseover="this.style.background='#065F46'" onmouseout="this.style.background='#047857'">
+          Calcular Estratégia de Quitação →
         </button>
-        <button type="button" onclick="mostrarRespostaFAQ('drive')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
-          ❓ Como a planilha conecta no meu Google Drive?
-        </button>
-        <button type="button" onclick="mostrarRespostaFAQ('celular')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
-          ❓ Funciona no meu iPhone e Android?
-        </button>
-        <button type="button" onclick="mostrarRespostaFAQ('carta')" style="text-align:left; padding:10px 12px; background:#FEF3C7; border:1px solid #FCD34D; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; color:#92400E;">
-          📄 Como funciona a Carta de Quitação enviada ao Banco?
-        </button>
-        <button type="button" onclick="mostrarRespostaFAQ('garantia')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
-          ❓ E se eu não gostar? Qual é a garantia?
-        </button>
+
+        <div id="resultado-divida" style="display:none; margin-top:14px; padding:14px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:12px;">
+          <div id="conteudo-resultado-divida"></div>
+        </div>
       </div>
 
-      <div id="resposta-faq-box" style="display:none; margin-top:12px; padding:12px; background:#F1F5F9; border-radius:8px; border-left:3px solid #047857; font-size:12px; line-height:1.5; color:#0F172A;">
-        <div id="resposta-faq-texto"></div>
+      <!-- ABA 2: DÚVIDAS DA COMPRA -->
+      <div id="aba-duvidas" style="display:none;">
+        <p style="margin:0 0 10px; color:#64748B; font-size:12px;">Toque na dúvida para ver a resposta imediata:</p>
+        
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <button type="button" onclick="mostrarRespostaFAQ('mensalidade')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
+            ❓ Tem alguma mensalidade ou cobrança recorrente?
+          </button>
+          <button type="button" onclick="mostrarRespostaFAQ('drive')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
+            ❓ Como a planilha conecta no meu Google Drive?
+          </button>
+          <button type="button" onclick="mostrarRespostaFAQ('celular')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
+            ❓ Funciona no meu iPhone e Android?
+          </button>
+          <button type="button" onclick="mostrarRespostaFAQ('carta')" style="text-align:left; padding:10px 12px; background:#FEF3C7; border:1px solid #FCD34D; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; color:#92400E;">
+            📄 Como funciona a Carta de Quitação enviada ao Banco?
+          </button>
+          <button type="button" onclick="mostrarRespostaFAQ('garantia')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
+            ❓ E se eu não gostar? Qual é a garantia?
+          </button>
+        </div>
+
+        <div id="resposta-faq-box" style="display:none; margin-top:12px; padding:12px; background:#F1F5F9; border-radius:8px; border-left:3px solid #047857; font-size:12px; line-height:1.5; color:#0F172A;">
+          <div id="resposta-faq-texto"></div>
+        </div>
       </div>
+
+    </div>
+
+    <!-- RODAPÉ WHATSAPP -->
+    <div style="padding:11px 16px; background:#F8FAFC; border-top:1px solid #E2E8F0; display:flex; align-items:center; justify-content:space-between; font-size:12px;">
+      <span style="color:#64748B;">Prefere tirar dúvidas no WhatsApp?</span>
+      <a href="https://wa.me/5577999395511?text=Oi!%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20C%C3%B3digo%20da%20Virada." target="_blank" style="display:flex; align-items:center; gap:6px; color:#15803D; font-weight:700; text-decoration:none;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>
+        (77) 99939-5511
+      </a>
     </div>
 
   </div>
-
-  <!-- RODAPÉ WHATSAPP -->
-  <div style="padding:10px 16px; background:#F8FAFC; border-top:1px solid #E2E8F0; display:flex; align-items:center; justify-content:space-between; font-size:12px;">
-    <span style="color:#64748B;">Prefere pelo WhatsApp?</span>
-    <a href="https://wa.me/5577999395511?text=Oi!%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20C%C3%B3digo%20da%20Virada." target="_blank" style="display:flex; align-items:center; gap:6px; color:#15803D; font-weight:700; text-decoration:none;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>
-      Atendimento WhatsApp
-    </a>
-  </div>
-</div>
 
 <script>
+// Rotação dinâmica no balão flutuante
+(function() {
+  var msgs = [
+    '🛑 Destravar Dívidas',
+    '📄 Modelo Carta ao Banco',
+    '⚡ Simular Quitação 90%',
+    '💬 Dúvidas sobre o App'
+  ];
+  var idx = 0;
+  setInterval(function() {
+    idx = (idx + 1) % msgs.length;
+    var el = document.getElementById('txt-msg-rotativa');
+    if (el) {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(3px)';
+      setTimeout(function() {
+        el.textContent = msgs[idx];
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      }, 200);
+    }
+  }, 3800);
+})();
+
+function togglePreviewCarta() {
+  var p = document.getElementById('box-preview-carta');
+  var b = document.getElementById('btn-toggle-carta');
+  if (!p) return;
+  if (p.style.display === 'none' || !p.style.display) {
+    p.style.display = 'block';
+    if (b) b.textContent = '▲ Ocultar Trecho da Carta';
+    setTimeout(function() { p.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 80);
+  } else {
+    p.style.display = 'none';
+    if (b) b.textContent = '👁️ Ver Notificação ao Banco';
+  }
+}
+
 function abrirWidgetIA(aba) {
   var modal = document.getElementById('modal-virada-ia');
-  if (!modal) return;
+  var b = document.getElementById('backdrop-modal-ia');
   var wrap = document.getElementById('wrapper-balao-flutuante');
-  if (wrap) wrap.style.display = 'none';
-  modal.style.display = 'flex';
+  if (modal) modal.classList.add('aberto');
+  if (b) b.classList.add('ativo');
+  if (wrap) {
+    wrap.style.opacity = '0';
+    wrap.style.pointerEvents = 'none';
+    wrap.style.transform = 'scale(0.85) translateY(10px)';
+  }
   if (aba) trocarAbaIA(aba);
 }
 
 function fecharWidgetIA() {
   var modal = document.getElementById('modal-virada-ia');
-  if (modal) modal.style.display = 'none';
+  var b = document.getElementById('backdrop-modal-ia');
   var wrap = document.getElementById('wrapper-balao-flutuante');
-  if (wrap) wrap.style.display = 'flex';
+  if (modal) modal.classList.remove('aberto');
+  if (b) b.classList.remove('ativo');
+  if (wrap) {
+    wrap.style.opacity = '1';
+    wrap.style.pointerEvents = 'auto';
+    wrap.style.transform = 'scale(1) translateY(0)';
+  }
 }
 
 function trocarAbaIA(aba) {
@@ -499,54 +640,71 @@ function setValorDivida(v) {
 
 function simularPlanoDivida() {
   var tipo = document.getElementById('sel-tipo-divida').value;
-  var valor = parseFloat(document.getElementById('input-valor-divida').value) || 5000;
+  var valor = parseFloat(document.getElementById('input-valor-divida').value) || 10000;
   var box = document.getElementById('resultado-divida');
   var conteudo = document.getElementById('conteudo-resultado-divida');
-  
-  var descontoMin = 0.60;
-  var descontoMax = 0.85;
-  var tipoNome = "Cartão de Crédito (Rotativo)";
-  var perigo = "Se pagar o mínimo de juros, em 12 meses essa dívida pode triplicar!";
 
-  if (tipo === "cheque") {
-    tipoNome = "Cheque Especial / Empréstimo";
-    descontoMin = 0.50;
-    descontoMax = 0.75;
-    perigo = "Os juros correm diariamente corroendo todo o seu salário antes de sobrar.";
-  } else if (tipo === "negativado") {
-    tipoNome = "Dívida Antiga / Serasa / SPC";
-    descontoMin = 0.75;
-    descontoMax = 0.92;
-    perigo = "O banco já colocou essa dívida em prejuízo. Você tem poder de quitação por uma fração!";
-  } else if (tipo === "consignado") {
-    tipoNome = "Financiamento / Consignado";
-    descontoMin = 0.40;
-    descontoMax = 0.65;
-    perigo = "A amortização correta com o Método Avalanche elimina anos de parcelas.";
+  var margemMin = 0.15;
+  var margemMax = 0.40;
+  var risco = "Se pagar o mínimo de juros, em 12 meses essa dívida pode triplicar!";
+  var nomeDivida = "Cartão de Crédito (Rotativo)";
+
+  if (tipo === 'rotativo') {
+    margemMin = 0.15; margemMax = 0.40;
+    risco = "O rotativo do cartão tem juros de até 432% ao ano. Quem paga o mínimo nunca sai do buraco.";
+    nomeDivida = "Cartão de Crédito / Rotativo";
+  } else if (tipo === 'cheque') {
+    margemMin = 0.20; margemMax = 0.45;
+    risco = "O cheque especial e empréstimo pessoal engolem sua conta todo mês antes de você pagar as contas básicas.";
+    nomeDivida = "Cheque Especial / Empréstimo Pessoal";
+  } else if (tipo === 'negativado') {
+    margemMin = 0.08; margemMax = 0.25;
+    risco = "Dívidas antigas com mais de 1 ano já estão provisionadas pelo banco como prejuízo: a margem de desconto é a mais alta de todas (até 92%).";
+    nomeDivida = "Dívida Negativada no Serasa/SPC";
+  } else if (tipo === 'consignado') {
+    margemMin = 0.35; margemMax = 0.60;
+    risco = "Empréstimo consignado desconta na fonte. A estratégia é a portabilidade ou quitação com amortização dos juros futuros.";
+    nomeDivida = "Financiamento / Consignado";
   }
 
-  var valorAcordoMin = Math.round(valor * (1 - descontoMax));
-  var valorAcordoMax = Math.round(valor * (1 - descontoMin));
-  var economia = Math.round(valor - valorAcordoMin);
+  var valorAcordoMin = Math.round(valor * margemMin);
+  var valorAcordoMax = Math.round(valor * margemMax);
+  var economia = valor - valorAcordoMin;
 
-  var html = '<h5 style="margin:0 0 6px; color:#065F46; font-size:13px; font-weight:800;">Estratégia Recomendada: ' + tipoNome + '</h5>' +
-    '<p style="margin:0 0 8px; font-size:12px; color:#1F2937;"><strong>⚠️ Risco atual:</strong> ' + perigo + '</p>' +
-    '<div style="background:#DCFCE7; border-radius:8px; padding:10px; margin-bottom:10px;">' +
-      '<p style="margin:0; font-size:11px; color:#166534;">Margem de Acordo com o Roteiro do Código da Virada:</p>' +
-      '<p style="margin:2px 0 0; font-size:15px; font-weight:800; color:#15803D;">De R$ ' + valor.toLocaleString('pt-BR') + ' para R$ ' + valorAcordoMin.toLocaleString('pt-BR') + ' a R$ ' + valorAcordoMax.toLocaleString('pt-BR') + '</p>' +
-      '<p style="margin:2px 0 0; font-size:11px; color:#166534;">Economia potencial de até <strong>R$ ' + economia.toLocaleString('pt-BR') + '</strong> no valor quitado.</p>' +
+  var html = '' +
+    '<div style="font-weight:800; font-size:13px; color:#065F46; margin-bottom:6px;">' +
+      'Estratégia Recomendada: ' + nomeDivida +
     '</div>' +
-    '<div style="background:#FEF3C7; border:1px solid #FCD34D; border-radius:8px; padding:10px; margin-bottom:10px;">' +
-      '<p style="margin:0 0 4px; font-size:12px; font-weight:800; color:#92400E; display:flex; align-items:center; gap:5px;">' +
-        '📄 <span>Carta Oficial de Notificação ao Banco (Inclusa)</span>' +
-      '</p>' +
-      '<p style="margin:0; font-size:11px; line-height:1.4; color:#78350F;">' +
-        'Você recebe o modelo pronto com embasamento no BACEN e CDC para exigir o <strong>DED (Demonstrativo da Dívida)</strong> e forçar o banco a retirar juros abusivos, liberando a quitação à vista com <strong>desconto de até 85%-90%</strong>.' +
-      '</p>' +
+    '<div style="background:#FFF; padding:10px; border-radius:8px; border-left:3px solid #EAB308; margin-bottom:10px; font-size:12px; color:#713F12; line-height:1.4;">' +
+      '⚠️ <strong>Risco atual:</strong> ' + risco +
     '</div>' +
-    '<p style="margin:0 0 10px; font-size:12px; color:#374151;">No <strong>Bônus 2</strong> você tem os 5 scripts prontos de ligação + a Carta ao Banco preenchível + as 4 armadilhas para nunca aceitar refinanciamento furado.</p>' +
-    '<a href="https://pay.kiwify.com.br/QUVGK3y" target="_blank" style="display:block; text-align:center; padding:10px; background:#047857; color:#FFF; text-decoration:none; font-weight:800; font-size:13px; border-radius:8px; box-shadow:0 4px 10px rgba(4,120,87,0.3);">' +
-      'Destravar Código da Virada por R$ 47 →' +
+    '<div style="background:#ECFDF5; border:1px solid #A7F3D0; padding:12px; border-radius:8px; margin-bottom:12px;">' +
+      '<span style="font-size:11px; font-weight:700; color:#047857; text-transform:uppercase; letter-spacing:0.05em;">Margem de Acordo com o Roteiro do Código da Virada:</span>' +
+      '<p style="margin:4px 0 0; font-size:16px; font-weight:900; color:#15803D;">De R$ ' + valor.toLocaleString('pt-BR') + ' para R$ ' + valorAcordoMin.toLocaleString('pt-BR') + ' a R$ ' + valorAcordoMax.toLocaleString('pt-BR') + '</p>' +
+      '<p style="margin:3px 0 0; font-size:11px; color:#166534;">Economia potencial de até <strong>R$ ' + economia.toLocaleString('pt-BR') + '</strong> no valor quitado.</p>' +
+    '</div>' +
+    '<div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:10px; padding:12px; margin-bottom:12px;">' +
+      '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">' +
+        '<div>' +
+          '<p style="margin:0; font-size:12px; font-weight:800; color:#92400E; display:flex; align-items:center; gap:5px;">' +
+            '📄 <span>Carta Oficial ao Banco (Bônus 2 Incluso)</span>' +
+          '</p>' +
+          '<p style="margin:2px 0 0; font-size:11px; color:#78350F;">Embasamento nas Resoluções do BACEN e CDC Art. 52.</p>' +
+        '</div>' +
+        '<button type="button" id="btn-toggle-carta" onclick="togglePreviewCarta()" style="padding:6px 10px; background:#D97706; color:#FFF; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">' +
+          '👁️ Ver Notificação ao Banco' +
+        '</button>' +
+      '</div>' +
+      '<div id="box-preview-carta" style="display:none; margin-top:10px; padding:10px; background:#FFFFFF; border:1px dashed #F59E0B; border-radius:6px; font-family:monospace; font-size:10px; line-height:1.5; color:#451A03;">' +
+        '<strong style="display:block; margin-bottom:4px; color:#92400E; font-size:10px;">[NOTIFICAÇÃO FORMAL DE QUITAÇÃO EXTRAJUDICIAL]:</strong>' +
+        '<em>"À Diretoria de Crédito do Banco [Nome do Banco].<br>' +
+        'Venho formalizar requerimento de liquidação antecipada do débito com base no Art. 52, § 2º do CDC e Resoluções BACEN nº 4.549/2017.<br>' +
+        'Exijo a apresentação imediata do Demonstrativo de Evolução da Dívida (DED) expurgando encargos moratórios abusivos, e formalizo proposta irrevogável de quitação à vista no valor principal apurado, com baixa incontinenti de qualquer registro restritivo..."</em>' +
+      '</div>' +
+    '</div>' +
+    '<p style="margin:0 0 10px; font-size:12px; color:#374151; line-height:1.4;">No <strong>Bônus 2</strong> você tem os 5 scripts prontos de ligação + a Carta ao Banco preenchível + as 4 armadilhas para nunca aceitar refinanciamento furado.</p>' +
+    '<a href="https://pay.kiwify.com.br/QUVGK3y" target="_blank" style="display:block; text-align:center; padding:13px; background:#047857; color:#FFF; text-decoration:none; font-weight:800; font-size:13px; border-radius:10px; box-shadow:0 4px 12px rgba(4,120,87,0.3); transition:background 0.2s;" onmouseover="this.style.background=\'#065F46\'" onmouseout="this.style.background=\'#047857\'">' +
+      '👉 Destravar Código da Virada por R$ 47 (Acesso Vitalício) →' +
     '</a>';
 
   conteudo.innerHTML = html;
@@ -557,6 +715,8 @@ function simularPlanoDivida() {
 function mostrarRespostaFAQ(chave) {
   var box = document.getElementById('resposta-faq-box');
   var texto = document.getElementById('resposta-faq-texto');
+  if (!box || !texto) return;
+
   var respostas = {
     mensalidade: '<strong>Zero mensalidade!</strong> A maioria dos aplicativos cobra R$ 30 a R$ 40 por mês (mais de R$ 360/ano). O Código da Virada custa R$ 47 <em>uma única vez</em> com acesso vitalício e atualizações incluídas.',
     drive: '<strong>Com 1 clique automático!</strong> Na tela Conta do aplicativo, você clica em "Conectar Google Planilhas" e permite o acesso. O sistema gera a planilha executiva com 9 abas completas direto no seu Google Drive pessoal. Seus lançamentos sincronizam em segundo plano.',
@@ -567,6 +727,7 @@ function mostrarRespostaFAQ(chave) {
 
   texto.innerHTML = respostas[chave] || '';
   box.style.display = 'block';
+  setTimeout(function() { box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 80);
 }
 </script>
 
