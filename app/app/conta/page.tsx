@@ -6,6 +6,8 @@ import { BookOpen, CalendarCheck, HandCoins, ListChecks, LogOut, Smartphone, Tra
 import { GoogleSyncButton } from "@/components/GoogleSyncButton";
 import { getLocalUser, logOut } from "@/components/AuthGate";
 import { Sheet, SheetAction } from "@/components/ui/Sheet";
+import { BUDGET_PHASES } from "@/lib/constants";
+import { budgetPhaseOf, formatCurrency, sugerirFaseVirada } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
 
 export default function ContaPage() {
@@ -14,6 +16,10 @@ export default function ContaPage() {
   const [askReset, setAskReset] = useState(false);
 
   const totalLancamentos = data.expenses.length + data.incomes.length;
+  // Renda esperada em centavos, direto do provider: cada dígito já salva (sem botão).
+  const rendaCents = Math.round((data.settings?.expectedIncome ?? 0) * 100);
+  const fase = budgetPhaseOf(data);
+  const sugerir = sugerirFaseVirada(data);
   const name = user?.name?.trim() || "Sua conta";
   const initial = (user?.name || user?.email || "V").trim().charAt(0).toUpperCase();
 
@@ -23,7 +29,7 @@ export default function ContaPage() {
   }
 
   return (
-    // No celular é uma coluna (usuário, planilha, instalar, sair, perigo — via order-*);
+    // No celular é uma coluna (usuário, bolsos, planilha, o que veio junto, instalar, sair, perigo — via order-*);
     // no desktop os dois wrappers viram colunas e a planilha + zona de perigo ficam à direita.
     <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
       <div className="contents lg:flex lg:flex-col lg:gap-4">
@@ -49,8 +55,69 @@ export default function ContaPage() {
           </div>
         </section>
 
+        {/* Seus 3 bolsos: renda esperada + fase (o app sugere, quem troca é a pessoa) */}
+        <section className="surface-card order-2 flex flex-col gap-3.5 p-[18px] lg:order-none">
+          <p className="eyebrow">Seus 3 bolsos</p>
+          <label className="block rounded-xl border border-ink-200 bg-white px-3.5 py-3 transition-colors duration-150 focus-within:border-green-500">
+            <span className="text-sm font-semibold text-ink-900">Quanto entra por mês, mais ou menos?</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              aria-label="Renda por mês"
+              value={formatCurrency(rendaCents / 100)}
+              onChange={(event) => {
+                const cents = Number(event.target.value.replace(/\D/g, "").slice(0, 12));
+                data.setSettings({ expectedIncome: cents > 0 ? cents / 100 : undefined });
+              }}
+              className={`money mt-1 w-full bg-transparent font-display text-2xl font-extrabold tracking-[-0.02em] outline-none focus-visible:shadow-none ${
+                rendaCents > 0 ? "text-ink-900" : "text-ink-400"
+              }`}
+            />
+            <span className="mt-1 block text-xs text-ink-500">
+              {rendaCents > 0 ? "Salvo. Os bolsos do Início usam esse valor." : "Sem esse valor, o app usa o que entrou nos últimos meses."}
+            </span>
+          </label>
+
+          <div className="flex flex-col gap-2">
+            {BUDGET_PHASES.map((item) => {
+              const ativa = fase === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  aria-pressed={ativa}
+                  onClick={() => data.setSettings({ budgetPhase: item.key })}
+                  className={`flex flex-col items-start gap-0.5 rounded-xl border px-3.5 py-3 text-left transition-colors duration-150 ${
+                    ativa ? "border-ink-900 bg-ink-900 text-white" : "border-ink-200 bg-white text-ink-900 hover:bg-ink-50"
+                  }`}
+                >
+                  <span className="text-sm font-bold">{`${item.label} (${item.split})`}</span>
+                  <span className={`text-xs leading-[1.4] ${ativa ? "text-ink-300" : "text-ink-500"}`}>{item.hint}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {sugerir && (
+            <div className="flex flex-col gap-2 rounded-xl bg-amber-50 px-3.5 py-3 text-[13px] leading-[1.5] text-amber-800">
+              <span>
+                <b className="font-semibold">Sugestão:</b> você tem dívida em aberto. A Fase de virada manda 40% pra quitar mais
+                rápido. Só muda se você quiser.
+              </span>
+              <button
+                type="button"
+                onClick={() => data.setSettings({ budgetPhase: "virada" })}
+                className="inline-flex min-h-[40px] items-center justify-center rounded-[10px] border border-amber-300 bg-white px-3.5 text-[13px] font-bold text-amber-800 transition-colors duration-150 hover:bg-amber-100"
+              >
+                Ativar Fase de virada
+              </button>
+            </div>
+          )}
+        </section>
+
         {/* O que veio junto — no celular é por aqui que se chega às ferramentas */}
-        <section className="surface-card order-2 flex flex-col gap-3 p-[18px] lg:order-none">
+        <section className="surface-card order-4 flex flex-col gap-3 p-[18px] lg:order-none">
           <p className="eyebrow">O que veio junto</p>
           {[
             { href: "/biblioteca/negociacao/index.html", Icon: HandCoins, titulo: "Negociar dívida", desc: "Calcula o desconto, escreve os scripts e gera a carta pro banco." },
@@ -75,7 +142,7 @@ export default function ContaPage() {
         </section>
 
         {/* Instalar */}
-        <section className="surface-card order-3 flex items-center justify-between gap-3 p-[18px] lg:order-none">
+        <section className="surface-card order-5 flex items-center justify-between gap-3 p-[18px] lg:order-none">
           <div className="min-w-0">
             <p className="text-[15px] font-bold text-ink-900">Instalar no celular</p>
             <p className="mt-1 text-[13px] leading-[1.4] text-ink-500">Abre em tela cheia, sem o navegador, como um app de verdade.</p>
@@ -91,7 +158,7 @@ export default function ContaPage() {
         <button
           type="button"
           onClick={logOut}
-          className="order-4 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white text-sm font-bold text-ink-600 transition-colors duration-150 hover:bg-ink-50 lg:order-none"
+          className="order-6 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white text-sm font-bold text-ink-600 transition-colors duration-150 hover:bg-ink-50 lg:order-none"
         >
           <LogOut className="h-4 w-4" />
           Sair da conta
@@ -100,7 +167,7 @@ export default function ContaPage() {
 
       <div className="contents lg:flex lg:flex-col lg:gap-4">
         {/* Planilha Google — único lugar do app que fala com o Google */}
-        <section className="order-2 flex flex-col gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-[18px] lg:order-none">
+        <section className="order-3 flex flex-col gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-[18px] lg:order-none">
           <p className="eyebrow">Planilha Google</p>
           <GoogleSyncButton
             expenses={data.expenses}
@@ -112,7 +179,7 @@ export default function ContaPage() {
         </section>
 
         {/* Zona de perigo */}
-        <section className="order-5 flex flex-col gap-2.5 rounded-2xl border border-red-200 bg-red-50 p-[18px] lg:order-none">
+        <section className="order-7 flex flex-col gap-2.5 rounded-2xl border border-red-200 bg-red-50 p-[18px] lg:order-none">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-700">Zona de perigo</p>
           <p className="text-[15px] font-bold text-ink-900">Apagar todos os dados deste celular</p>
           <p className="text-[13px] leading-[1.5] text-red-700">

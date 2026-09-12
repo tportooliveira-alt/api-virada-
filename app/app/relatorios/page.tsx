@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, MoreHorizontal, Plus, Table, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, MoreHorizontal, Plus, Table, X } from "lucide-react";
+import { ExpenseChart, type ChartNature } from "@/components/ExpenseChart";
 import { Chip } from "@/components/ui/Chip";
-import { Segmented } from "@/components/ui/Segmented";
 import { Sheet, SheetAction } from "@/components/ui/Sheet";
-import type { Debt, DebtPriority, DebtStatus, Goal } from "@/lib/types";
-import { isEstornado, semEstornados } from "@/lib/types";
+import type { Debt, DebtPriority, DebtStatus, Expense, Goal, Income } from "@/lib/types";
+import { debtInstallmentsLeft, debtPaid, debtRemaining, isEstornado, isOpenDebt, semEstornados } from "@/lib/types";
 import {
   dailyFlow,
+  diasAte,
   formatCurrency,
   formatDate,
   formatDateFull,
@@ -20,22 +21,15 @@ import {
   isGoalReached,
   roundMoney,
   savingsRate,
+  shiftMonth,
   timeAgo,
   toInputDate,
-  type Period,
 } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
 
-// ── Período e abas ────────────────────────────────────────────────────────────
+// ── Mês e abas ────────────────────────────────────────────────────────────────
 
 type Tab = "resumo" | "lancamentos" | "receitas" | "despesas" | "dividas" | "metas" | "fluxo" | "mensal";
-
-const PERIODS: { value: Period; label: string }[] = [
-  { value: "mes", label: "Mês" },
-  { value: "30d", label: "30 dias" },
-  { value: "ano", label: "Ano" },
-  { value: "all", label: "Tudo" },
-];
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "resumo", label: "Resumo" },
@@ -48,7 +42,9 @@ const TABS: { value: Tab; label: string }[] = [
   { value: "mensal", label: "Por mês" },
 ];
 
-const CHART_COLORS = Array.from({ length: 10 }, (_, i) => `var(--chart-${i + 1})`);
+// Só 01–12: ?mes=2026-13 caía em "Janeiro 2026" com tudo zerado; agora cai no mês corrente.
+const MONTH_KEY = /^\d{4}-(0[1-9]|1[0-2])$/;
+const TOAST_MS = 6000;
 
 // "+R$ 2.900,00" para o que entrou, "−R$ 950,00" (U+2212) para o que saiu
 function signed(value: number) {
@@ -62,15 +58,26 @@ function sobrouLabel(rate: number | null) {
   return `sobrou ${rate}% do que entrou`;
 }
 
-// "2026-09" → "Setembro de 2026"
+// "2026-09" → "Setembro 2026"
 function monthLabel(ym: string) {
   const [year, month] = ym.split("-").map(Number);
-  const label = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(year, month - 1, 1));
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  const nome = new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(new Date(year, month - 1, 1));
+  return `${nome.charAt(0).toUpperCase() + nome.slice(1)} ${year}`;
 }
 
 function scopeLabel(scope?: string) {
   return scope === "empresa" ? "Empresa" : "Casa";
+}
+
+// "vence em 5 dias" · "vence hoje" · "venceu há 3 dias"
+function vencimentoLabel(dias: number) {
+  if (dias === 0) return "vence hoje";
+  if (dias > 0) return `vence em ${dias} dia${dias === 1 ? "" : "s"}`;
+  return `venceu há ${-dias} dia${dias === -1 ? "" : "s"}`;
+}
+
+function plural(n: number, um: string, varios: string) {
+  return `${n} ${n === 1 ? um : varios}`;
 }
 
 // Entrada de valor em centavos: a pessoa digita só os números
@@ -87,12 +94,14 @@ interface RowProps {
   meta: string;
   value: string;
   valueClass: string;
-  onMore?: () => void;
+  /** Com onPress a linha inteira vira botão (toque abre a folha de ações). */
+  onPress?: () => void;
+  selected?: boolean;
 }
 
-function ListRow({ ini, positive, title, meta, value, valueClass, onMore }: RowProps) {
-  return (
-    <div className="flex items-center justify-between gap-2.5 border-b border-ink-100 py-3 last:border-b-0">
+function ListRow({ ini, positive, title, meta, value, valueClass, onPress, selected }: RowProps) {
+  const inner = (
+    <>
       <span className="flex min-w-0 items-center gap-3">
         <span
           className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-[13px] font-bold ${
@@ -101,55 +110,36 @@ function ListRow({ ini, positive, title, meta, value, valueClass, onMore }: RowP
         >
           {ini}
         </span>
-        <span className="min-w-0">
+        <span className="min-w-0 text-left">
           <span className="block truncate text-sm font-semibold text-ink-900">{title}</span>
           <span className="mt-0.5 block truncate text-xs text-ink-500">{meta}</span>
         </span>
       </span>
       <span className="flex shrink-0 items-center gap-1">
         <strong className={`money text-sm ${valueClass}`}>{value}</strong>
-        {onMore && (
-          <button
-            type="button"
-            onClick={onMore}
-            aria-label={`Opções de ${title}`}
-            className="grid h-10 w-9 place-items-center rounded-[10px] text-ink-500 transition-colors duration-150 hover:bg-ink-100"
-          >
-            <MoreHorizontal className="h-[18px] w-[18px]" />
-          </button>
-        )}
+        {onPress && <ChevronRight className="h-4 w-4 text-ink-400" />}
       </span>
-    </div>
+    </>
+  );
+  if (!onPress) {
+    return <div className="flex items-center justify-between gap-2.5 border-b border-ink-100 py-3 last:border-b-0">{inner}</div>;
+  }
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      aria-current={selected ? "true" : undefined}
+      className={`-mx-2 flex w-[calc(100%+16px)] items-center justify-between gap-2.5 rounded-[10px] border-b border-ink-100 px-2 py-3 transition-colors duration-150 last:border-b-0 hover:bg-ink-50 ${
+        selected ? "bg-green-50" : ""
+      }`}
+    >
+      {inner}
+    </button>
   );
 }
 
 function Empty({ children }: { children: string }) {
   return <p className="rounded-xl border border-dashed border-ink-300 p-6 text-center text-sm text-ink-500">{children}</p>;
-}
-
-function Donut({ slices, total }: { slices: { name: string; value: number; color: string }[]; total: number }) {
-  const C = 70;
-  const R = 64;
-  let angle = -Math.PI / 2;
-  const paths = slices.map((slice) => {
-    const a = total > 0 ? (slice.value / total) * 2 * Math.PI : 0;
-    const x1 = C + R * Math.cos(angle);
-    const y1 = C + R * Math.sin(angle);
-    angle += a;
-    const x2 = C + R * Math.cos(angle);
-    const y2 = C + R * Math.sin(angle);
-    return { color: slice.color, a, d: `M ${C} ${C} L ${x1} ${y1} A ${R} ${R} 0 ${a > Math.PI ? 1 : 0} 1 ${x2} ${y2} Z` };
-  });
-  return (
-    <svg viewBox="0 0 140 140" className="h-[120px] w-[120px] shrink-0" aria-hidden="true">
-      {paths.length === 1 ? (
-        <circle cx={C} cy={C} r={R} fill={paths[0].color} />
-      ) : (
-        paths.filter((p) => p.a > 0.01).map((p, i) => <path key={i} d={p.d} fill={p.color} stroke="#fff" strokeWidth="2" />)
-      )}
-      <circle cx={C} cy={C} r={44} fill="#fff" />
-    </svg>
-  );
 }
 
 function FieldLabel({ children }: { children: string }) {
@@ -180,6 +170,9 @@ const textInputClass =
 
 const primaryClass =
   "flex min-h-[44px] items-center justify-center rounded-[10px] bg-green-500 px-4 text-sm font-bold text-green-900 transition-colors duration-150 hover:bg-green-400";
+
+const secondaryClass =
+  "flex min-h-[44px] items-center justify-center rounded-[10px] border border-ink-200 bg-white px-4 text-sm font-bold text-ink-900 transition-colors duration-150 hover:bg-ink-50";
 
 // Botão que abre/fecha um formulário inline (fechado = Ink 900, aberto = secundário)
 function ToggleButton({ open, onClick, label }: { open: boolean; onClick: () => void; label: string }) {
@@ -235,18 +228,43 @@ type TxRow = {
   estornadoEm?: string;
 };
 
+interface Toast {
+  message: string;
+  undo: () => void;
+}
+
 function Relatorios() {
   const data = useVirada();
   const searchParams = useSearchParams();
   const aba = searchParams.get("aba");
   const tab: Tab = TABS.some((t) => t.value === aba) ? (aba as Tab) : "resumo";
-  const [period, setPeriod] = useState<Period>("mes");
+
+  // Mês vem da URL (?mes=AAAA-MM ou ?mes=tudo) — recarregar reabre o mesmo mês.
+  const hoje = toInputDate();
+  const mesAtual = hoje.slice(0, 7);
+  const mesParam = searchParams.get("mes");
+  const tudo = mesParam === "tudo";
+  const mes = !tudo && mesParam && MONTH_KEY.test(mesParam) ? mesParam : mesAtual;
+  const periodoLabel = tudo ? "neste período" : "neste mês";
 
   // folhas de ação
   const [txSheet, setTxSheet] = useState<TxRow | null>(null);
   const [debtSheet, setDebtSheet] = useState<Debt | null>(null);
   const [goalSheet, setGoalSheet] = useState<Goal | null>(null);
   const [goalCents, setGoalCents] = useState(0);
+
+  // toast "Apagado · Desfazer" / "Parcela registrada · Desfazer"
+  const [toast, setToast] = useState<Toast | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  // Resumo: filtro por categoria (legenda) e natureza (chip do gráfico)
+  const [categoriaSel, setCategoriaSel] = useState<string | null>(null);
+  const [natureza, setNatureza] = useState<ChartNature>("all");
+  useEffect(() => setCategoriaSel(null), [mes, tudo]);
+
+  // "Paguei a parcela" com valor ajustado
+  const [ajustando, setAjustando] = useState<{ id: string; cents: number } | null>(null);
 
   // formulários inline
   const [debtForm, setDebtForm] = useState(false);
@@ -260,13 +278,14 @@ function Relatorios() {
   const [goalTarget, setGoalTarget] = useState(0);
   const [goalCurrent, setGoalCurrent] = useState(0);
 
-  // Histórico (listas) mostra tudo do período, estornado inclusive; totais e gráficos
+  // Histórico (listas) mostra tudo do mês, estornado inclusive; totais e gráficos
   // usam só `expenses`/`incomes`, já sem estornados (contrato em lib/types.ts).
+  // inPeriod "mes" ancorado no dia 1º do mês escolhido: comparação por texto, sem fuso.
   const { expensesPeriod, incomesPeriod, expenses, incomes } = useMemo(() => {
-    const expensesPeriod = data.expenses.filter((item) => inPeriod(item.date, period));
-    const incomesPeriod = data.incomes.filter((item) => inPeriod(item.date, period));
+    const expensesPeriod = data.expenses.filter((item) => inPeriod(item.date, tudo ? "all" : "mes", `${mes}-01`));
+    const incomesPeriod = data.incomes.filter((item) => inPeriod(item.date, tudo ? "all" : "mes", `${mes}-01`));
     return { expensesPeriod, incomesPeriod, expenses: semEstornados(expensesPeriod), incomes: semEstornados(incomesPeriod) };
-  }, [data.expenses, data.incomes, period]);
+  }, [data.expenses, data.incomes, mes, tudo]);
 
   const totInc = roundMoney(incomes.reduce((sum, item) => sum + item.value, 0));
   const totExp = roundMoney(expenses.reduce((sum, item) => sum + item.value, 0));
@@ -282,11 +301,23 @@ function Relatorios() {
     [expensesPeriod, incomesPeriod],
   );
 
-  // 8 maiores + "Outros": as fatias somam o total e os % somam 100
-  const byCategory = useMemo(
-    () => groupTopCategories(expenses, 8).map((c, i) => ({ ...c, color: CHART_COLORS[i % CHART_COLORS.length] })),
-    [expenses],
+  // Resumo: as mesmas fatias do gráfico (8 maiores + "Outros"), pra lista filtrada
+  // bater com o donut — "Outros" agrega o que não coube nas 7 nomeadas.
+  const expensesNatureza = useMemo(
+    () => expenses.filter((item) => natureza === "all" || item.nature === natureza),
+    [expenses, natureza],
   );
+  const nomeadas = useMemo(
+    () => groupTopCategories(expensesNatureza, 8).filter((c) => c.name !== "Outros").map((c) => c.name),
+    [expensesNatureza],
+  );
+  const gastosDoResumo: TxRow[] = useMemo(() => {
+    const lista = categoriaSel === null
+      ? expensesNatureza
+      : expensesNatureza.filter((item) => (categoriaSel === "Outros" ? !nomeadas.includes(item.category) : item.category === categoriaSel));
+    return lista.map((item): TxRow => ({ ...item, type: "expense" })).sort((a, b) => b.date.localeCompare(a.date) || b.value - a.value);
+  }, [expensesNatureza, categoriaSel, nomeadas]);
+  const somaResumo = roundMoney(gastosDoResumo.reduce((sum, item) => sum + item.value, 0));
 
   const impulso = roundMoney(expenses.filter((item) => item.nature === "impulso").reduce((sum, item) => sum + item.value, 0));
   const impulsoPct = totExp > 0 ? Math.round((impulso / totExp) * 100) : 0;
@@ -328,9 +359,57 @@ function Relatorios() {
 
   if (!data.isReady) return <Skeleton />;
 
-  // Troca de aba sem ida ao servidor: o Next sincroniza o useSearchParams com o histórico
-  function goTab(next: Tab) {
-    window.history.replaceState(null, "", `?aba=${next}`);
+  // Aba e mês vivem na URL, sem ida ao servidor: o Next sincroniza o useSearchParams
+  // com o histórico. Recarregar ou compartilhar o link reabre no mesmo lugar.
+  function setQuery(patch: Record<string, string | null>) {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(patch).forEach(([key, value]) => (value === null ? params.delete(key) : params.set(key, value)));
+    window.history.replaceState(null, "", `?${params.toString()}`);
+  }
+  const goTab = (next: Tab) => setQuery({ aba: next });
+  const goMes = (next: string) => setQuery({ mes: next });
+
+  function showToast(next: Toast) {
+    clearTimeout(toastTimer.current);
+    setToast(next);
+    toastTimer.current = setTimeout(() => setToast(null), TOAST_MS);
+  }
+
+  function desfazerToast() {
+    if (!toast) return;
+    toast.undo();
+    clearTimeout(toastTimer.current);
+    setToast(null);
+  }
+
+  // Excluir apaga na hora; o toast devolve o MESMO objeto (mesmo id) por 6 s.
+  function excluirLancamento(row: TxRow) {
+    const original: Expense | Income | undefined =
+      row.type === "expense" ? data.expenses.find((item) => item.id === row.id) : data.incomes.find((item) => item.id === row.id);
+    if (!original) return;
+    if (row.type === "expense") data.removeExpense(row.id);
+    else data.removeIncome(row.id);
+    setTxSheet(null);
+    showToast({
+      message: "Apagado",
+      undo: () => (row.type === "expense" ? data.restoreExpense(original as Expense) : data.restoreIncome(original as Income)),
+    });
+  }
+
+  // Valor sugerido da parcela: a parcela cadastrada, ou o que falta se for menor.
+  function parcelaSugerida(debt: Debt) {
+    const restante = debtRemaining(debt);
+    return debt.installmentValue > 0 ? Math.min(debt.installmentValue, restante) : restante;
+  }
+
+  function pagarParcela(debt: Debt, value: number) {
+    const ids = data.payDebtInstallment(debt.id, value);
+    setAjustando(null);
+    if (!ids) return;
+    showToast({
+      message: `Parcela de ${formatCurrency(value)} registrada em ${debt.name}`,
+      undo: () => data.undoDebtPayment(ids.paymentId),
+    });
   }
 
   function saveDebt(event: FormEvent<HTMLFormElement>) {
@@ -369,7 +448,7 @@ function Relatorios() {
 
   const txRows = (list: TxRow[]) =>
     list.length === 0 ? (
-      <Empty>Nada por aqui neste período.</Empty>
+      <Empty>{`Nada por aqui ${periodoLabel}.`}</Empty>
     ) : (
       <div>
         {list.map((item) => {
@@ -384,12 +463,15 @@ function Relatorios() {
               meta={`${formatDate(item.date)} · ${item.category} · ${scopeLabel(item.scope)}${estornado ? " · Estornado" : ""}`}
               value={signed(positive ? item.value : -item.value)}
               valueClass={estornado ? "text-ink-400 line-through" : positive ? "text-green-700" : "text-ink-900"}
-              onMore={() => setTxSheet(item)}
+              onPress={() => setTxSheet(item)}
             />
           );
         })}
       </div>
     );
+
+  const navBtnClass =
+    "grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-ink-200 bg-white text-ink-700 transition-colors duration-150 hover:bg-ink-50";
 
   return (
     <div className="flex flex-col gap-4">
@@ -426,23 +508,33 @@ function Relatorios() {
         )}
       </div>
 
-      <Segmented options={PERIODS} value={period} onChange={setPeriod} label="Período" />
+      {/* ‹ Setembro 2026 › — e "Tudo" como chip secundário */}
+      <div className="flex items-center gap-2">
+        <button type="button" aria-label="Mês anterior" onClick={() => goMes(shiftMonth(mes, -1))} className={navBtnClass}>
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <h2 aria-live="polite" className="min-w-0 flex-1 text-center text-base font-bold tracking-[-0.01em] text-ink-900">
+          {tudo ? "Todos os meses" : monthLabel(mes)}
+        </h2>
+        <button type="button" aria-label="Próximo mês" onClick={() => goMes(shiftMonth(mes, 1))} className={navBtnClass}>
+          <ChevronRight className="h-5 w-5" />
+        </button>
+        <Chip active={tudo} onClick={() => goMes(tudo ? mesAtual : "tudo")}>
+          Tudo
+        </Chip>
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         <div className="min-w-0 rounded-[12px] border border-ink-200 bg-white px-4 py-3.5">
           <p className="text-xs text-ink-500">Entradas</p>
           <p className="money mt-1 font-display text-xl font-bold text-green-700">{formatCurrency(totInc)}</p>
-          <p className="mt-0.5 text-xs text-ink-500">
-            {incomes.length} lançamento{incomes.length === 1 ? "" : "s"}
-          </p>
+          <p className="mt-0.5 text-xs text-ink-500">{plural(incomes.length, "lançamento", "lançamentos")}</p>
         </div>
         <div className="min-w-0 rounded-[12px] border border-ink-200 bg-white px-4 py-3.5">
           <p className="text-xs text-ink-500">Gastos</p>
           <p className="money mt-1 font-display text-xl font-bold text-ink-900">{formatCurrency(totExp)}</p>
-          <p className="mt-0.5 text-xs text-ink-500">
-            {expenses.length} lançamento{expenses.length === 1 ? "" : "s"}
-          </p>
+          <p className="mt-0.5 text-xs text-ink-500">{plural(expenses.length, "lançamento", "lançamentos")}</p>
         </div>
         <div
           className={`min-w-0 rounded-[12px] border px-4 py-3.5 ${
@@ -486,36 +578,56 @@ function Relatorios() {
       </div>
 
       {tab === "resumo" && (
+        // min-w-0 nos filhos: sem isso a lista (texto nowrap) alargava a coluna e a tela
+        // estourava na horizontal em 360px.
         <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-          <section className="flex flex-col gap-4 rounded-xl border border-ink-200 bg-white p-[18px]">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Gastos por categoria</p>
-            {byCategory.length === 0 ? (
-              <p className="text-sm text-ink-500">Nenhum gasto neste período.</p>
-            ) : (
-              <div className="flex items-center gap-5">
-                <Donut slices={byCategory} total={totExp} />
-                <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  {byCategory.map((c) => (
-                    <div key={c.name} className="flex items-center gap-2.5 text-[13px] text-ink-700">
-                      <i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
-                      <span className="min-w-0 flex-1 truncate">{c.name}</span>
-                      <b className="tabular-nums">{c.pct}%</b>
-                    </div>
-                  ))}
-                </div>
+          <section className="flex min-w-0 flex-col gap-4 rounded-xl border border-ink-200 bg-white p-[18px]">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Gastos por categoria · toque pra filtrar</p>
+            <ExpenseChart
+              expenses={data.expenses}
+              incomes={data.incomes}
+              period={tudo ? "all" : mes}
+              nature={natureza}
+              onNatureChange={setNatureza}
+              selectedCategory={categoriaSel}
+              onSelectCategory={setCategoriaSel}
+              showTotals={false}
+            />
+          </section>
+          <div className="flex min-w-0 flex-col gap-4">
+            <section className="flex flex-col gap-3 rounded-xl border border-ink-200 bg-white p-[18px]">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Por impulso {periodoLabel}</p>
+              <p className="money font-display text-2xl font-bold text-ink-900">
+                {formatCurrency(impulso)}{" "}
+                <span className="font-sans text-[13px] font-medium text-ink-500">{impulsoPct}% dos gastos</span>
+              </p>
+              <div className="h-1.5 overflow-hidden rounded-full bg-ink-100">
+                <div className="h-full rounded-full bg-amber-500" style={{ width: `${impulsoPct}%` }} />
               </div>
-            )}
-          </section>
-          <section className="flex flex-col gap-3 rounded-xl border border-ink-200 bg-white p-[18px]">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Por impulso neste período</p>
-            <p className="money font-display text-2xl font-bold text-ink-900">
-              {formatCurrency(impulso)}{" "}
-              <span className="font-sans text-[13px] font-medium text-ink-500">{impulsoPct}% dos gastos</span>
-            </p>
-            <div className="h-1.5 overflow-hidden rounded-full bg-ink-100">
-              <div className="h-full rounded-full bg-amber-500" style={{ width: `${impulsoPct}%` }} />
-            </div>
-          </section>
+            </section>
+
+            {/* Lista dos gastos do mês — filtrada pela categoria tocada na legenda */}
+            <section className="flex flex-col gap-2 rounded-xl border border-ink-200 bg-white p-[18px]" aria-label="Gastos do período">
+              <div className="flex items-center justify-between gap-2">
+                <p className="min-w-0 truncate text-sm font-semibold text-ink-900">
+                  {categoriaSel === null
+                    ? `Gastos ${periodoLabel} · ${formatCurrency(somaResumo)}`
+                    : `${categoriaSel} · ${formatCurrency(somaResumo)} · ${plural(gastosDoResumo.length, "lançamento", "lançamentos")}`}
+                </p>
+                {categoriaSel !== null && (
+                  <button
+                    type="button"
+                    onClick={() => setCategoriaSel(null)}
+                    aria-label="Limpar filtro de categoria"
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-ink-200 text-ink-600 transition-colors duration-150 hover:bg-ink-50"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {txRows(gastosDoResumo)}
+            </section>
+          </div>
         </div>
       )}
 
@@ -525,7 +637,7 @@ function Relatorios() {
 
       {tab === "fluxo" &&
         (byDate.length === 0 ? (
-          <Empty>Nada por aqui neste período.</Empty>
+          <Empty>{`Nada por aqui ${periodoLabel}.`}</Empty>
         ) : (
           <div>
             {byDate.map((day) => (
@@ -544,7 +656,7 @@ function Relatorios() {
 
       {tab === "mensal" &&
         (byMonth.length === 0 ? (
-          <Empty>Nada por aqui neste período.</Empty>
+          <Empty>Nenhum lançamento ainda.</Empty>
         ) : (
           <div>
             {byMonth.map((m) => {
@@ -556,9 +668,11 @@ function Relatorios() {
                   ini={label.charAt(0)}
                   positive={result >= 0}
                   title={label}
-                  meta={`${m.n} lançamento${m.n === 1 ? "" : "s"} · ${sobrouLabel(savingsRate(m.inc, m.exp))}`}
+                  meta={`${plural(m.n, "lançamento", "lançamentos")} · ${sobrouLabel(savingsRate(m.inc, m.exp))}`}
                   value={signed(result)}
                   valueClass={result >= 0 ? "text-green-700" : "text-red-700"}
+                  selected={!tudo && m.ym === mes}
+                  onPress={() => setQuery({ mes: m.ym, aba: "resumo" })}
                 />
               );
             })}
@@ -622,35 +736,95 @@ function Relatorios() {
           )}
 
           {data.debts.length === 0 ? (
-            <Empty>Nenhuma dívida cadastrada.</Empty>
+            <Empty>Nenhuma dívida cadastrada. Toque em Cadastrar dívida pra pôr a primeira no mapa.</Empty>
           ) : (
-            <div>
-              {data.debts.map((debt) => (
-                <div key={debt.id} className="flex items-center justify-between gap-2.5 border-b border-ink-100 py-3 last:border-b-0">
-                  <span className="min-w-0">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-sm font-semibold text-ink-900">{debt.name}</span>
-                      <span className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-bold capitalize ${debtPill[debt.status]}`}>
-                        {debt.status}
+            <div className="flex flex-col gap-2.5">
+              {data.debts.map((debt) => {
+                const aberta = isOpenDebt(debt);
+                const pago = debtPaid(debt);
+                const parcelas = debtInstallmentsLeft(debt);
+                const pct = debt.totalValue > 0 ? Math.min(100, Math.round((pago / debt.totalValue) * 100)) : 0;
+                const dias = diasAte(debt.dueDate, hoje);
+                const sugerida = parcelaSugerida(debt);
+                const ajuste = ajustando?.id === debt.id ? ajustando : null;
+                return (
+                  <div key={debt.id} data-debt-id={debt.id} className="flex flex-col gap-2.5 rounded-[14px] border border-ink-200 bg-white px-4 py-3.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm font-semibold text-ink-900">{debt.name}</span>
+                        <span className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-bold capitalize ${debtPill[debt.status]}`}>
+                          {debt.status}
+                        </span>
                       </span>
-                    </span>
-                    <span className="mt-0.5 block truncate text-xs text-ink-500">
-                      vence {formatDateFull(debt.dueDate)} · parcela {formatCurrency(debt.installmentValue)} · prioridade {debt.priority}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1">
-                    <strong className="money text-sm text-ink-900">{formatCurrency(debt.totalValue)}</strong>
-                    <button
-                      type="button"
-                      onClick={() => setDebtSheet(debt)}
-                      aria-label={`Opções de ${debt.name}`}
-                      className="grid h-10 w-9 place-items-center rounded-[10px] text-ink-500 transition-colors duration-150 hover:bg-ink-100"
-                    >
-                      <MoreHorizontal className="h-[18px] w-[18px]" />
-                    </button>
-                  </span>
-                </div>
-              ))}
+                      <button
+                        type="button"
+                        onClick={() => setDebtSheet(debt)}
+                        aria-label={`Opções de ${debt.name}`}
+                        className="grid h-10 w-9 shrink-0 place-items-center rounded-[10px] text-ink-500 transition-colors duration-150 hover:bg-ink-100"
+                      >
+                        <MoreHorizontal className="h-[18px] w-[18px]" />
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-500">
+                      {aberta && (
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 font-bold ${
+                            dias < 0 ? "bg-red-50 text-red-700" : dias <= 7 ? "bg-amber-50 text-amber-700" : "bg-ink-100 text-ink-600"
+                          }`}
+                        >
+                          {vencimentoLabel(dias)}
+                        </span>
+                      )}
+                      <span>{`vence ${formatDateFull(debt.dueDate)} · parcela ${formatCurrency(debt.installmentValue)} · prioridade ${debt.priority}`}</span>
+                    </div>
+
+                    <div className="h-2 overflow-hidden rounded-full bg-ink-100">
+                      <div className="h-full rounded-full bg-green-500" style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="money text-xs text-ink-600">
+                      {`${formatCurrency(pago)} pagos de ${formatCurrency(debt.totalValue)}`}
+                      {aberta && debt.installmentValue > 0 ? ` · faltam ${plural(parcelas, "parcela", "parcelas")}` : ""}
+                      {aberta && debt.installmentValue <= 0 ? ` · faltam ${formatCurrency(debtRemaining(debt))}` : ""}
+                    </p>
+
+                    {aberta && sugerida > 0 && (
+                      ajuste ? (
+                        <form
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            if (ajuste.cents > 0) pagarParcela(debt, ajuste.cents / 100);
+                          }}
+                          className="flex flex-col gap-2 rounded-xl bg-ink-50 p-3"
+                        >
+                          <MoneyField label="Quanto você pagou?" cents={ajuste.cents} onChange={(cents) => setAjustando({ id: debt.id, cents })} />
+                          <div className="grid grid-cols-2 gap-2">
+                            <button type="button" onClick={() => setAjustando(null)} className={secondaryClass}>
+                              Cancelar
+                            </button>
+                            <button type="submit" className={primaryClass}>
+                              Confirmar pagamento
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => pagarParcela(debt, sugerida)} className={`${primaryClass} flex-1`}>
+                            {`Paguei a parcela (${formatCurrency(sugerida)})`}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAjustando({ id: debt.id, cents: Math.round(sugerida * 100) })}
+                            className={secondaryClass}
+                          >
+                            ajustar valor
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -681,7 +855,7 @@ function Relatorios() {
           )}
 
           {data.goals.length === 0 ? (
-            <Empty>Nenhuma meta ainda.</Empty>
+            <Empty>Nenhuma meta ainda. Toque em Criar meta.</Empty>
           ) : (
             <div className="flex flex-col gap-2.5">
               {data.goals.map((goal) => {
@@ -722,35 +896,26 @@ function Relatorios() {
         </div>
       )}
 
-      {/* Folha: lançamento */}
+      {/* Folha: lançamento — Editar · Excluir · Cancelar */}
       <Sheet open={txSheet !== null} onClose={() => setTxSheet(null)} title="O que fazer com este lançamento?">
         {txSheet && (
           <>
             <p className="text-sm leading-relaxed text-ink-600">
               {txSheet.description || txSheet.category} · {formatCurrency(txSheet.value)}.{" "}
               {isEstornado(txSheet)
-                ? "Já foi desfeito: continua no histórico, mas fora dos totais."
-                : "Desfazer marca como estornado: fica no histórico, mas sai dos totais; excluir apaga de vez."}
+                ? "Já foi estornado: continua no histórico, mas fora dos totais — por isso não dá pra editar."
+                : "Excluir apaga de vez, mas dá pra desfazer logo em seguida."}
             </p>
             <div className="flex flex-col gap-2">
               {!isEstornado(txSheet) && (
-                <SheetAction
-                  onClick={() => {
-                    data.estornar(txSheet);
-                    setTxSheet(null);
-                  }}
+                <Link
+                  href={`/app/lancar?editar=${txSheet.id}`}
+                  className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white text-sm font-bold text-ink-900 transition-colors duration-150 hover:bg-ink-50"
                 >
-                  Desfazer lançamento
-                </SheetAction>
+                  Editar
+                </Link>
               )}
-              <SheetAction
-                tone="danger"
-                onClick={() => {
-                  if (txSheet.type === "expense") data.removeExpense(txSheet.id);
-                  else data.removeIncome(txSheet.id);
-                  setTxSheet(null);
-                }}
-              >
+              <SheetAction tone="danger" onClick={() => excluirLancamento(txSheet)}>
                 Excluir
               </SheetAction>
               <SheetAction tone="ghost" onClick={() => setTxSheet(null)}>
@@ -851,6 +1016,23 @@ function Relatorios() {
           </>
         )}
       </Sheet>
+
+      {/* Toast com Desfazer (exclusão e parcela paga) */}
+      {toast && (
+        <div
+          role="status"
+          className="fixed inset-x-3.5 bottom-[calc(88px+env(safe-area-inset-bottom))] z-[45] mx-auto flex max-w-[560px] items-center justify-between gap-3 rounded-[14px] bg-ink-900 px-4 py-3 text-white shadow-float lg:bottom-6"
+        >
+          <p className="min-w-0 truncate text-sm font-semibold">{toast.message}</p>
+          <button
+            type="button"
+            onClick={desfazerToast}
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-[10px] border border-white/[0.18] px-4 text-[13px] font-bold transition-colors duration-150 hover:bg-white/[0.06]"
+          >
+            Desfazer
+          </button>
+        </div>
+      )}
     </div>
   );
 }

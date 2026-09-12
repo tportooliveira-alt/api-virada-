@@ -1,6 +1,28 @@
 /**
- * Construtor isomorfico da planilha — v2 (layout alinhado ao redesign do app).
- * Substitui lib/sheets/builder.ts. Depende do styles.ts v2 (STYLE.sparkCell / sparkHeader, COLOR.greenDeep, slate*).
+ * Construtor isomorfico da planilha — v3 (planilha "viva").
+ * Depende do styles.ts v2 (STYLE.sparkCell / sparkHeader, COLOR.greenDeep, slate*).
+ *
+ * O que é FÓRMULA (recalcula dentro do Google Sheets) e o que é VALOR (colado
+ * pelo sync) — mantenha esta lista em dia:
+ *  - Dashboard A6/D6/G6/J6 (mês de referência em B3) e A8/D8/G8/J8: SOMASES/
+ *    CONT.SES sobre a aba Lançamentos; B12:B21 (gasto por categoria): SOMASES;
+ *    C12:C21 e K12:K21: SPARKLINE. G12:J21 (comparativo dos 10 últimos meses):
+ *    VALOR — o mês ali é data (AAAA-MM-01) pro gráfico e não há TEXTO() seguro
+ *    em pt_BR pra virar chave "AAAA-MM"; a fonte é o mesmo cálculo do Resumo.
+ *  - Filtros B10:B14 e Bolsos C9:F11, B6: fórmulas; menus, listas, renda e fase: VALOR.
+ *  - Dívidas "Em aberto", Metas "Faltando"/"Progresso", Fluxo e Resumo
+ *    "Resultado"/"Saldo acumulado": fórmula por linha. Resumo Entradas/Saídas/
+ *    Economia/Lançamentos: VALOR (Economia segue o savingsRate do app, com o
+ *    arredondamento do JS — ARRED difere no meio-centavo).
+ *  - Painéis laterais (O4:O7) de cada aba: VALOR (texto formatado).
+ * Sintaxe obrigatória pt-BR (locale pt_BR + USER_ENTERED): nomes em português,
+ * ";" entre argumentos, "\" entre colunas de matriz, nenhum literal decimal.
+ * Prova offline: scripts/test-planilha-formulas.ts (mini-avaliador).
+ *
+ * Grade: cada aba de dados nasce com GRADE_INICIAL linhas, toda formatada
+ * (zebra, filtro, proteção, R$/data). Quando os dados passam disso, o sync
+ * cresce a grade (growDataSheetRequests, via sync-requests.growGridCall) e
+ * formata só a faixa nova — appendDimension não herda nada.
  */
 
 import {
@@ -9,9 +31,10 @@ import {
   FORMAT,
   STYLE,
   addBanding,
-  condFormatProgressBands,
   condFormatPositiveNegative,
+  condFormatProgressBands,
   condFormatTextEquals,
+  dataValidationFromRange,
   freezeRows,
   hideColumns,
   hideGridlines,
@@ -19,16 +42,19 @@ import {
   protectSheet,
   protectSheetExcept,
   repeatCell,
+  setColumnCount,
   setColumnWidth,
   setRowHeight,
+  showColumns,
 } from "./styles";
-import { isOpenDebt, semEstornados, type DebtStatus } from "../types";
-import { savingsRate } from "../utils";
+import { debtPaid, debtRemaining, isOpenDebt, semEstornados, type BudgetPhase, type DebtStatus, type ExpenseCategory, type ExpenseNature, type ViradaData, type ViradaSettings } from "../types";
+import { budgetPhaseOf, getPockets, pocketOf, savingsRate } from "../utils";
+import { BUDGET_PHASES, BUDGET_PRESETS, POCKETS, POCKET_BY_CATEGORY, expenseCategories } from "../constants";
 
 export type Row = Record<string, string | number | null | undefined>;
 
 type TabKey = keyof typeof TAB;
-export type DataTabKey = Exclude<TabKey, "dashboard" | "ajuda">;
+export type DataTabKey = Exclude<TabKey, "dashboard" | "filtros" | "bolsos" | "ajuda">;
 type ValueRange = { range: string; values: unknown[][] };
 
 type PanelMeta = {
@@ -40,6 +66,8 @@ type PanelMeta = {
 
 export const TAB = {
   dashboard: "Dashboard",
+  bolsos: "Bolsos",
+  filtros: "Filtros",
   lancamentos: "Lançamentos",
   receitas: "Receitas",
   despesas: "Despesas",
@@ -52,6 +80,8 @@ export const TAB = {
 
 export const TAB_ORDER: TabKey[] = [
   "dashboard",
+  "bolsos",
+  "filtros",
   "lancamentos",
   "receitas",
   "despesas",
@@ -62,11 +92,15 @@ export const TAB_ORDER: TabKey[] = [
   "ajuda",
 ];
 
+// Lançamentos: Mês (AAAA-MM), Estornado (Sim/Não) e Bolso são colunas de
+// CRITÉRIO — as fórmulas do Dashboard, Filtros e Bolsos filtram por elas.
+// Toda coluna de critério é gravada SEMPRE com valor ("—" quando não se
+// aplica): "*" no SOMASES não casa célula vazia.
 export const HEADERS: Partial<Record<TabKey, string[]>> = {
-  lancamentos: ["Data", "Tipo", "Descrição", "Categoria", "Valor", "Pagamento", "Natureza", "Escopo", "Origem"],
+  lancamentos: ["Data", "Tipo", "Descrição", "Categoria", "Valor", "Pagamento", "Natureza", "Escopo", "Origem", "Mês", "Estornado", "Bolso"],
   receitas: ["Data", "Descrição", "Categoria", "Valor", "Escopo", "Origem"],
   despesas: ["Data", "Descrição", "Categoria", "Valor", "Pagamento", "Natureza", "Escopo"],
-  dividas: ["Nome", "Vencimento", "Prioridade", "Status", "Parcela", "Valor total", "Em aberto"],
+  dividas: ["Nome", "Vencimento", "Prioridade", "Status", "Parcela", "Valor total", "Pago", "Em aberto"],
   metas: ["Meta", "Tipo", "Valor alvo", "Valor atual", "Faltando", "Progresso"],
   fluxo: ["Data", "Entradas", "Saídas", "Resultado do dia", "Saldo acumulado"],
   resumo: ["Mês", "Entradas", "Saídas", "Resultado", "Saldo acumulado", "Economia", "Lançamentos"],
@@ -79,25 +113,52 @@ export const HEADERS: Partial<Record<TabKey, string[]>> = {
  * atrasada, reaplica o visual sozinho no próximo "Atualizar agora".
  * Só valores mudam sem bump.
  */
-export const LAYOUT_VERSION = "2026-09-11.1";
+export const LAYOUT_VERSION = "2026-09-11.3";
 
 // Cores das barras de participação do Dashboard — mesma sequência da legenda
 // da pizza no design (Planilha Virada - Redesign).
 const SPARK_COLORS = ["#22C55E", "#F5C542", "#3B82F6", "#EF4444", "#A855F7", "#F97316", "#06B6D4", "#EC4899", "#84CC16", "#14B8A6"];
 
 export const MAX_DATA_ROWS = 1000;
+/** Linhas com que cada aba de dados nasce (e até onde o layout formata). */
+export const GRADE_INICIAL = MAX_DATA_ROWS + 10;
 
 const DATA_TABS: DataTabKey[] = ["lancamentos", "receitas", "despesas", "dividas", "metas", "fluxo", "resumo"];
 
-const MAIN_RANGE_END: Record<DataTabKey, string> = {
-  lancamentos: "I",
-  receitas: "F",
-  despesas: "G",
-  dividas: "G",
-  metas: "F",
-  fluxo: "E",
-  resumo: "G",
-};
+// Aba de dados: A..última gerada | Anotações (livre) | (escondidas) | painel.
+// O painel fica fixo em N (rótulo) e O:P (valor) em toda aba, depois da maior
+// lista (Lançamentos, 12 colunas + Anotações em M). A coluna Anotações é a
+// única que o usuário edita — e fica FORA de todo range que o sync limpa/escreve.
+const NOTES_HEADER = "Anotações";
+const PANEL_LABEL_COL = 13; // N
+const PANEL_VALUE_COL = 14; // O (mesclada com P)
+const DATA_COLUMN_COUNT = 16;
+const PANEL_VALUES = `${colLetter(PANEL_VALUE_COL)}4:${colLetter(PANEL_VALUE_COL)}7`;
+
+// Listas dos menus da aba Filtros (H:L, preenchidas pelo sync, escondidas).
+const FILTRO_LISTA_COL = 7; // H
+const FILTRO_LISTA_FIM = 200;
+const FILTROS_ROWS = FILTRO_LISTA_FIM;
+
+function colLetter(index: number) {
+  let n = index + 1;
+  let s = "";
+  while (n > 0) {
+    const r = (n - 1) % 26;
+    s = String.fromCharCode(65 + r) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+function mainCols(key: DataTabKey) {
+  return (HEADERS[key] ?? []).length;
+}
+
+/** Letra da coluna "Anotações" de uma aba de dados (a primeira depois das geradas). */
+export function colunaAnotacoes(key: DataTabKey) {
+  return colLetter(mainCols(key));
+}
 
 const PANEL_META: Record<DataTabKey, PanelMeta> = {
   lancamentos: {
@@ -106,8 +167,8 @@ const PANEL_META: Record<DataTabKey, PanelMeta> = {
     labels: ["Total lançado", "Entradas", "Saídas", "Período"],
     notes: [
       "Esta aba é a linha do tempo geral do app.",
-      "Use filtros por categoria, tipo e escopo para investigar vazamentos.",
-      "A planilha é gerada automaticamente para preservar a estrutura.",
+      "Mês, Estornado e Bolso são as colunas que as fórmulas usam.",
+      "Escreva o que quiser na coluna Anotações — o app não mexe nela.",
       "Se algo estiver faltando, ajuste no app e sincronize de novo.",
     ],
   },
@@ -139,7 +200,7 @@ const PANEL_META: Record<DataTabKey, PanelMeta> = {
     labels: ["Qtde de dívidas", "Total em aberto", "Quitadas", "Prioridade mais crítica"],
     notes: [
       "Comece pelas dívidas mais urgentes ou caras.",
-      "Status ajuda a enxergar o que ainda pressiona o caixa.",
+      "Em aberto = valor total − pago (fórmula); quitada fica em zero.",
       "Quitadas continuam registradas para manter histórico.",
       "O gráfico do Dashboard usa esta base.",
     ],
@@ -151,7 +212,7 @@ const PANEL_META: Record<DataTabKey, PanelMeta> = {
     notes: [
       "Metas ajudam a sair do modo só reação.",
       "Use para reserva, quitação, compras planejadas ou objetivo anual.",
-      "O progresso é exibido em percentual para facilitar leitura.",
+      "Faltando e Progresso são fórmulas: mudam com o valor atual.",
       "Quanto mais perto de 100%, mais verde a célula fica.",
     ],
   },
@@ -179,11 +240,23 @@ const PANEL_META: Record<DataTabKey, PanelMeta> = {
   },
 };
 
+// Passos da aba "Como usar" — o layout e o conteúdo leem daqui.
+const HELP_STEPS: Array<[string, string]> = [
+  ["Sincronize pelo app sempre que lançar algo", "A planilha é o reflexo fiel do aplicativo. Edite no app e toque em Atualizar agora — as fórmulas recalculam sozinhas."],
+  ["Comece pelo Dashboard", "Entradas, gastos, em caixa e lançamentos do mês são fórmulas (SOMASES) sobre a aba Lançamentos, filtrando o mês de referência (B3). Abaixo, o acumulado desde o início e o gasto por categoria."],
+  ["Filtros: escolha nos menus e veja só o que quiser", "Mês, categoria, escopo, natureza e forma de pagamento. Deixe \"Todos\" para não filtrar. Entradas, gastos, saldo e impulso mudam na hora."],
+  ["Bolsos: a regra dos três bolsos, viva", "Renda esperada e fase vêm do app (Conta); alvo, gasto e sobra de cada bolso são fórmulas. O mês é o escolhido em Filtros (ou o corrente)."],
+  ["Anotações: a única coluna sua", "Em cada aba de dados, a coluna Anotações é livre — o app nunca limpa nem escreve nela. Ela fica na linha, não no lançamento: se a ordem mudar, confira."],
+  ["Não quebre a estrutura manualmente", "As outras áreas ficam bloqueadas para proteger as fórmulas. Se a planilha ficar estranha, desconecte no app e conecte de novo: ela nasce inteira com o layout atual."],
+];
+
 export interface SyncInput {
   expenses: Array<{ id: string; description: string; value: number; category: string; date: string; paymentMethod?: string; nature?: string; scope?: string; source?: string; estornadoEm?: string }>;
   incomes: Array<{ id: string; description: string; value: number; category: string; date: string; scope?: string; source?: string; estornadoEm?: string }>;
-  debts: Array<{ id: string; name: string; totalValue: number; installmentValue: number; dueDate: string; priority: string; status: string }>;
+  debts: Array<{ id: string; name: string; totalValue: number; installmentValue: number; dueDate: string; priority: string; status: string; paidValue?: number }>;
   goals: Array<{ id: string; name: string; targetValue: number; currentValue: number; type: string }>;
+  /** Renda esperada e fase dos bolsos (data.settings do app). */
+  settings?: ViradaSettings;
 }
 
 export function buildSheetSpecs() {
@@ -192,18 +265,29 @@ export function buildSheetSpecs() {
       title: TAB[key],
       index,
       gridProperties: {
-        rowCount: key === "dashboard" ? 70 : key === "ajuda" ? 40 : MAX_DATA_ROWS + 10,
-        columnCount: 12,
+        rowCount: key === "dashboard" ? 70 : key === "ajuda" ? 40 : key === "filtros" ? FILTROS_ROWS : key === "bolsos" ? 40 : GRADE_INICIAL,
+        columnCount: isDataTab(key) ? DATA_COLUMN_COUNT : 12,
       },
     },
   }));
 }
 
-export function buildLayoutRequests(ids: Record<string, number>): unknown[] {
+function isDataTab(key: TabKey): key is DataTabKey {
+  return (DATA_TABS as TabKey[]).includes(key);
+}
+
+/**
+ * `rowCounts` (título → rowCount real, do GET) só importa no upgrade: uma aba
+ * que já cresceu além de GRADE_INICIAL continua formatada/filtrada/livre até o
+ * fim da grade dela — reaplicar o layout não pode encolher nada.
+ */
+export function buildLayoutRequests(ids: Record<string, number>, rowCounts: Record<string, number> = {}): unknown[] {
   const requests: unknown[] = [];
 
   buildDashboardLayout(requests, ids[TAB.dashboard]);
-  DATA_TABS.forEach((key) => buildDataSheetLayout(requests, key, ids[TAB[key]]));
+  buildBolsosLayout(requests, ids[TAB.bolsos]);
+  buildFiltrosLayout(requests, ids[TAB.filtros]);
+  DATA_TABS.forEach((key) => buildDataSheetLayout(requests, key, ids[TAB[key]], Math.max(GRADE_INICIAL, rowCounts[TAB[key]] ?? 0)));
   buildHelpLayout(requests, ids[TAB.ajuda]);
   applyNumberFormats(requests, ids);
   applyConditionals(requests, ids);
@@ -223,6 +307,14 @@ function buildDashboardLayout(requests: unknown[], sheetId: number) {
   requests.push(mergeCells(sheetId, 1, 2, 0, 12));
   requests.push(repeatCell(sheetId, range(0, 1, 0, 12), STYLE.banner));
   requests.push(repeatCell(sheetId, range(1, 2, 0, 12), STYLE.bannerSub));
+
+  // Linha 3: "Mês de referência" (A3) e a chave do mês (B3, ver mesChave) que
+  // as fórmulas dos KPIs filtram — gravada pelo sync, visível pra ninguém achar
+  // que o Dashboard "travou" num mês.
+  requests.push(setRowHeight(sheetId, 2, 3, 22));
+  requests.push(setRowHeight(sheetId, 3, 4, 12));
+  requests.push(repeatCell(sheetId, range(2, 3, 0, 1), STYLE.refLabel));
+  requests.push(repeatCell(sheetId, range(2, 3, 1, 2), STYLE.refValue));
 
   requests.push(setRowHeight(sheetId, 4, 5, 22));
   requests.push(setRowHeight(sheetId, 5, 6, 52));
@@ -254,8 +346,7 @@ function buildDashboardLayout(requests: unknown[], sheetId: number) {
   requests.push(setRowHeight(sheetId, 32, 33, 28));
   requests.push(setRowHeight(sheetId, 33, 34, 24));
 
-  // v2: linhas separadoras finas (3–4, 22)
-  requests.push(setRowHeight(sheetId, 2, 4, 12));
+  // v2: linha separadora fina (22)
   requests.push(setRowHeight(sheetId, 21, 22, 12));
   // v2: colunas C:E e K:L viram barras de participação (SPARKLINE) ao lado das tabelas
   for (let r = 11; r < 21; r++) {
@@ -290,46 +381,177 @@ function addDashboardSummaryBlock(requests: unknown[], sheetId: number, row: num
   requests.push(repeatCell(sheetId, range(row + 1, row + 2, startCol, endCol), STYLE.sectionHint));
 }
 
-function buildDataSheetLayout(requests: unknown[], key: DataTabKey, sheetId: number) {
+// Filtros: banner (1–2), menus (4–8: rótulo em A, menu em B, critério em D
+// escondida), totais (10–14) e listas dos menus em H:L (escondidas).
+function buildFiltrosLayout(requests: unknown[], sheetId: number) {
+  requests.push(hideGridlines(sheetId));
+  requests.push(setColumnWidth(sheetId, 0, 1, 190));
+  requests.push(setColumnWidth(sheetId, 1, 2, 170));
+  requests.push(setColumnWidth(sheetId, 2, 3, 300));
+  requests.push(showColumns(sheetId, 0, 12));
+  requests.push(hideColumns(sheetId, 3, 4));
+  requests.push(hideColumns(sheetId, FILTRO_LISTA_COL, FILTRO_LISTA_COL + 5));
+
+  requests.push(setRowHeight(sheetId, 0, 1, 52));
+  requests.push(setRowHeight(sheetId, 1, 2, 24));
+  requests.push(mergeCells(sheetId, 0, 1, 0, 6));
+  requests.push(mergeCells(sheetId, 1, 2, 0, 6));
+  requests.push(repeatCell(sheetId, range(0, 1, 0, 6), STYLE.banner));
+  requests.push(repeatCell(sheetId, range(1, 2, 0, 6), STYLE.bannerSub));
+
+  requests.push(setRowHeight(sheetId, 3, 8, 30));
+  requests.push(repeatCell(sheetId, range(3, 8, 0, 1), STYLE.noteLabel));
+  requests.push(repeatCell(sheetId, range(3, 8, 1, 2), STYLE.menuCell));
+  requests.push(repeatCell(sheetId, range(3, 8, 2, 3), STYLE.sparkHeader));
+  for (let r = 3; r < 8; r++) {
+    requests.push(dataValidationFromRange(sheetId, r, 1, `=${TAB.filtros}!$${colLetter(FILTRO_LISTA_COL + r - 3)}$4:$${colLetter(FILTRO_LISTA_COL + r - 3)}$${FILTRO_LISTA_FIM}`));
+  }
+
+  requests.push(setRowHeight(sheetId, 9, 14, 30));
+  requests.push(repeatCell(sheetId, range(9, 14, 0, 1), STYLE.totalLabel));
+  requests.push(repeatCell(sheetId, range(9, 14, 1, 2), STYLE.totalMoney));
+  requests.push(repeatCell(sheetId, range(12, 13, 1, 2), STYLE.totalCount));
+  requests.push(protectSheetExcept(sheetId, [{ startRow: 3, endRow: 8, startCol: 1, endCol: 2 }], `${TAB.filtros} — só os menus são editáveis`));
+}
+
+// Bolsos: banner (1–2), renda/fase/mês (4–6), tabela dos 3 bolsos (8–11) e a
+// tabela categoria → bolso (13+).
+function buildBolsosLayout(requests: unknown[], sheetId: number) {
+  requests.push(hideGridlines(sheetId));
+  requests.push(setColumnWidth(sheetId, 0, 1, 190));
+  [116, 116, 116, 116, 130].forEach((w, i) => requests.push(setColumnWidth(sheetId, 1 + i, 2 + i, w)));
+
+  requests.push(setRowHeight(sheetId, 0, 1, 52));
+  requests.push(setRowHeight(sheetId, 1, 2, 24));
+  requests.push(mergeCells(sheetId, 0, 1, 0, 6));
+  requests.push(mergeCells(sheetId, 1, 2, 0, 6));
+  requests.push(repeatCell(sheetId, range(0, 1, 0, 6), STYLE.banner));
+  requests.push(repeatCell(sheetId, range(1, 2, 0, 6), STYLE.bannerSub));
+
+  requests.push(setRowHeight(sheetId, 3, 6, 30));
+  requests.push(repeatCell(sheetId, range(3, 6, 0, 1), STYLE.noteLabel));
+  requests.push(repeatCell(sheetId, range(3, 6, 1, 2), STYLE.noteBody));
+  for (let r = 3; r < 6; r++) requests.push(mergeCells(sheetId, r, r + 1, 2, 6));
+  requests.push(repeatCell(sheetId, range(3, 6, 2, 6), STYLE.sectionHint));
+
+  requests.push(setRowHeight(sheetId, 7, 8, 26));
+  requests.push(setRowHeight(sheetId, 8, 11, 30));
+  requests.push(repeatCell(sheetId, range(7, 8, 0, 6), STYLE.tableHeader));
+  requests.push(repeatCell(sheetId, range(8, 11, 0, 6), STYLE.dataCellBorder, "userEnteredFormat.borders"));
+  requests.push(repeatCell(sheetId, range(8, 11, 0, 1), STYLE.noteBody));
+  requests.push(addBanding(sheetId, 7, 11, 0, 6));
+
+  const categorias = expenseCategories.length;
+  requests.push(mergeCells(sheetId, 12, 13, 0, 6));
+  requests.push(repeatCell(sheetId, range(12, 13, 0, 6), STYLE.sectionTitle));
+  requests.push(repeatCell(sheetId, range(13, 14, 0, 2), STYLE.tableHeader));
+  requests.push(repeatCell(sheetId, range(14, 14 + categorias, 0, 2), STYLE.dataCellBorder, "userEnteredFormat.borders"));
+  requests.push(addBanding(sheetId, 13, 14 + categorias, 0, 2));
+  requests.push(protectSheet(sheetId, `${TAB.bolsos} — gerada pelo app`));
+}
+
+// `fim` = última linha formatada (exclusiva, 0-based) = rowCount da grade.
+function buildDataSheetLayout(requests: unknown[], key: DataTabKey, sheetId: number, fim: number) {
   const headers = HEADERS[key] ?? [];
-  const mainCols = headers.length;
+  const cols = headers.length;
+  const notesCol = cols;
+
+  // Planilha antiga tem 12 colunas e colunas escondidas noutra posição: acerta
+  // a grade e mostra tudo antes de esconder só o vão entre Anotações e o painel.
+  requests.push(setColumnCount(sheetId, DATA_COLUMN_COUNT));
+  requests.push(showColumns(sheetId, 0, PANEL_LABEL_COL));
 
   requests.push(setRowHeight(sheetId, 0, 1, 38));
-  requests.push(setRowHeight(sheetId, 1, MAX_DATA_ROWS + 1, 24)); // design: linhas de dados 24px
-  requests.push(repeatCell(sheetId, range(0, 1, 0, mainCols), STYLE.tableHeader));
+  requests.push(repeatCell(sheetId, range(0, 1, 0, notesCol + 1), STYLE.tableHeader));
   requests.push(freezeRows(sheetId, 1));
-  requests.push(addBanding(sheetId, 0, MAX_DATA_ROWS + 1, 0, mainCols));
-  requests.push(repeatCell(sheetId, range(0, MAX_DATA_ROWS + 1, 0, mainCols), STYLE.dataCellBorder, "userEnteredFormat.borders"));
+  requests.push(addBanding(sheetId, 0, fim, 0, cols));
+  requests.push(repeatCell(sheetId, range(0, 1, 0, cols), STYLE.dataCellBorder, "userEnteredFormat.borders"));
+  formatoDasLinhas(requests, key, sheetId, 1, fim);
 
   getColumnWidths(key).forEach((width, index) => requests.push(setColumnWidth(sheetId, index, index + 1, width)));
-  if (mainCols < 9) requests.push(hideColumns(sheetId, mainCols, 9));
+  requests.push(setColumnWidth(sheetId, notesCol, notesCol + 1, 220));
+  if (notesCol + 1 < PANEL_LABEL_COL) requests.push(hideColumns(sheetId, notesCol + 1, PANEL_LABEL_COL));
 
-  requests.push(setColumnWidth(sheetId, 9, 10, 124));
-  requests.push(setColumnWidth(sheetId, 10, 12, 146));
-  requests.push(mergeCells(sheetId, 0, 1, 9, 12));
-  requests.push(mergeCells(sheetId, 1, 2, 9, 12));
-  requests.push(repeatCell(sheetId, range(0, 1, 9, 12), STYLE.subHeader));
-  requests.push(repeatCell(sheetId, range(1, 2, 9, 12), STYLE.sectionHint));
+  const p = PANEL_LABEL_COL;
+  const v = PANEL_VALUE_COL;
+  requests.push(setColumnWidth(sheetId, p, p + 1, 124));
+  requests.push(setColumnWidth(sheetId, v, v + 2, 146));
+  requests.push(mergeCells(sheetId, 0, 1, p, v + 2));
+  requests.push(mergeCells(sheetId, 1, 2, p, v + 2));
+  requests.push(repeatCell(sheetId, range(0, 1, p, v + 2), STYLE.subHeader));
+  requests.push(repeatCell(sheetId, range(1, 2, p, v + 2), STYLE.sectionHint));
 
-  requests.push(repeatCell(sheetId, range(3, 7, 9, 10), STYLE.noteLabel));
-  for (let rowIndex = 3; rowIndex < 7; rowIndex++) requests.push(mergeCells(sheetId, rowIndex, rowIndex + 1, 10, 12));
-  requests.push(repeatCell(sheetId, range(3, 7, 10, 12), STYLE.noteBody));
+  requests.push(repeatCell(sheetId, range(3, 7, p, p + 1), STYLE.noteLabel));
+  for (let rowIndex = 3; rowIndex < 7; rowIndex++) requests.push(mergeCells(sheetId, rowIndex, rowIndex + 1, v, v + 2));
+  requests.push(repeatCell(sheetId, range(3, 7, v, v + 2), STYLE.noteBody));
 
-  requests.push(mergeCells(sheetId, 9, 10, 9, 12));
-  requests.push(repeatCell(sheetId, range(9, 10, 9, 12), STYLE.subHeader));
-  for (let rowIndex = 10; rowIndex < 14; rowIndex++) requests.push(mergeCells(sheetId, rowIndex, rowIndex + 1, 9, 12));
-  requests.push(repeatCell(sheetId, range(10, 14, 9, 12), STYLE.noteBody));
+  requests.push(mergeCells(sheetId, 9, 10, p, v + 2));
+  requests.push(repeatCell(sheetId, range(9, 10, p, v + 2), STYLE.subHeader));
+  for (let rowIndex = 10; rowIndex < 14; rowIndex++) requests.push(mergeCells(sheetId, rowIndex, rowIndex + 1, p, v + 2));
+  requests.push(repeatCell(sheetId, range(10, 14, p, v + 2), STYLE.noteBody));
 
-  requests.push({
-    setBasicFilter: {
-      filter: { range: { sheetId, startRowIndex: 0, endRowIndex: MAX_DATA_ROWS + 1, startColumnIndex: 0, endColumnIndex: mainCols } },
-    },
-  });
+  requests.push(filtroBasico(sheetId, cols, fim));
+  // Só Anotações (linhas 2+) é livre; o resto — dados, fórmulas, painel — é do app.
   requests.push(protectSheetExcept(
     sheetId,
-    [{ startRow: 1, endRow: MAX_DATA_ROWS + 1, startCol: 0, endCol: mainCols }],
-    `${TAB[key]} — gerada pelo app`,
+    [anotacoesLivres(sheetId, notesCol, fim)],
+    `${TAB[key]} — gerada pelo app (Anotações é sua)`,
   ));
+}
+
+function filtroBasico(sheetId: number, cols: number, fim: number) {
+  return { setBasicFilter: { filter: { range: { sheetId, startRowIndex: 0, endRowIndex: fim, startColumnIndex: 0, endColumnIndex: cols } } } };
+}
+
+function anotacoesLivres(sheetId: number, notesCol: number, fim: number) {
+  return { sheetId, startRow: 1, endRow: fim, startCol: notesCol, endCol: notesCol + 1 };
+}
+
+// Linhas de dados (de..ate, 0-based, fim exclusivo): altura, bordas, estilo de
+// Anotações e formato de cada coluna. A criação chama com 1..fim da grade; o
+// crescimento, só com a faixa nova.
+function formatoDasLinhas(requests: unknown[], key: DataTabKey, sheetId: number, de: number, ate: number) {
+  const cols = mainCols(key);
+  requests.push(setRowHeight(sheetId, de, ate, 24)); // design: linhas de dados 24px
+  requests.push(repeatCell(sheetId, range(de, ate, 0, cols), STYLE.dataCellBorder, "userEnteredFormat.borders"));
+  requests.push(repeatCell(sheetId, range(de, ate, cols, cols + 1), STYLE.notesCell));
+  requests.push(...formatoDasColunas(sheetId, key, de, ate));
+}
+
+/**
+ * Cresce a grade de uma aba de dados de `atual` pra `novo` linhas e leva junto
+ * o que a criação dá às linhas: altura, bordas, R$/data, estilo de Anotações,
+ * filtro básico, zebra e a faixa livre da proteção. Sem os ids (GET antigo,
+ * sem protectedRanges/bandedRanges) proteção e zebra ficam como estão.
+ * Regras de cor (condicionais) das abas de dados não têm fim de linha — já
+ * valem pra grade inteira.
+ */
+export function growDataSheetRequests(key: DataTabKey, sheetId: number, atual: number, novo: number, ids: { protectedRangeId?: number; bandedRangeId?: number } = {}): unknown[] {
+  const cols = mainCols(key);
+  const requests: unknown[] = [{ appendDimension: { sheetId, dimension: "ROWS", length: novo - atual } }];
+  formatoDasLinhas(requests, key, sheetId, atual, novo);
+  requests.push(filtroBasico(sheetId, cols, novo));
+  if (ids.protectedRangeId !== undefined) {
+    const livre = anotacoesLivres(sheetId, cols, novo);
+    requests.push({
+      updateProtectedRange: {
+        protectedRange: {
+          protectedRangeId: ids.protectedRangeId,
+          unprotectedRanges: [{ sheetId, startRowIndex: livre.startRow, endRowIndex: livre.endRow, startColumnIndex: livre.startCol, endColumnIndex: livre.endCol }],
+        },
+        fields: "unprotectedRanges",
+      },
+    });
+  }
+  if (ids.bandedRangeId !== undefined) {
+    requests.push({
+      updateBanding: {
+        bandedRange: { bandedRangeId: ids.bandedRangeId, range: { sheetId, startRowIndex: 0, endRowIndex: novo, startColumnIndex: 0, endColumnIndex: cols } },
+        fields: "range",
+      },
+    });
+  }
+  return requests;
 }
 
 function buildHelpLayout(requests: unknown[], sheetId: number) {
@@ -341,7 +563,7 @@ function buildHelpLayout(requests: unknown[], sheetId: number) {
   requests.push(mergeCells(sheetId, 0, 1, 0, 2));
   requests.push(repeatCell(sheetId, range(0, 1, 0, 2), STYLE.helpHero));
 
-  for (let index = 0; index < 5; index++) {
+  for (let index = 0; index < HELP_STEPS.length; index++) {
     const rowIndex = 2 + index * 2;
     requests.push(setRowHeight(sheetId, rowIndex, rowIndex + 1, 28));
     requests.push(setRowHeight(sheetId, rowIndex + 1, rowIndex + 2, 62));
@@ -356,10 +578,10 @@ function buildHelpLayout(requests: unknown[], sheetId: number) {
 
 function getColumnWidths(key: DataTabKey): number[] {
   const widths: Record<DataTabKey, number[]> = {
-    lancamentos: [96, 88, 198, 132, 108, 108, 108, 98, 92],
+    lancamentos: [96, 88, 198, 132, 108, 108, 108, 98, 92, 84, 90, 130],
     receitas: [96, 198, 132, 108, 98, 92],
     despesas: [96, 198, 132, 108, 108, 108, 98],
-    dividas: [194, 98, 98, 98, 98, 108, 108],
+    dividas: [194, 98, 98, 98, 98, 108, 108, 108],
     metas: [194, 108, 108, 108, 108, 98],
     fluxo: [96, 108, 108, 116, 116],
     resumo: [96, 108, 108, 116, 116, 92, 98],
@@ -367,42 +589,41 @@ function getColumnWidths(key: DataTabKey): number[] {
   return widths[key];
 }
 
+function cellFmt(sheetId: number, r: ReturnType<typeof range>, numberFormat: { type: string; pattern: string }, size: number, color: { red: number; green: number; blue: number }, bold = true) {
+  return repeatCell(sheetId, r, {
+    numberFormat,
+    horizontalAlignment: "CENTER",
+    verticalAlignment: "MIDDLE",
+    textFormat: { fontFamily: FONT, fontSize: size, bold, foregroundColor: color },
+  }, "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)");
+}
+
+// Formato de cada coluna das abas de dados (índice 0-based → tipo).
+type ColunaFormato = "money" | "date" | "month" | "pct" | "count";
+const DATA_FORMATS: Record<DataTabKey, Array<[number, ColunaFormato]>> = {
+  lancamentos: [[0, "date"], [4, "money"]],
+  receitas: [[0, "date"], [3, "money"]],
+  despesas: [[0, "date"], [3, "money"]],
+  dividas: [[1, "date"], [4, "money"], [5, "money"], [6, "money"], [7, "money"]],
+  metas: [[2, "money"], [3, "money"], [4, "money"], [5, "pct"]],
+  fluxo: [[0, "date"], [1, "money"], [2, "money"], [3, "money"], [4, "money"]],
+  resumo: [[0, "month"], [1, "money"], [2, "money"], [3, "money"], [4, "money"], [5, "pct"], [6, "count"]],
+};
+
+function formatoDasColunas(sheetId: number, key: DataTabKey, de: number, ate: number): unknown[] {
+  const fmt: Record<ColunaFormato, (r: ReturnType<typeof range>) => unknown> = {
+    money: (r) => cellFmt(sheetId, r, { type: "CURRENCY", pattern: FORMAT.brlPlain }, 11, COLOR.brandDeep),
+    date: (r) => cellFmt(sheetId, r, { type: "DATE", pattern: FORMAT.date }, 10, COLOR.text, false),
+    month: (r) => cellFmt(sheetId, r, { type: "DATE", pattern: FORMAT.monthYear }, 10, COLOR.brandDeep),
+    pct: (r) => cellFmt(sheetId, r, { type: "PERCENT", pattern: FORMAT.percent }, 11, COLOR.brandDeep),
+    count: (r) => cellFmt(sheetId, r, { type: "NUMBER", pattern: FORMAT.intCount }, 10, COLOR.slate700, false),
+  };
+  return DATA_FORMATS[key].map(([col, kind]) => fmt[kind](range(de, ate, col, col + 1)));
+}
+
+// Dashboard, Filtros e Bolsos (blocos fixos). As abas de dados são formatadas
+// por formatoDasLinhas, dentro do layout de cada uma.
 function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
-  const moneyCol = (sheetId: number, col: number) => repeatCell(sheetId, dataCol(col), {
-    numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
-    horizontalAlignment: "CENTER",
-    verticalAlignment: "MIDDLE",
-    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.brandDeep },
-  }, "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)");
-
-  const dateCol = (sheetId: number, col: number) => repeatCell(sheetId, dataCol(col), {
-    numberFormat: { type: "DATE", pattern: FORMAT.date },
-    horizontalAlignment: "CENTER",
-    verticalAlignment: "MIDDLE",
-    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.text },
-  }, "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)");
-
-  const monthCol = (sheetId: number, col: number) => repeatCell(sheetId, dataCol(col), {
-    numberFormat: { type: "DATE", pattern: FORMAT.monthYear },
-    horizontalAlignment: "CENTER",
-    verticalAlignment: "MIDDLE",
-    textFormat: { fontFamily: FONT, fontSize: 10, bold: true, foregroundColor: COLOR.brandDeep },
-  }, "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)");
-
-  const pctCol = (sheetId: number, col: number) => repeatCell(sheetId, dataCol(col), {
-    numberFormat: { type: "PERCENT", pattern: FORMAT.percent },
-    horizontalAlignment: "CENTER",
-    verticalAlignment: "MIDDLE",
-    textFormat: { fontFamily: FONT, fontSize: 11, bold: true, foregroundColor: COLOR.brandDeep },
-  }, "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)");
-
-  const countCol = (sheetId: number, col: number) => repeatCell(sheetId, dataCol(col), {
-    numberFormat: { type: "NUMBER", pattern: FORMAT.intCount },
-    horizontalAlignment: "CENTER",
-    verticalAlignment: "MIDDLE",
-    textFormat: { fontFamily: FONT, fontSize: 10, foregroundColor: COLOR.slate700 },
-  }, "userEnteredFormat(numberFormat,horizontalAlignment,verticalAlignment,textFormat)");
-
   const dashboardNumber = (
     rowStart: number,
     rowEnd: number,
@@ -436,45 +657,144 @@ function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
   requests.push(dashboardNumber(11, 21, 8, 9, { type: "CURRENCY", pattern: FORMAT.brlPlain }));
   requests.push(dashboardNumber(11, 21, 9, 10, { type: "CURRENCY", pattern: FORMAT.brlPlain }));
 
-  requests.push(dateCol(ids[TAB.lancamentos], 0), moneyCol(ids[TAB.lancamentos], 4));
-  requests.push(dateCol(ids[TAB.receitas], 0), moneyCol(ids[TAB.receitas], 3));
-  requests.push(dateCol(ids[TAB.despesas], 0), moneyCol(ids[TAB.despesas], 3));
-  requests.push(dateCol(ids[TAB.dividas], 1), moneyCol(ids[TAB.dividas], 4), moneyCol(ids[TAB.dividas], 5), moneyCol(ids[TAB.dividas], 6));
-  requests.push(moneyCol(ids[TAB.metas], 2), moneyCol(ids[TAB.metas], 3), moneyCol(ids[TAB.metas], 4), pctCol(ids[TAB.metas], 5));
-  requests.push(dateCol(ids[TAB.fluxo], 0), moneyCol(ids[TAB.fluxo], 1), moneyCol(ids[TAB.fluxo], 2), moneyCol(ids[TAB.fluxo], 3), moneyCol(ids[TAB.fluxo], 4));
-  requests.push(monthCol(ids[TAB.resumo], 0), moneyCol(ids[TAB.resumo], 1), moneyCol(ids[TAB.resumo], 2), moneyCol(ids[TAB.resumo], 3), moneyCol(ids[TAB.resumo], 4), pctCol(ids[TAB.resumo], 5), countCol(ids[TAB.resumo], 6));
+  // Filtros: totais em B10:B14 (B13 é contagem)
+  const brl = { type: "CURRENCY", pattern: FORMAT.brlPlain };
+  const filtros = ids[TAB.filtros];
+  requests.push(cellFmt(filtros, range(9, 12, 1, 2), brl, 12, COLOR.greenDeep));
+  requests.push(cellFmt(filtros, range(12, 13, 1, 2), { type: "NUMBER", pattern: FORMAT.intCount }, 12, COLOR.slate700));
+  requests.push(cellFmt(filtros, range(13, 14, 1, 2), brl, 12, COLOR.greenDeep));
+
+  // Bolsos: renda (B4), percentual (B9:B11), alvo/gasto/sobra (C9:E11)
+  const bolsos = ids[TAB.bolsos];
+  requests.push(cellFmt(bolsos, range(3, 4, 1, 2), brl, 12, COLOR.brandDeep));
+  requests.push(cellFmt(bolsos, range(8, 11, 1, 2), { type: "PERCENT", pattern: "0%" }, 11, COLOR.slate700, false));
+  requests.push(cellFmt(bolsos, range(8, 11, 2, 5), brl, 11, COLOR.brandDeep));
 }
 
+// Nas abas de dados a regra vai da linha 2 até o FIM da coluna (endRow null):
+// assim vale também pras linhas que o crescimento da grade acrescentar.
 function applyConditionals(requests: unknown[], ids: Record<string, number>) {
+  const ateOFim = null;
   requests.push(...condFormatPositiveNegative(ids[TAB.dashboard], 5, 6, 6, 7));
   requests.push(...condFormatPositiveNegative(ids[TAB.dashboard], 7, 8, 6, 7));
-  requests.push(...condFormatPositiveNegative(ids[TAB.fluxo], 1, MAX_DATA_ROWS + 1, 3, 5));
-  requests.push(...condFormatPositiveNegative(ids[TAB.resumo], 1, MAX_DATA_ROWS + 1, 3, 5));
-  requests.push(...condFormatProgressBands(ids[TAB.metas], 1, MAX_DATA_ROWS + 1, 5, 6));
-  requests.push(condFormatTextEquals(ids[TAB.dividas], 1, MAX_DATA_ROWS + 1, 3, 4, "aberta", COLOR.redSoft, COLOR.red, 0));
-  requests.push(condFormatTextEquals(ids[TAB.dividas], 1, MAX_DATA_ROWS + 1, 3, 4, "negociando", COLOR.goldSoft, COLOR.orange, 1));
-  requests.push(condFormatTextEquals(ids[TAB.dividas], 1, MAX_DATA_ROWS + 1, 3, 4, "quitada", COLOR.greenSoft, COLOR.brandDeep, 2));
-  requests.push(condFormatTextEquals(ids[TAB.lancamentos], 1, MAX_DATA_ROWS + 1, 1, 2, "Entrada", COLOR.greenSoft, COLOR.greenDeep, 0));
-  requests.push(condFormatTextEquals(ids[TAB.lancamentos], 1, MAX_DATA_ROWS + 1, 1, 2, "Saída", COLOR.slate100, COLOR.slate700, 1));
+  requests.push(...condFormatPositiveNegative(ids[TAB.fluxo], 1, ateOFim, 3, 5));
+  requests.push(...condFormatPositiveNegative(ids[TAB.resumo], 1, ateOFim, 3, 5));
+  requests.push(...condFormatPositiveNegative(ids[TAB.filtros], 11, 12, 1, 2));
+  requests.push(...condFormatPositiveNegative(ids[TAB.bolsos], 8, 11, 4, 5));
+  requests.push(...condFormatProgressBands(ids[TAB.metas], 1, ateOFim, 5, 6));
+  requests.push(condFormatTextEquals(ids[TAB.dividas], 1, ateOFim, 3, 4, "aberta", COLOR.redSoft, COLOR.red, 0));
+  requests.push(condFormatTextEquals(ids[TAB.dividas], 1, ateOFim, 3, 4, "negociando", COLOR.goldSoft, COLOR.orange, 1));
+  requests.push(condFormatTextEquals(ids[TAB.dividas], 1, ateOFim, 3, 4, "quitada", COLOR.greenSoft, COLOR.brandDeep, 2));
+  requests.push(condFormatTextEquals(ids[TAB.lancamentos], 1, ateOFim, 1, 2, "Entrada", COLOR.greenSoft, COLOR.greenDeep, 0));
+  requests.push(condFormatTextEquals(ids[TAB.lancamentos], 1, ateOFim, 1, 2, "Saída", COLOR.slate100, COLOR.slate700, 1));
+  requests.push(condFormatTextEquals(ids[TAB.lancamentos], 1, ateOFim, 10, 11, "Sim", COLOR.redSoft, COLOR.red, 2));
+  requests.push(condFormatTextEquals(ids[TAB.bolsos], 8, 11, 5, 6, "Passou", COLOR.redSoft, COLOR.red, 0));
+  requests.push(condFormatTextEquals(ids[TAB.bolsos], 8, 11, 5, 6, "Dentro", COLOR.greenSoft, COLOR.greenDeep, 1));
+}
+
+// ─── Fórmulas ────────────────────────────────────────────────────────────────
+// Toda referência à aba Lançamentos vai entre aspas simples (tem "ç") e como
+// coluna aberta ($E$2:$E): cresce com a grade (ver growGridCall).
+
+const L = `'${TAB.lancamentos}'`;
+const lanc = (col: string) => `${L}!$${col}$2:$${col}`;
+// Colunas de Lançamentos usadas nos critérios
+const LC = { tipo: "B", categoria: "D", valor: "E", pagamento: "F", natureza: "G", escopo: "H", mes: "J", estornado: "K", bolso: "L" } as const;
+const VALIDOS = `${lanc(LC.estornado)};"Não"`;
+
+// SOMASES(valor; Tipo; …; Estornado="Não"; critérios extras…)
+function somaLancamentos(tipo: "Entrada" | "Saída", extras = "") {
+  return `SOMASES(${lanc(LC.valor)};${lanc(LC.tipo)};"${tipo}";${VALIDOS}${extras})`;
+}
+
+function kpiFormulas() {
+  const mes = `;${lanc(LC.mes)};$B$3`;
+  return {
+    A6: `=${somaLancamentos("Entrada", mes)}`,
+    D6: `=${somaLancamentos("Saída", mes)}`,
+    G6: "=A6-D6",
+    J6: `=CONT.SES(${VALIDOS}${mes})`,
+    A8: `=${somaLancamentos("Entrada")}`,
+    D8: `=${somaLancamentos("Saída")}`,
+    G8: "=A8-D8",
+    J8: `=CONT.SE(${VALIDOS})`,
+  };
+}
+
+// Gasto da categoria escrita em A{r} (o sync grava o nome; a soma é da planilha).
+function categoriaFormula(row: number) {
+  return `=SE(A${row}="";"";${somaLancamentos("Saída", `;${lanc(LC.categoria)};A${row}`)})`;
+}
+
+// Filtros: D4:D8 traduz o menu ("Todos" → "*", que casa qualquer texto — por
+// isso toda coluna de critério é gravada com valor, nunca vazia).
+function filtroCriterios() {
+  return `;${lanc(LC.mes)};$D$4;${lanc(LC.categoria)};$D$5;${lanc(LC.escopo)};$D$6;${lanc(LC.natureza)};$D$7;${lanc(LC.pagamento)};$D$8`;
+}
+
+function filtrosFormulas() {
+  const crit = filtroCriterios();
+  return {
+    D4: '=SE(B4="Todos";"*";B4)',
+    D5: '=SE(B5="Todos";"*";B5)',
+    D6: '=SE(B6="Todos";"*";B6)',
+    D7: '=SE(B7="Todos";"*";B7)',
+    D8: '=SE(B8="Todos";"*";B8)',
+    B10: `=${somaLancamentos("Entrada", crit)}`,
+    B11: `=${somaLancamentos("Saída", crit)}`,
+    B12: "=B10-B11",
+    B13: `=CONT.SES(${VALIDOS}${crit})`,
+    // natureza "impulso" E o menu de natureza: com "essencial" escolhido dá 0, como deve
+    B14: `=${somaLancamentos("Saída", `;${lanc(LC.natureza)};"impulso"${crit}`)}`,
+  };
+}
+
+// Bolsos: só gastos de Casa, não estornados, do mês de referência, por bolso.
+// Alvo = ARRED(renda × %; 2), igual ao roundMoney do app; "Passou" compara em
+// centavos (ARRED) pra 0,10 + 0,20 não passar de 0,30.
+function bolsosFormulas() {
+  const out: Record<string, string> = {
+    B6: `=SE(${TAB.filtros}!$B$4="Todos";${TAB.dashboard}!$B$3;${TAB.filtros}!$B$4)`,
+  };
+  POCKETS.forEach((_, i) => {
+    const r = 9 + i;
+    out[`C${r}`] = `=ARRED($B$4*B${r};2)`;
+    out[`D${r}`] = `=${somaLancamentos("Saída", `;${lanc(LC.escopo)};"Casa";${lanc(LC.mes)};$B$6;${lanc(LC.bolso)};A${r}`)}`;
+    out[`E${r}`] = `=C${r}-D${r}`;
+    out[`F${r}`] = `=SE(C${r}<=0;"Sem alvo";SE(ARRED(D${r};2)>ARRED(C${r};2);"Passou";"Dentro"))`;
+  });
+  return out;
+}
+
+const bolsoLabel = (key: string) => POCKETS.find((p) => p.key === key)?.label ?? key;
+
+function categoriaBolsoRows() {
+  return expenseCategories.map((categoria) => {
+    const regra = POCKET_BY_CATEGORY[categoria];
+    return [categoria, regra === "por_natureza" ? `Por natureza: impulso → ${bolsoLabel("vida")}, essencial → ${bolsoLabel("contas")}` : bolsoLabel(regra)];
+  });
 }
 
 export function buildStaticValues() {
   const data: ValueRange[] = [];
+  const kpi = kpiFormulas();
 
-  DATA_TABS.forEach((key) => data.push({ range: `${TAB[key]}!A1`, values: [HEADERS[key] ?? []] }));
+  DATA_TABS.forEach((key) => data.push({ range: `${TAB[key]}!A1`, values: [[...(HEADERS[key] ?? []), NOTES_HEADER]] }));
   data.push(
     { range: `${TAB.dashboard}!A1`, values: [["CÓDIGO DA VIRADA • BASE FINANCEIRA CLARA E ESTRUTURADA"]] },
     { range: `${TAB.dashboard}!A2`, values: [[`Atualizado em ${new Date().toLocaleString("pt-BR")}`]] },
+    { range: `${TAB.dashboard}!A3`, values: [["Mês de referência", mesChave(localMonthKey())]] },
     // Mesmos rótulos da tela Início do app — o comprador compara os dois.
     { range: `${TAB.dashboard}!A5`, values: [["Entradas neste mês", "", "", "Gastos neste mês", "", "", "Em caixa neste mês", "", "", "Lançamentos no mês", "", ""]] },
-    { range: `${TAB.dashboard}!A6`, values: [[0, "", "", 0, "", "", 0, "", "", 0, "", ""]] },
+    { range: `${TAB.dashboard}!A6`, values: [[kpi.A6, "", "", kpi.D6, "", "", kpi.G6, "", "", kpi.J6, "", ""]] },
     { range: `${TAB.dashboard}!A7`, values: [["Desde o início · Entradas", "", "", "Desde o início · Gastos", "", "", "Desde o início · Em caixa", "", "", "Desde o início · Lançamentos", "", ""]] },
-    { range: `${TAB.dashboard}!A8`, values: [[0, "", "", 0, "", "", 0, "", "", 0, "", ""]] },
-    { range: `${TAB.dashboard}!A9`, values: [["Top categorias de gasto"], ["As dez categorias com maior saída financeira no período sincronizado."]] },
+    { range: `${TAB.dashboard}!A8`, values: [[kpi.A8, "", "", kpi.D8, "", "", kpi.G8, "", "", kpi.J8, "", ""]] },
+    { range: `${TAB.dashboard}!A9`, values: [["Top categorias de gasto"], ["As dez categorias com maior saída; o valor é fórmula sobre a aba Lançamentos."]] },
     { range: `${TAB.dashboard}!G9`, values: [["Comparativo mensal"], ["Leitura mensal de entradas, saídas e resultado para enxergar tendência."]] },
     { range: `${TAB.dashboard}!A11`, values: [["Categoria", "Total"]] },
     { range: `${TAB.dashboard}!G11`, values: [["Mês", "Entradas", "Saídas", "Resultado"]] },
-    { range: `${TAB.dashboard}!A12:B21`, values: padRows(10, ["", ""]) },
+    { range: `${TAB.dashboard}!A12:A21`, values: padRows(10, [""]) },
+    { range: `${TAB.dashboard}!B12:B21`, values: Array.from({ length: 10 }, (_, i) => [categoriaFormula(12 + i)]) },
     { range: `${TAB.dashboard}!G12:J21`, values: padRows(10, ["", "", "", ""]) },
     { range: `${TAB.dashboard}!A33`, values: [["Dívidas em aberto e pressão de caixa"], ["Gráfico de barras para visualizar rapidamente onde está o maior peso financeiro."]] },
     { range: `${TAB.dashboard}!C11`, values: [["participação"]] },
@@ -483,26 +803,53 @@ export function buildStaticValues() {
     { range: `${TAB.dashboard}!K12:K21`, values: Array.from({ length: 10 }, (_, i) => [sparkBar(`J${12 + i}`, "$J$12:$J$21")]) },
   );
 
+  const f = filtrosFormulas();
+  data.push(
+    { range: `${TAB.filtros}!A1`, values: [["FILTROS • VEJA SÓ O QUE QUISER"]] },
+    { range: `${TAB.filtros}!A2`, values: [["Escolha nos menus. Os totais mudam na hora. Deixe \"Todos\" para não filtrar."]] },
+    { range: `${TAB.filtros}!A4:D8`, values: [
+      ["Mês", "Todos", "Todos = qualquer mês", f.D4],
+      ["Categoria", "Todos", "", f.D5],
+      ["Escopo", "Todos", "Casa ou Empresa", f.D6],
+      ["Natureza", "Todos", "essencial ou impulso (só gastos)", f.D7],
+      ["Forma de pagamento", "Todos", "", f.D8],
+    ] },
+    { range: `${TAB.filtros}!A10:B14`, values: [
+      ["Entradas", f.B10],
+      ["Gastos", f.B11],
+      ["Saldo", f.B12],
+      ["Nº de lançamentos", f.B13],
+      ["Por impulso", f.B14],
+    ] },
+    { range: `${TAB.filtros}!${colLetter(FILTRO_LISTA_COL)}3`, values: [["Meses", "Categorias", "Escopos", "Naturezas", "Pagamentos"]] },
+  );
+
+  const b = bolsosFormulas();
+  data.push(
+    { range: `${TAB.bolsos}!A1`, values: [["SEUS 3 BOLSOS • A REGRA QUE O E-BOOK ENSINA"]] },
+    { range: `${TAB.bolsos}!A2`, values: [["Renda e fase vêm do app (Conta). Alvo, gasto e sobra são fórmulas sobre a aba Lançamentos."]] },
+    { range: `${TAB.bolsos}!A4:A6`, values: [["Renda esperada por mês"], ["Fase"], ["Mês de referência"]] },
+    { range: `${TAB.bolsos}!B6:C6`, values: [[b.B6, "Muda com o menu Mês da aba Filtros; \"Todos\" = mês corrente."]] },
+    { range: `${TAB.bolsos}!A8:F8`, values: [["Bolso", "% da renda", "Alvo", "Gasto", "Sobra", "Situação"]] },
+    ...POCKETS.map((pocket, i) => ({ range: `${TAB.bolsos}!A${9 + i}`, values: [[pocket.label, "", b[`C${9 + i}`], b[`D${9 + i}`], b[`E${9 + i}`], b[`F${9 + i}`]]] })),
+    { range: `${TAB.bolsos}!A13`, values: [["Qual categoria cai em qual bolso"], ["Categoria", "Bolso"], ...categoriaBolsoRows()] },
+  );
+
   DATA_TABS.forEach((key) => {
     const panel = PANEL_META[key];
+    const p = colLetter(PANEL_LABEL_COL);
     data.push(
-      { range: `${TAB[key]}!J1`, values: [[`${panel.title} • Código da Virada`]] },
-      { range: `${TAB[key]}!J2`, values: [[panel.hint]] },
-      { range: `${TAB[key]}!J4:J7`, values: panel.labels.map((label) => [label]) },
-      { range: `${TAB[key]}!K4:K7`, values: padRows(4, ["Aguardando sync"]) },
-      { range: `${TAB[key]}!J10`, values: [["Como ler esta aba"]] },
-      { range: `${TAB[key]}!J11:J14`, values: panel.notes.map((line) => [line]) },
+      { range: `${TAB[key]}!${p}1`, values: [[`${panel.title} • Código da Virada`]] },
+      { range: `${TAB[key]}!${p}2`, values: [[panel.hint]] },
+      { range: `${TAB[key]}!${p}4:${p}7`, values: panel.labels.map((label) => [label]) },
+      { range: `${TAB[key]}!${PANEL_VALUES}`, values: padRows(4, ["Aguardando sync"]) },
+      { range: `${TAB[key]}!${p}10`, values: [["Como ler esta aba"]] },
+      { range: `${TAB[key]}!${p}11:${p}14`, values: panel.notes.map((line) => [line]) },
     );
   });
 
   data.push({ range: `${TAB.ajuda}!A1`, values: [["CÓDIGO DA VIRADA • COMO USAR ESTA PLANILHA", ""]] });
-  [
-    ["Sincronize pelo app sempre que lançar algo", "A planilha foi desenhada para ser reflexo fiel do aplicativo. Edite no app e sincronize para manter tudo consistente."],
-    ["Comece pelo Dashboard", "Ele concentra entradas, saídas, saldo, lançamentos, categorias de gasto e uma leitura mensal do desempenho."],
-    ["Use as abas especializadas para investigar", "Receitas, Despesas, Dívidas, Metas, Fluxo de Caixa e Resumo Mensal ajudam a responder perguntas específicas sem poluir a visão geral."],
-    ["Não quebre a estrutura manualmente", "As áreas principais estão bloqueadas para manter fórmulas, hierarquia visual e leitura profissional. Se quiser alterar dados, faça isso pelo app."],
-    ["Se a planilha antiga estiver feia ou incompleta, recrie", "Basta desconectar a planilha atual no app e sincronizar de novo para gerar uma versão nova com o layout atualizado."],
-  ].forEach(([title, body], index) => {
+  HELP_STEPS.forEach(([title, body], index) => {
     const row = 3 + index * 2;
     data.push({ range: `${TAB.ajuda}!A${row}`, values: [[index + 1, title]] });
     data.push({ range: `${TAB.ajuda}!B${row + 1}`, values: [[body]] });
@@ -531,7 +878,8 @@ export function buildSyncBatch(input: SyncInput) {
   const goals = input.goals ?? [];
   // Contrato de estorno (lib/types.ts): as listas mostram o histórico inteiro
   // (com selo), mas todo total — KPI, fluxo, resumo, categorias, painéis — só
-  // enxerga os válidos. Filtra ANTES de agregar, nunca depois.
+  // enxerga os válidos. Filtra ANTES de agregar, nunca depois. As fórmulas da
+  // planilha fazem o mesmo pela coluna Estornado = "Não".
   const validIncomes = semEstornados(incomes);
   const validExpenses = semEstornados(expenses);
   const historico = buildLedgerRows(incomes, expenses);
@@ -541,32 +889,53 @@ export function buildSyncBatch(input: SyncInput) {
     formatDate(row.date),
     row.type === "income" ? "Entrada" : "Saída",
     texto(descricaoComSelo(row.description, row.estornadoEm)),
-    texto(row.category),
+    criterio(row.category),
     Number(row.amount) || 0,
-    texto(row.paymentMethod ?? ""),
-    texto(row.nature ?? ""),
-    texto(row.scope ?? ""),
+    criterio(row.paymentMethod),
+    criterio(row.nature),
+    escopoTexto(row.scope),
     texto(row.source ?? ""),
+    mesChave(String(row.date).slice(0, 7)),
+    row.estornadoEm ? "Sim" : "Não",
+    row.type === "income" ? "—" : bolsoLabel(pocketOf({ category: String(row.category) as ExpenseCategory, nature: row.nature as ExpenseNature })),
   ]);
 
-  const receitas = sortByDate(incomes).map((row) => [formatDate(row.date), texto(descricaoComSelo(row.description, row.estornadoEm)), texto(row.category), row.value, texto(row.scope ?? ""), texto(row.source ?? "app")]);
-  const despesas = sortByDate(expenses).map((row) => [formatDate(row.date), texto(descricaoComSelo(row.description, row.estornadoEm)), texto(row.category), row.value, texto(row.paymentMethod ?? ""), texto(row.nature ?? ""), texto(row.scope ?? "")]);
-  const dividas = sortDebts(debts).map((debt) => [texto(debt.name), formatDate(debt.dueDate), texto(debt.priority), texto(debt.status), debt.installmentValue, debt.totalValue, debtIsOpen(debt) ? debt.totalValue : 0]);
-  const metas = goals.map((goal) => {
-    const faltando = Math.max(goal.targetValue - goal.currentValue, 0);
-    return [texto(goal.name), texto(goal.type), goal.targetValue, goal.currentValue, faltando, goalProgress(goal)];
-  });
+  const receitas = sortByDate(incomes).map((row) => [formatDate(row.date), texto(descricaoComSelo(row.description, row.estornadoEm)), texto(row.category), row.value, escopoTexto(row.scope), texto(row.source ?? "app")]);
+  const despesas = sortByDate(expenses).map((row) => [formatDate(row.date), texto(descricaoComSelo(row.description, row.estornadoEm)), texto(row.category), row.value, texto(row.paymentMethod ?? ""), texto(row.nature ?? ""), escopoTexto(row.scope)]);
+  const dividas = sortDebts(debts).map((debt, i) => [texto(debt.name), formatDate(debt.dueDate), texto(debt.priority), texto(debt.status), debt.installmentValue, debt.totalValue, debtPaid(debt), emAbertoFormula(i + 2)]);
+  const metas = goals.map((goal, i) => [texto(goal.name), texto(goal.type), goal.targetValue, goal.currentValue, `=MÁXIMO(0;C${i + 2}-D${i + 2})`, `=SE(C${i + 2}<=0;0;MÍNIMO(1;MÁXIMO(0;D${i + 2}/C${i + 2})))`]);
 
   const mes = localMonthKey();
   const fluxo = buildDailyCashFlow(validos);
   const porMes = aggregateByMonth(validos);
   const resumo = buildMonthlySummary(porMes, mes);
-  const totals = buildTotals(validIncomes, validExpenses, debts, goals, validos, fluxo, resumo, buildDashboardMonthRows(porMes, mes), mes);
+  const totals = buildTotals(validIncomes, validExpenses, debts, goals, validos, fluxo, resumo, buildDashboardMonthRows(porMes, mes));
+  const listas = buildFilterLists(historico);
+  const bolsos = buildBolsosValues(input);
 
   return {
     clearRanges: buildClearRanges(),
-    valueRanges: buildValueRanges({ lancamentos, receitas, despesas, dividas, metas, fluxo, resumo, totals }),
+    valueRanges: buildValueRanges({ lancamentos, receitas, despesas, dividas, metas, fluxo: comAcumulado(fluxo), resumo: comAcumulado(resumo), totals, listas, bolsos, mes }),
+    /** Linhas de dados por aba — pra crescer a grade antes de gravar (sync-requests). */
+    linhas: { lancamentos: lancamentos.length, receitas: receitas.length, despesas: despesas.length, dividas: dividas.length, metas: metas.length, fluxo: fluxo.length, resumo: resumo.length } as Record<DataTabKey, number>,
   };
+}
+
+// Em aberto = SE(quitada; 0; MÁXIMO(0; Total − Pago)) — o debtRemaining de lib/types.ts em fórmula.
+function emAbertoFormula(row: number) {
+  return `=SE(D${row}="quitada";0;MÁXIMO(0;F${row}-G${row}))`;
+}
+
+// Fluxo e Resumo: colunas D (Resultado) e E (Saldo acumulado) viram fórmula na
+// planilha; os números ficam no JS pros painéis e pro comparativo.
+function comAcumulado(rows: unknown[][]) {
+  return rows.map((row, i) => {
+    const r = i + 2;
+    const out = [...row];
+    out[3] = `=B${r}-C${r}`;
+    out[4] = i === 0 ? "=D2" : `=E${r - 1}+D${r}`;
+    return out;
+  });
 }
 
 function buildLedgerRows(incomes: SyncInput["incomes"], expenses: SyncInput["expenses"]): Row[] {
@@ -719,23 +1088,15 @@ function buildTotals(
   fluxo: unknown[][],
   resumo: unknown[][],
   resumoDashboardRows: unknown[][],
-  mes: string,
 ) {
   const totalEntradas = roundMoney(incomes.reduce((sum, item) => sum + item.value, 0));
   const totalSaidas = roundMoney(expenses.reduce((sum, item) => sum + item.value, 0));
-  const saldo = roundMoney(totalEntradas - totalSaidas);
-
-  // KPIs principais = o que a tela Início mostra (getDashboardMetrics: mês corrente)
-  const doMes = <T extends { date: string }>(items: T[]) => items.filter((item) => String(item.date).slice(0, 7) === mes);
-  const entradasMes = roundMoney(doMes(incomes).reduce((sum, item) => sum + item.value, 0));
-  const gastosMes = roundMoney(doMes(expenses).reduce((sum, item) => sum + item.value, 0));
-  const caixaMes = roundMoney(entradasMes - gastosMes);
-  const lancamentosMes = doMes(incomes).length + doMes(expenses).length;
 
   const orderedIncomes = sortByDate(incomes);
   const orderedExpenses = sortByDate(expenses);
   const openDebts = debts.filter(debtIsOpen);
-  const debtOpenTotal = roundMoney(openDebts.reduce((sum, item) => sum + item.totalValue, 0));
+  // Mesmo número da coluna "Em aberto": o que ainda falta pagar das abertas.
+  const debtOpenTotal = roundMoney(openDebts.reduce((sum, item) => sum + debtRemaining(item), 0));
   const quitadas = debts.filter((item) => item.status === "quitada").length;
   const bestMeta = goals
     .map((goal) => ({ name: goal.name, progress: goalProgress(goal), reached: goalReached(goal) }))
@@ -762,15 +1123,7 @@ function buildTotals(
   };
 
   return {
-    entradasMes,
-    gastosMes,
-    caixaMes,
-    lancamentosMes,
-    totalEntradas,
-    totalSaidas,
-    saldo,
-    totalLancamentos: allRows.length,
-    topCategoriasRows: buildTopCategoryRows(expenses),
+    topCategorias: buildTopCategoryRows(expenses),
     resumoDashboardRows,
     // Painel é sempre texto (moeda formatada, "—", nome de meta): passa pelo mesmo
     // apóstrofo das listas — "-R$ 800,33" e um nome de meta com "=" iriam pro parser.
@@ -778,17 +1131,62 @@ function buildTotals(
   };
 }
 
+// Listas dos menus da aba Filtros: "Todos" + o que existe no histórico (inclui
+// estornados: a pessoa pode querer achar a categoria de um lançamento estornado).
+function buildFilterLists(historico: Row[]) {
+  const unicos = (values: unknown[]) => ["Todos", ...[...new Set(values.filter((v) => v != null).map((v) => String(v)).filter((v) => v && v !== "—"))].sort((a, b) => a.localeCompare(b, "pt-BR"))];
+  return {
+    meses: unicos(historico.map((r) => String(r.date).slice(0, 7))).map((m, i) => [i === 0 ? m : mesChave(m)]),
+    categorias: unicos(historico.map((r) => r.category)).map((c) => [texto(c)]),
+    escopos: unicos(historico.map((r) => escopoTexto(r.scope))).map((e) => [e]),
+    naturezas: unicos(historico.map((r) => r.nature)).map((n) => [texto(n)]),
+    pagamentos: unicos(historico.map((r) => r.paymentMethod)).map((p) => [texto(p)]),
+  };
+}
+
+// Renda e fase da aba Bolsos = o que o card "Seus 3 bolsos" do app mostra no
+// mês corrente (getPockets). A renda por média/entradas é um retrato deste mês;
+// só a informada em Conta vale pra qualquer mês — a nota em C4 diz qual é.
+function buildBolsosValues(input: SyncInput) {
+  const data = {
+    incomes: input.incomes ?? [],
+    expenses: input.expenses ?? [],
+    debts: [],
+    goals: [],
+    missionStatus: {},
+    settings: input.settings,
+  } as unknown as ViradaData;
+  const pockets = getPockets(data);
+  const fase: BudgetPhase = budgetPhaseOf(data);
+  const faseMeta = BUDGET_PHASES.find((p) => p.key === fase) ?? BUDGET_PHASES[0];
+  const origem: Record<typeof pockets.renda.origem, string> = {
+    informada: "Informada por você no app (Conta).",
+    media3m: "Média dos últimos 3 meses com entrada. Pra fixar um valor, informe a renda no app (Conta).",
+    mes: "O que entrou neste mês. Pra fixar um valor, informe a renda no app (Conta).",
+    nenhuma: "Ainda sem renda: informe no app (Conta) pra ter alvo em cada bolso.",
+  };
+  return {
+    renda: pockets.renda.valor,
+    origem: origem[pockets.renda.origem],
+    fase: `${faseMeta.label} (${faseMeta.split})`,
+    faseHint: faseMeta.hint,
+    percentuais: POCKETS.map((p) => [BUDGET_PRESETS[fase][p.key]]),
+  };
+}
+
 // Aberto em A1 sem linha final ("A2:I") limpa até o fim da coluna: com "A2:I1000"
 // a linha 1001 (o 1000º lançamento) nunca era apagada e virava fantasma.
+// Para na última coluna GERADA: Anotações (a seguinte) é do usuário.
 export function dataClearRange(key: DataTabKey) {
-  return `${TAB[key]}!A2:${MAIN_RANGE_END[key]}`;
+  return `${TAB[key]}!A2:${colLetter(mainCols(key) - 1)}`;
 }
 
 function buildClearRanges() {
   return [
     ...DATA_TABS.map(dataClearRange),
-    `${TAB.dashboard}!A12:B21`,
+    `${TAB.dashboard}!A12:A21`,
     `${TAB.dashboard}!G12:J21`,
+    `${TAB.filtros}!${colLetter(FILTRO_LISTA_COL)}4:${colLetter(FILTRO_LISTA_COL + 4)}`,
   ];
 }
 
@@ -801,8 +1199,12 @@ function buildValueRanges(input: {
   fluxo: unknown[][];
   resumo: unknown[][];
   totals: ReturnType<typeof buildTotals>;
+  listas: ReturnType<typeof buildFilterLists>;
+  bolsos: ReturnType<typeof buildBolsosValues>;
+  mes: string;
 }): ValueRange[] {
-  const { lancamentos, receitas, despesas, dividas, metas, fluxo, resumo, totals } = input;
+  const { lancamentos, receitas, despesas, dividas, metas, fluxo, resumo, totals, listas, bolsos, mes } = input;
+  const lista = (offset: number, rows: unknown[][]) => ({ range: `${TAB.filtros}!${colLetter(FILTRO_LISTA_COL + offset)}4`, values: rows });
   return [
     ...(lancamentos.length ? [{ range: `${TAB.lancamentos}!A2`, values: lancamentos }] : []),
     ...(receitas.length ? [{ range: `${TAB.receitas}!A2`, values: receitas }] : []),
@@ -812,33 +1214,36 @@ function buildValueRanges(input: {
     ...(fluxo.length ? [{ range: `${TAB.fluxo}!A2`, values: fluxo }] : []),
     ...(resumo.length ? [{ range: `${TAB.resumo}!A2`, values: resumo }] : []),
     { range: `${TAB.dashboard}!A2`, values: [[`Atualizado em ${new Date().toLocaleString("pt-BR")}`]] },
-    { range: `${TAB.dashboard}!A6`, values: [[totals.entradasMes]] },
-    { range: `${TAB.dashboard}!D6`, values: [[totals.gastosMes]] },
-    { range: `${TAB.dashboard}!G6`, values: [[totals.caixaMes]] },
-    { range: `${TAB.dashboard}!J6`, values: [[totals.lancamentosMes]] },
-    { range: `${TAB.dashboard}!A8`, values: [[totals.totalEntradas]] },
-    { range: `${TAB.dashboard}!D8`, values: [[totals.totalSaidas]] },
-    { range: `${TAB.dashboard}!G8`, values: [[totals.saldo]] },
-    { range: `${TAB.dashboard}!J8`, values: [[totals.totalLancamentos]] },
-    { range: `${TAB.dashboard}!A12:B21`, values: totals.topCategoriasRows },
+    { range: `${TAB.dashboard}!B3`, values: [[mesChave(mes)]] },
+    { range: `${TAB.dashboard}!A12:A21`, values: totals.topCategorias },
     { range: `${TAB.dashboard}!G12:J21`, values: totals.resumoDashboardRows },
-    { range: `${TAB.lancamentos}!K4:K7`, values: totals.panel.lancamentos },
-    { range: `${TAB.receitas}!K4:K7`, values: totals.panel.receitas },
-    { range: `${TAB.despesas}!K4:K7`, values: totals.panel.despesas },
-    { range: `${TAB.dividas}!K4:K7`, values: totals.panel.dividas },
-    { range: `${TAB.metas}!K4:K7`, values: totals.panel.metas },
-    { range: `${TAB.fluxo}!K4:K7`, values: totals.panel.fluxo },
-    { range: `${TAB.resumo}!K4:K7`, values: totals.panel.resumo },
+    lista(0, listas.meses),
+    lista(1, listas.categorias),
+    lista(2, listas.escopos),
+    lista(3, listas.naturezas),
+    lista(4, listas.pagamentos),
+    { range: `${TAB.bolsos}!B4:C4`, values: [[bolsos.renda, bolsos.origem]] },
+    { range: `${TAB.bolsos}!B5:C5`, values: [[bolsos.fase, bolsos.faseHint]] },
+    { range: `${TAB.bolsos}!B9:B11`, values: bolsos.percentuais },
+    { range: `${TAB.lancamentos}!${PANEL_VALUES}`, values: totals.panel.lancamentos },
+    { range: `${TAB.receitas}!${PANEL_VALUES}`, values: totals.panel.receitas },
+    { range: `${TAB.despesas}!${PANEL_VALUES}`, values: totals.panel.despesas },
+    { range: `${TAB.dividas}!${PANEL_VALUES}`, values: totals.panel.dividas },
+    { range: `${TAB.metas}!${PANEL_VALUES}`, values: totals.panel.metas },
+    { range: `${TAB.fluxo}!${PANEL_VALUES}`, values: totals.panel.fluxo },
+    { range: `${TAB.resumo}!${PANEL_VALUES}`, values: totals.panel.resumo },
   ];
 }
 
+// Só os NOMES das 10 maiores categorias (ordem decidida aqui); o valor de cada
+// uma é SOMASES em B12:B21, gravado uma vez em buildStaticValues.
 function buildTopCategoryRows(expenses: SyncInput["expenses"]) {
   const byCategory = new Map<string, number>();
   expenses.forEach((expense) => byCategory.set(expense.category, roundMoney((byCategory.get(expense.category) || 0) + expense.value)));
-  const rows = [...byCategory.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([category, total]) => [texto(category), total]);
+  const rows = [...byCategory.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([category]) => [texto(category)]);
   // Sem categoria nenhuma, a grade fica em branco: escrever "Sem dados" numa
   // linha com barra colorida parece produto inacabado, não planilha vazia.
-  return padRows(10, ["", ""], rows);
+  return padRows(10, [""], rows);
 }
 
 // Comparativo do Dashboard = os 10 últimos meses do CALENDÁRIO até o corrente,
@@ -888,8 +1293,9 @@ function lineChart(dashboard: number, fluxo: number, rowIndex: number, columnInd
 }
 
 function debtChart(dashboard: number, dividas: number, rowIndex: number, columnIndex: number, widthPixels: number, heightPixels: number) {
+  const emAberto = (HEADERS.dividas ?? []).indexOf("Em aberto");
   return basicChart(dashboard, dividas, rowIndex, columnIndex, widthPixels, heightPixels, "BAR", "NO_LEGEND", source(dividas, 0, MAX_DATA_ROWS + 1, 0, 1), [
-    { range: source(dividas, 0, MAX_DATA_ROWS + 1, 6, 7), color: COLOR.red },
+    { range: source(dividas, 0, MAX_DATA_ROWS + 1, emAberto, emAberto + 1), color: COLOR.red },
   ]);
 }
 
@@ -934,10 +1340,6 @@ function range(startRowIndex: number, endRowIndex: number, startColumnIndex: num
   return { startRowIndex, endRowIndex, startColumnIndex, endColumnIndex };
 }
 
-function dataCol(col: number) {
-  return range(1, MAX_DATA_ROWS + 1, col, col + 1);
-}
-
 function source(sheetId: number, startRowIndex: number, endRowIndex: number, startColumnIndex: number, endColumnIndex: number) {
   return { sheetId, startRowIndex, endRowIndex, startColumnIndex, endColumnIndex };
 }
@@ -959,6 +1361,28 @@ function sparkBar(cell: string, maxRange: string, color = "#22C55E") {
 function texto(value: unknown): string {
   const s = value == null ? "" : String(value);
   return /^[=+\-@'\t\r]/.test(s) ? `'${s}` : s;
+}
+
+// Coluna de critério nunca fica vazia ("*" não casa vazio): sem valor vira "—".
+function criterio(value: unknown): string {
+  const s = value == null ? "" : String(value);
+  return s ? texto(s) : "—";
+}
+
+// Escopo ausente é "Casa" (mesma regra do app: só "empresa" sai dos bolsos).
+function escopoTexto(scope: unknown) {
+  return scope === "empresa" ? "Empresa" : "Casa";
+}
+
+// Chave de mês das colunas de critério (Lançamentos!J, Dashboard!B3, menu Mês
+// de Filtros, Bolsos!B6). "2026-09" — mesmo gravado como texto, com apóstrofo —
+// TEM CARA DE DATA: o SOMASES pode ler o critério como data (set/2026) e devolver
+// 0 sem ninguém ver (não há credencial Google aqui). Com o nome do mês entre
+// parênteses nenhum parser de data engole, e AAAA-MM na frente mantém a ordem
+// cronológica das listas. Sempre a MESMA função nos dois lados do critério.
+const MESES_ABREV = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+export function mesChave(key: string) {
+  return `${key} (${MESES_ABREV[Number(key.slice(5, 7)) - 1] ?? "?"})`;
 }
 
 // Selo do estorno na lista: o lançamento continua no histórico, mas quem lê a

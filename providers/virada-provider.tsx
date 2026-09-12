@@ -29,7 +29,7 @@ import type {
   ViradaData,
   ViradaSettings,
 } from "@/lib/types";
-import { debtPaid, isEstornado, isOpenDebt } from "@/lib/types";
+import { debtPaid, findDebtPayment, isEstornado, isOpenDebt } from "@/lib/types";
 import { addMonths, createId, roundMoney, storageKey, toInputDate } from "@/lib/utils";
 import { missions } from "@/lib/constants";
 import { loadData, saveData, clearData } from "@/lib/db/virada-store";
@@ -42,8 +42,9 @@ interface ViradaContextValue extends ViradaData {
   profile: Pick<Profile, "fullName" | "email" | "role" | "plan" | "accessStatus"> | null;
   isAdmin: boolean;
   addExpense: (payload: Omit<Expense, "id">) => string;
-  removeExpense: (id: string) => void;
-  /** false = não achou ou está estornado (nada muda). */
+  /** false = não achou ou é gasto de parcela (só some via undoDebtPayment). */
+  removeExpense: (id: string) => boolean;
+  /** false = não achou, está estornado ou é gasto de parcela (nada muda). */
   updateExpense: (id: string, patch: ExpensePatch) => boolean;
   /** "Desfazer" de Excluir: volta com o MESMO id; se o id já existe, não duplica. */
   restoreExpense: (expense: Expense) => void;
@@ -63,7 +64,8 @@ interface ViradaContextValue extends ViradaData {
   removeGoal: (id: string) => void;
   updateGoalCurrentValue: (id: string, value: number) => void;
   toggleMission: (id: string) => void;
-  estornar: (tx: EstornoTarget) => void;
+  /** false = não achou ou é gasto de parcela (nada muda). */
+  estornar: (tx: EstornoTarget) => boolean;
   addPoints: (points: number, reason: string) => void;
   saveImpulseCheck: (payload: ImpulseCheckPayload) => void;
   resetLocalData: () => void;
@@ -128,7 +130,7 @@ function marcarEstorno<T extends { id: string; estornadoEm?: string }>(items: T[
 
 export function applyEstorno(prev: ViradaData, tx: EstornoTarget, hoje = toInputDate()): ViradaData {
   if (tx.type === "expense") {
-    if (!prev.expenses.some((e) => e.id === tx.id)) return prev;
+    if (!prev.expenses.some((e) => e.id === tx.id) || findDebtPayment(prev.debts, tx.id)) return prev;
     return { ...prev, expenses: marcarEstorno(prev.expenses, tx.id, hoje) };
   }
   if (!prev.incomes.some((i) => i.id === tx.id)) return prev;
@@ -189,9 +191,11 @@ export function migrarEstornosAntigos(data: ViradaData): { data: ViradaData; mig
   return { data: { ...data, expenses: deReceitas.contras, incomes: deReceitas.originais }, migrados };
 }
 
-// ─── Editar / restaurar lançamento (funções puras, testáveis fora do React) ───
+// ─── Editar / excluir / restaurar lançamento (funções puras, sem React) ───────
 // Patch NUNCA troca o id nem mexe em `estornadoEm` (estornar é o applyEstorno).
 // Item estornado não edita: devolve o mesmo estado (a tela avisa antes).
+// Gasto de parcela (findDebtPayment) não edita, não exclui nem estorna: contrato
+// em lib/types.ts — o caminho é applyUndoDebtPayment, que também apaga o gasto.
 
 export type ExpensePatch = Partial<Omit<Expense, "id" | "estornadoEm">>;
 export type IncomePatch = Partial<Omit<Income, "id" | "estornadoEm">>;
@@ -206,8 +210,14 @@ function aplicarPatch<T extends { id: string; estornadoEm?: string }>(items: T[]
 }
 
 export function applyUpdateExpense(prev: ViradaData, id: string, patch: ExpensePatch): ViradaData {
+  if (findDebtPayment(prev.debts, id)) return prev;
   const expenses = aplicarPatch(prev.expenses, id, patch as Partial<Expense>);
   return expenses ? { ...prev, expenses } : prev;
+}
+
+export function applyRemoveExpense(prev: ViradaData, id: string): ViradaData {
+  if (!prev.expenses.some((e) => e.id === id) || findDebtPayment(prev.debts, id)) return prev;
+  return { ...prev, expenses: prev.expenses.filter((e) => e.id !== id) };
 }
 
 export function applyUpdateIncome(prev: ViradaData, id: string, patch: IncomePatch): ViradaData {
@@ -331,6 +341,27 @@ export function applyUndoDebtPayment(prev: ViradaData, paymentId: string): Virad
   };
 }
 
+// ─── Migração do localStorage antigo (função pura, testável fora do React) ────
+// `settings` (renda esperada e fase) vem junto: sem isso /seed-test e qualquer
+// import futuro perdiam a renda e o Início voltava ao convite. A chave só entra
+// quando existe — dado antigo continua sem `settings`.
+export function parseLegacy(raw: string | null): ViradaData | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<ViradaData>;
+    return {
+      expenses: parsed.expenses ?? [],
+      incomes: parsed.incomes ?? [],
+      debts: parsed.debts ?? [],
+      goals: parsed.goals ?? [],
+      missionStatus: parsed.missionStatus ?? {},
+      ...(parsed.settings ? { settings: parsed.settings } : {}),
+    };
+  } catch {
+    return null;
+  }
+}
+
 const ViradaContext = createContext<ViradaContextValue | null>(null);
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -350,18 +381,9 @@ export function ViradaProvider({ children }: PropsWithChildren) {
 
     function readLegacy(): ViradaData | null {
       try {
-        const raw = localStorage.getItem(storageKey);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw) as Partial<ViradaData>;
-        return {
-          expenses: parsed.expenses ?? [],
-          incomes: parsed.incomes ?? [],
-          debts: parsed.debts ?? [],
-          goals: parsed.goals ?? [],
-          missionStatus: parsed.missionStatus ?? {},
-        };
+        return parseLegacy(localStorage.getItem(storageKey));
       } catch {
-        return null;
+        return null; // localStorage indisponível
       }
     }
 
@@ -484,11 +506,13 @@ export function ViradaProvider({ children }: PropsWithChildren) {
       return id; // quem lançou pode desfazer (removeExpense)
     },
     removeExpense: (id) => {
-      update((prev) => ({ ...prev, expenses: prev.expenses.filter((e) => e.id !== id) }));
+      if (applyRemoveExpense(data, id) === data) return false;
+      update((prev) => applyRemoveExpense(prev, id));
+      return true;
     },
     updateExpense: (id, patch) => {
       const alvo = data.expenses.find((e) => e.id === id);
-      if (!alvo || isEstornado(alvo)) return false;
+      if (!alvo || isEstornado(alvo) || findDebtPayment(data.debts, id)) return false;
       update((prev) => applyUpdateExpense(prev, id, patch));
       return true;
     },
@@ -579,7 +603,9 @@ export function ViradaProvider({ children }: PropsWithChildren) {
 
     // ── Estorno ───────────────────────────────────────────────────────────
     estornar: (tx) => {
+      if (applyEstorno(data, tx) === data) return false;
       update((prev) => applyEstorno(prev, tx));
+      return true;
     },
 
     // ── Impulso ───────────────────────────────────────────────────────────

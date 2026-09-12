@@ -8,7 +8,10 @@
  *
  * Roda com: npx tsx scripts/test-sheets-stress.ts
  */
-import { buildSyncBatch, MAX_DATA_ROWS, type SyncInput } from "../lib/sheets/builder";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { GRADE_INICIAL, HEADERS, TAB, buildLayoutRequests, buildStaticValues, buildSyncBatch, MAX_DATA_ROWS, type SyncInput } from "../lib/sheets/builder";
+import { growGridCall, precisaCrescer, upgradeLayoutCall, type SpreadsheetInfo } from "../lib/sheets/sync-requests";
+import { montarPasta } from "./planilha-avaliador";
 
 function dateByIndex(i: number) {
   const day = (i % 28) + 1;
@@ -91,9 +94,11 @@ function smoke() {
   must(fluxo.length > 0, "Fluxo vazio");
   must(resumo.length > 0, "Resumo vazio");
 
-  // J6 é o mês corrente (igual ao Início do app); o histórico inteiro fica em J8.
-  const dashboardTotal = ranges.get("Dashboard!J8")?.[0]?.[0];
+  // J6 é o mês corrente (igual ao Início do app); o histórico inteiro fica em J8
+  // — fórmula CONT.SE sobre a aba Lançamentos, avaliada aqui.
+  const dashboardTotal = montarPasta(buildStaticValues(), batch.valueRanges).ler("Dashboard!J8");
   must(Number(dashboardTotal) === TOTAL_LANCAMENTOS, `Dashboard J8 esperado ${TOTAL_LANCAMENTOS}, veio ${String(dashboardTotal)}`);
+  must(!precisaCrescer(batch.linhas), "360 lançamentos cabem na grade inicial");
 
   console.log("STRESS OK");
   console.log(`Lançamentos: ${lancamentos.length}`);
@@ -108,7 +113,7 @@ function limiteDeLinhas() {
     const batch = buildSyncBatch(makeInput(total));
     const escritas = batch.valueRanges.find((r) => r.range === "Lançamentos!A2")?.values.length ?? 0;
     const ultimaLinha = 2 + escritas - 1;
-    const clear = batch.clearRanges.find((r) => r.startsWith("Lançamentos!A2:I"));
+    const clear = batch.clearRanges.find((r) => r.startsWith("Lançamentos!A2:L"));
     must(escritas === total, `${total}: esperava ${total} linhas escritas, veio ${escritas}`);
     must(!!clear, `${total}: falta limpeza de Lançamentos`);
     must(clearEndRow(clear!) >= ultimaLinha, `${total}: limpeza (${clear}) não alcança a linha ${ultimaLinha} — viraria linha fantasma`);
@@ -119,8 +124,96 @@ function limiteDeLinhas() {
   }
   // Com 1.000 lançamentos a última linha (1001) ainda está dentro da faixa de
   // formato/filtro/zebra (MAX_DATA_ROWS + 1). Acima disso a linha continua sendo
-  // limpa (limpeza aberta), mas fica sem formatação — e a grade tem só +10.
+  // limpa (limpeza aberta), mas fica sem formatação. A grade nasce com +10 e
+  // cresce por appendDimension quando os dados passam dela (growGridCall).
+  must(!precisaCrescer(buildSyncBatch(makeInput(MAX_DATA_ROWS + 9)).linhas), `${MAX_DATA_ROWS + 9} lançamentos ainda cabem na grade inicial`);
+  must(precisaCrescer(buildSyncBatch(makeInput(MAX_DATA_ROWS + 10)).linhas), `${MAX_DATA_ROWS + 10} lançamentos: precisa crescer a grade antes do batchUpdate`);
+  console.log("GRADE OK — cresce a partir de 1.010 lançamentos");
+}
+
+// Juiz (rodada 1): com 1.050 lançamentos o appendDimension passava, mas as linhas
+// 1002..1051 ficavam sem R$ na coluna Valor, sem zebra, fora do filtro básico e
+// com Anotações BLOQUEADA. Crescer a grade tem que levar junto proteção, filtro,
+// zebra, altura e formatos da faixa nova — e o upgrade de layout numa planilha
+// já crescida não pode encolher nada de volta pra 1.001.
+function gradeCresce() {
+  const TOTAL = MAX_DATA_ROWS + 50; // 1.050 → última linha 1.051
+  const batch = buildSyncBatch(makeInput(TOTAL));
+  const titulos = Object.values(TAB);
+  const ids = Object.fromEntries(titulos.map((t, i) => [t, 100 + i]));
+  const info: SpreadsheetInfo = {
+    sheets: titulos.map((title, i) => ({
+      properties: { title, sheetId: 100 + i, gridProperties: { rowCount: MAX_DATA_ROWS + 10, columnCount: 16 } },
+      protectedRanges: [{ protectedRangeId: 900 + i }],
+      bandedRanges: [{ bandedRangeId: 800 + i }],
+    })),
+  };
+  const grow = growGridCall(info, batch.linhas);
+  must(!!grow, "1.050 lançamentos: growGridCall devolve requests");
+  const reqs = grow!.requests as any[];
+  const sid = ids[TAB.lancamentos];
+  const deLanc = (r: any) => JSON.stringify(r).includes(`"sheetId":${sid}`);
+  const lanc = reqs.filter(deLanc);
+  const ULTIMA = TOTAL + 1; // linha 1.051 (índice 1.051 = endRowIndex mínimo)
+
+  const append = lanc.find((r) => r.appendDimension);
+  must(!!append && append.appendDimension.dimension === "ROWS", "Lançamentos: appendDimension ROWS");
+  const novoRowCount = MAX_DATA_ROWS + 10 + append!.appendDimension.length;
+  must(novoRowCount >= ULTIMA, `grade nova (${novoRowCount}) alcança a linha ${ULTIMA}`);
+
+  const prot = lanc.find((r) => r.updateProtectedRange);
+  const livre = prot?.updateProtectedRange?.protectedRange?.unprotectedRanges?.[0];
+  must(!!prot && prot.updateProtectedRange.protectedRange.protectedRangeId === 900 + titulos.indexOf(TAB.lancamentos), "Lançamentos: updateProtectedRange usa o protectedRangeId da aba");
+  must(String(prot?.updateProtectedRange?.fields ?? "").includes("unprotectedRanges"), "updateProtectedRange: fields = unprotectedRanges");
+  must(!!livre && livre.endRowIndex >= ULTIMA, `Anotações continua livre até a linha ${ULTIMA} (endRowIndex=${livre?.endRowIndex})`);
+  must(livre.startColumnIndex === (HEADERS.lancamentos ?? []).length && livre.startRowIndex === 1, "faixa livre = só a coluna Anotações, linhas 2+");
+
+  const filtro = lanc.find((r) => r.setBasicFilter);
+  must(!!filtro && filtro.setBasicFilter.filter.range.endRowIndex >= ULTIMA, `filtro básico alcança a linha ${ULTIMA} (${filtro?.setBasicFilter?.filter?.range?.endRowIndex})`);
+  must(filtro.setBasicFilter.filter.range.endColumnIndex === (HEADERS.lancamentos ?? []).length, "filtro básico cobre só as colunas geradas");
+
+  const zebra = lanc.find((r) => r.updateBanding);
+  must(!!zebra && zebra.updateBanding.bandedRange.range.endRowIndex >= ULTIMA && zebra.updateBanding.bandedRange.bandedRangeId === 800 + titulos.indexOf(TAB.lancamentos), "zebra (updateBanding) alcança a faixa nova");
+
+  const cobre = (r: any) => r.repeatCell.range.startRowIndex <= GRADE_INICIAL && r.repeatCell.range.endRowIndex >= ULTIMA;
+  const fmts = lanc.filter((r) => r.repeatCell && cobre(r));
+  const moeda = fmts.find((r) => r.repeatCell.range.startColumnIndex === 4 && r.repeatCell.cell.userEnteredFormat.numberFormat?.type === "CURRENCY");
+  const data = fmts.find((r) => r.repeatCell.range.startColumnIndex === 0 && r.repeatCell.cell.userEnteredFormat.numberFormat?.type === "DATE");
+  must(!!moeda, "coluna Valor (E) ganha R$ nas linhas novas");
+  must(!!data, "coluna Data (A) ganha formato de data nas linhas novas");
+  must(fmts.some((r) => r.repeatCell.range.startColumnIndex === 0 && r.repeatCell.range.endColumnIndex === (HEADERS.lancamentos ?? []).length && String(r.repeatCell.fields).includes("borders")), "bordas nas linhas novas");
+  must(fmts.some((r) => r.repeatCell.range.startColumnIndex === (HEADERS.lancamentos ?? []).length), "estilo da coluna Anotações nas linhas novas");
+  must(lanc.some((r) => r.updateDimensionProperties?.range?.dimension === "ROWS" && r.updateDimensionProperties.range.endIndex >= ULTIMA), "altura das linhas novas");
+
+  // Receitas tem 525 linhas: cabe — nenhum request pra ela
+  must(!reqs.some((r) => JSON.stringify(r).includes(`"sheetId":${ids[TAB.receitas]}`)), "Receitas (525 linhas) não é tocada");
+
+  // GET antigo, sem ids de proteção/zebra: cresce e formata mesmo assim, sem quebrar
+  const semIds: SpreadsheetInfo = { sheets: info.sheets!.map((s) => ({ properties: s.properties })) };
+  const grow2 = growGridCall(semIds, batch.linhas)!.requests as any[];
+  must(grow2.some((r) => r.appendDimension) && grow2.some((r) => r.setBasicFilter) && !grow2.some((r) => r.updateProtectedRange) && !grow2.some((r) => r.updateBanding), "sem ids: appendDimension + filtro + formatos, sem updateProtectedRange/updateBanding");
+
+  // upgrade numa planilha já crescida (rowCount 1.060): o layout não encolhe filtro/proteção de volta
+  const crescida: SpreadsheetInfo = { sheets: info.sheets!.map((s) => ({ ...s, properties: { ...s.properties, gridProperties: { rowCount: s.properties!.title === TAB.lancamentos ? 1060 : MAX_DATA_ROWS + 10, columnCount: 16 } } })) };
+  const up = upgradeLayoutCall(crescida, ids).requests as any[];
+  const upFiltro = up.find((r) => r.setBasicFilter?.filter?.range?.sheetId === sid);
+  const upProt = up.find((r) => r.addProtectedRange?.protectedRange?.range?.sheetId === sid);
+  must(upFiltro?.setBasicFilter.filter.range.endRowIndex === 1060, `upgrade: filtro de Lançamentos vai até o rowCount real (1.060), veio ${upFiltro?.setBasicFilter.filter.range.endRowIndex}`);
+  must(upProt?.addProtectedRange.protectedRange.unprotectedRanges[0].endRowIndex === 1060, "upgrade: Anotações livre até o rowCount real (1.060)");
+  const upReceitas = up.find((r) => r.setBasicFilter?.filter?.range?.sheetId === ids[TAB.receitas]);
+  must(upReceitas?.setBasicFilter.filter.range.endRowIndex === GRADE_INICIAL, `upgrade: aba não crescida continua na grade inicial (${GRADE_INICIAL})`);
+  // sem info de grade (criação), o layout formata a grade inicial inteira
+  const padrao = buildLayoutRequests(ids) as any[];
+  must(padrao.find((r) => r.setBasicFilter?.filter?.range?.sheetId === sid)?.setBasicFilter.filter.range.endRowIndex === GRADE_INICIAL, `criação: filtro até ${GRADE_INICIAL} (grade inteira)`);
+  must(padrao.find((r) => r.addProtectedRange?.protectedRange?.range?.sheetId === sid)?.addProtectedRange.protectedRange.unprotectedRanges[0].endRowIndex === GRADE_INICIAL, "criação: Anotações livre até o fim da grade");
+  // regras de cor das abas de dados não têm fim de linha: valem pra faixa que crescer
+  const regrasLanc = padrao.filter((r) => r.addConditionalFormatRule?.rule?.ranges?.[0]?.sheetId === sid);
+  must(regrasLanc.length > 0 && regrasLanc.every((r) => r.addConditionalFormatRule.rule.ranges[0].endRowIndex === undefined && r.addConditionalFormatRule.rule.ranges[0].startRowIndex === 1), "regras condicionais de Lançamentos: da linha 2 até o fim da coluna");
+  must(padrao.filter((r) => r.addConditionalFormatRule?.rule?.ranges?.[0]?.sheetId === ids[TAB.dashboard]).every((r) => typeof r.addConditionalFormatRule.rule.ranges[0].endRowIndex === "number"), "regras do Dashboard continuam com fim de linha");
+
+  console.log(`CRESCIMENTO OK — ${TOTAL} lançamentos: grade ${novoRowCount}, proteção/filtro/zebra/formatos até ≥ ${ULTIMA}`);
 }
 
 smoke();
 limiteDeLinhas();
+gradeCresce();

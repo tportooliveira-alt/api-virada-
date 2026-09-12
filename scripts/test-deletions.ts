@@ -4,8 +4,9 @@
  * Roda com: npx tsx scripts/test-deletions.ts
  */
 
-import { buildSyncBatch, SyncInput } from "../lib/sheets/builder";
+import { buildStaticValues, buildSyncBatch, SyncInput } from "../lib/sheets/builder";
 import { isFromCurrentMonth, sumValues } from "../lib/utils";
+import { montarPasta } from "./planilha-avaliador";
 import type { Expense, Income, Debt, Goal } from "../lib/types";
 
 // ─── Utilitários de teste ─────────────────────────────────────────────────────
@@ -63,13 +64,15 @@ function removeById<T extends { id: string }>(arr: T[], id: string): T[] {
 }
 
 // Range EXATO da lista da aba ("Fluxo de Caixa!A2"). Com startsWith, o painel
-// "Fluxo de Caixa!K4:K7" passava por lista e o teste lia "4 linhas" de dado.
+// "Fluxo de Caixa!O4:O7" passava por lista e o teste lia "4 linhas" de dado.
 function getRange(batch: ReturnType<typeof buildSyncBatch>, tab: string) {
   return batch.valueRanges.find((vr) => vr.range === `${tab}!A2`);
 }
 
-function getDashCell(batch: ReturnType<typeof buildSyncBatch>, cell: string) {
-  return batch.valueRanges.find((vr) => vr.range === `Dashboard!${cell}`);
+// Dashboard e as colunas Resultado/Saldo acumulado são FÓRMULAS na planilha:
+// o valor vem do mini-avaliador (scripts/planilha-avaliador.ts), não do batch.
+function lerCelula(batch: ReturnType<typeof buildSyncBatch>, ref: string) {
+  return montarPasta(buildStaticValues(), batch.valueRanges).ler(ref);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -110,16 +113,8 @@ section("A) Exclusão de receita — totais regridem");
 
   // Dashboard: A8 é "Desde o início"; A6 é o mês corrente e os fixtures são de
   // 2026-04 — fora desse mês tem que ser 0 (não o histórico).
-  const dashA8 = getDashCell(batch, "A8");
-  assert(dashA8 !== undefined, "A: Dashboard!A8 presente");
-  if (dashA8) {
-    assertEq((dashA8.values as unknown[][])[0][0], 1250, "A: Dashboard A8 = 1250 (não 1750)");
-  }
-  const dashA6 = getDashCell(batch, "A6");
-  assert(dashA6 !== undefined, "A: Dashboard!A6 presente");
-  if (dashA6) {
-    assertEq((dashA6.values as unknown[][])[0][0], isFromCurrentMonth("2026-04-15") ? 1250 : 0, "A: Dashboard A6 = entradas só do mês corrente (0 fora de 2026-04)");
-  }
+  assertEq(lerCelula(batch, "Dashboard!A8"), 1250, "A: Dashboard A8 = 1250 (não 1750)");
+  assertEq(lerCelula(batch, "Dashboard!A6"), isFromCurrentMonth("2026-04-15") ? 1250 : 0, "A: Dashboard A6 = entradas só do mês corrente (0 fora de 2026-04)");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -158,16 +153,8 @@ section("B) Exclusão de despesa — saldo sobe");
   }
 
   // Dashboard D8 (desde o início) = 600; D6 (mês corrente) só se 2026-04 for o mês de hoje
-  const dashD8 = getDashCell(batch, "D8");
-  assert(dashD8 !== undefined, "B: Dashboard!D8 presente");
-  if (dashD8) {
-    assertEq((dashD8.values as unknown[][])[0][0], 600, "B: Dashboard D8 = 600 (não 900)");
-  }
-  const dashD6 = getDashCell(batch, "D6");
-  assert(dashD6 !== undefined, "B: Dashboard!D6 presente");
-  if (dashD6) {
-    assertEq((dashD6.values as unknown[][])[0][0], isFromCurrentMonth("2026-04-15") ? 600 : 0, "B: Dashboard D6 = gastos só do mês corrente (0 fora de 2026-04)");
-  }
+  assertEq(lerCelula(batch, "Dashboard!D8"), 600, "B: Dashboard D8 = 600 (não 900)");
+  assertEq(lerCelula(batch, "Dashboard!D6"), isFromCurrentMonth("2026-04-15") ? 600 : 0, "B: Dashboard D6 = gastos só do mês corrente (0 fora de 2026-04)");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -214,8 +201,8 @@ section("C) Exclusão do único item — não quebra, volta a zero");
     // Fluxo de caixa SEM linha fantasma: o fallback [hoje,0,0,0,0] era dado
     // inventado e foi removido de propósito. Lista ausente; painel zerado.
     assertEq(getRange(batch, "Fluxo de Caixa"), undefined, "C: 'Fluxo de Caixa!A2' ausente (nenhuma linha [hoje,0,0,0,0])");
-    const painelFluxo = batch.valueRanges.find((vr) => vr.range === "Fluxo de Caixa!K4:K7");
-    assert(painelFluxo !== undefined, "C: painel 'Fluxo de Caixa!K4:K7' presente");
+    const painelFluxo = batch.valueRanges.find((vr) => vr.range === "Fluxo de Caixa!O4:O7");
+    assert(painelFluxo !== undefined, "C: painel 'Fluxo de Caixa!O4:O7' presente");
     if (painelFluxo) {
       // Intl separa "R$" do número com espaço duro (U+00A0); normaliza pra comparar.
       const painel = (painelFluxo.values as unknown[][]).map((r) => [String(r[0]).replace(/ /g, " ")]);
@@ -233,10 +220,7 @@ section("C) Exclusão do único item — não quebra, volta a zero");
     }
 
     // Dashboard A6 deve ser 0
-    const dashA6 = getDashCell(batch, "A6");
-    if (dashA6) {
-      assertEq((dashA6.values as unknown[][])[0][0], 0, "C: Dashboard A6 = 0 com lista vazia");
-    }
+    assertEq(lerCelula(batch, "Dashboard!A6"), 0, "C: Dashboard A6 = 0 com lista vazia");
   }
 }
 
@@ -414,20 +398,21 @@ section("H) Fluxo de caixa após exclusão — saldo acumulado recalcula");
   if (fluAntes) {
     const rows = fluAntes.values as unknown[][];
     assertEq(rows.length, 2, "H: fluxo tem 2 linhas antes (dias 1 e 2)");
+    const celula = (ref: string) => Number(lerCelula(batchAntes, `Fluxo de Caixa!${ref}`));
 
-    // Dia 1: receita 500, despesa 200 → resultado +300, acumulado +300
+    // Dia 1: receita 500, despesa 200 → resultado +300, acumulado +300 (D e E são fórmulas)
     const d1 = rows[0];
     assertCloseTo(d1[1] as number, 500, "H: dia 1 entradas = 500");
     assertCloseTo(d1[2] as number, 200, "H: dia 1 saídas = 200");
-    assertCloseTo(d1[3] as number, 300, "H: dia 1 resultado = +300");
-    assertCloseTo(d1[4] as number, 300, "H: dia 1 acumulado = +300");
+    assertCloseTo(celula("D2"), 300, "H: dia 1 resultado = +300");
+    assertCloseTo(celula("E2"), 300, "H: dia 1 acumulado = +300");
 
     // Dia 2: receita 100, despesa 400 → resultado -300, acumulado 0
     const d2 = rows[1];
     assertCloseTo(d2[1] as number, 100, "H: dia 2 entradas = 100");
     assertCloseTo(d2[2] as number, 400, "H: dia 2 saídas = 400 (antes da exclusão)");
-    assertCloseTo(d2[3] as number, -300, "H: dia 2 resultado = -300 (antes da exclusão)");
-    assertCloseTo(d2[4] as number, 0, "H: dia 2 acumulado = 0 (antes da exclusão)");
+    assertCloseTo(celula("D3"), -300, "H: dia 2 resultado = -300 (antes da exclusão)");
+    assertCloseTo(celula("E3"), 0, "H: dia 2 acumulado = 0 (antes da exclusão)");
   }
 
   // Remove a despesa 400 do dia 2
@@ -445,10 +430,10 @@ section("H) Fluxo de caixa após exclusão — saldo acumulado recalcula");
     const d2after = rows[1];
     assertCloseTo(d2after[1] as number, 100, "H: dia 2 entradas = 100 (após exclusão)");
     assertCloseTo(d2after[2] as number, 0, "H: dia 2 saídas = 0 (despesa 400 removida)");
-    assertCloseTo(d2after[3] as number, 100, "H: dia 2 resultado = +100 (não -300)");
+    assertCloseTo(Number(lerCelula(batchDepois, "Fluxo de Caixa!D3")), 100, "H: dia 2 resultado = +100 (não -300)");
 
     // Acumulado final = 300 (dia 1) + 100 (dia 2) = 400
-    assertCloseTo(d2after[4] as number, 400, "H: acumulado final = 400 (não 0) — 300 + 100");
+    assertCloseTo(Number(lerCelula(batchDepois, "Fluxo de Caixa!E3")), 400, "H: acumulado final = 400 (não 0) — 300 + 100");
   }
 }
 

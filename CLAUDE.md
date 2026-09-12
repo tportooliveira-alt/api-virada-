@@ -24,31 +24,41 @@ Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (Indexe
 3. **Python isolado** em `tools/automacao-python/` (28 scripts de automação — fora do runtime).
 4. **Planilha "plugada" (auto-sync)** implementada em `components/GoogleSyncButton.tsx`: depois de criar a planilha + logar 1x, cada mudança sincroniza sozinha (debounce 4s, com baseline anti-loop). A 1ª vez continua manual.
 5. **Removidos:** 2 testes mortos (`scripts/test_finance.js`, `test_performance.js`) e `content/ebook.backup.md` (duplicado).
-6. **Planilha "viva" (fórmulas dentro do Google Sheets) — PENDENTE, não está no código.**
-   Estado real (verificado em 2026-09-11, `npx tsx scripts/dump-formulas.ts` + `git log -S`):
-   a **única** fórmula que o `lib/sheets/builder.ts` injeta é a barra `SPARKLINE` do
-   Dashboard (`sparkBar`, células `C12:C21` e `K12:K21`):
-   `=SE(N(x)=0;"";SPARKLINE(ABS(x);{"charttype"\"bar";"max"\MÁXIMO(MÁXIMO(..);-MÍNIMO(..));"color1"\SE(N(x)<0;"#EF4444";"#22C55E")}))`
-   — mês negativo entra em vermelho com a barra do módulo. **Risco residual:** essa fórmula é
-   validada **só por sintaxe** (`test-sheets-build.ts`/`test-planilha-bordas.ts` conferem
-   `SE/MÁXIMO/MÍNIMO/ABS`, `;` e `\`); não há credencial Google aqui, então ninguém a viu
-   renderizar de verdade — se der `#ERRO!` na planilha do cliente, começa por ela.
-   **Todo o resto é VALOR gravado pelo sync** (`buildSyncBatch` → `values.batchUpdate`):
-   KPIs do Dashboard `A6/D6/G6/J6` (**mês corrente**, = `getDashboardMetrics` do Início) e
-   `A8/D8/G8/J8` ("Desde o início"), comparativo `G12:J21` (10 últimos meses do **calendário**
-   até o corrente, zerando os parados), painéis laterais `K4:K7` de todas as abas, "Em aberto"
-   de Dívidas, "Faltando/Progresso" de Metas, Fluxo e Resumo — tudo calculado em JS
-   (`buildTotals`, `buildDailyCashFlow`, `buildMonthlySummary`) e colado a cada sync. Nunca
-   existiu `=SOMA`, `=SOMASE`, `=CONT.VALORES` ou `=TEXTO` no builder (zero ocorrências no
-   histórico git). O que continua valendo como regra pra quando for feito: sintaxe **pt-BR**
-   (`SOMA` não `SUM`, separador `;`) porque a planilha é `locale: pt_BR` + `USER_ENTERED`
-   (inglês daria `#NOME?`). A "planilha viva" com `SOMASES` e painéis dirigidos por filtro é
-   a **fase seguinte** do cluster planilha.
-   **Pendência fora do reparo de 2026-09-11:** a grade de cada aba de dados nasce com
-   `MAX_DATA_ROWS + 10` linhas (1.010); acima de ~1.009 lançamentos o `values.batchUpdate`
-   é recusado inteiro. Precisa de `appendDimension` (crescer a grade antes de gravar) — o
-   Resumo Mensal já é limitado por construção (`fillMonthGaps`: preenche buracos só nos
-   últimos 24 meses e trata ano fora de [corrente − 10, corrente + 1] como dado suspeito).
+6. **Planilha "viva" (fórmulas dentro do Google Sheets) — FEITA em 2026-09-11 (layout `2026-09-11.3`).**
+   O que é FÓRMULA (recalcula na planilha) e o que é VALOR (colado pelo sync) — lista viva no
+   cabeçalho de `lib/sheets/builder.ts`, conferível com `npx tsx scripts/dump-formulas.ts` e
+   provada offline por `scripts/test-planilha-formulas.ts` (mini-avaliador
+   `scripts/planilha-avaliador.ts`: SOMASES/CONT.SES/SE/MÁXIMO/ARRED… em pt-BR rodando sobre os
+   valueRanges gerados; bate com `getDashboardMetrics`/`getPockets` ao centavo, estornado no meio):
+   - Dashboard `A6/D6/G6/J6` (mês de referência em `B3`) e `A8/D8/G8/J8`: `SOMASES`/`CONT.SES`/
+     `CONT.SE` sobre a aba Lançamentos, sempre com `Estornado = "Não"`; `B12:B21` (gasto por
+     categoria): `SOMASES`; `C12:C21`/`K12:K21`: `SPARKLINE`. `G12:J21` (comparativo dos 10 últimos
+     meses do calendário): VALOR (o mês ali é data pro gráfico).
+   - Filtros `B10:B14` (Entradas/Gastos/Saldo/Nº/Por impulso, menus com "Todos" → `*`) e Bolsos
+     `B6`, `C9:F11` (alvo/gasto/sobra/situação): fórmulas; menus, listas `H:L`, renda e fase: VALOR.
+   - Dívidas "Em aberto" (`SE(quitada;0;MÁXIMO(0;Total−Pago))`), Metas "Faltando"/"Progresso"
+     (protegido contra alvo 0), Fluxo e Resumo "Resultado"/"Saldo acumulado": fórmula por linha.
+     Resumo Entradas/Saídas/Economia/Lançamentos e painéis laterais `O4:O7`: VALOR.
+   - Colunas de critério de Lançamentos (`Mês` J, `Estornado` K, `Bolso` L) sempre com valor
+     ("—" quando não se aplica): `*` não casa célula vazia.
+   **Chave de mês (decisão do juiz, rodada 1):** `"2026-09"` — mesmo gravado com apóstrofo — tem
+   cara de data, e o `SOMASES` real pode coagir o critério pra data e zerar KPIs, Filtros e Bolsos.
+   Sem credencial ninguém viu renderizar, então a chave é `mesChave()` = `"2026-09 (set)"`
+   (AAAA-MM + nome do mês entre parênteses): nenhum parser de data engole, ordena
+   cronologicamente, e é a MESMA função em Lançamentos!J, Dashboard!B3, lista Filtros!H e
+   Bolsos!B6. **Continua pendente validar UMA vez com credencial Google antes de vender** —
+   começa por B3/A6 e pela `SPARKLINE`.
+   Regra que continua valendo: sintaxe **pt-BR** (`SOMA` não `SUM`, `;` separador, `\` em matriz,
+   nenhum decimal com ponto) porque a planilha é `locale: pt_BR` + `USER_ENTERED`.
+   **Grade:** cada aba de dados nasce com `GRADE_INICIAL` (1.010) linhas, toda formatada. Acima
+   disso o sync cresce por `appendDimension` (`growGridCall` → `growDataSheetRequests`) levando
+   junto altura, bordas, R$/data, zebra (`updateBanding`), filtro básico e a faixa livre de
+   Anotações (`updateProtectedRange`) — o GET usa `SPREADSHEET_FIELDS` pra ter os ids; regras de
+   cor das abas de dados não têm fim de linha. O upgrade de layout usa o rowCount real, então não
+   encolhe uma grade crescida. Upgrade de planilha anterior ao v3 (versão gravada ≤ `2026-09-11.1`
+   ou ausente) limpa o painel antigo em `J1:M20` das 6 abas Receitas…Resumo (em Lançamentos J:L
+   virou dado). Sobrou: os gráficos de Fluxo/Dívidas do Dashboard leem até a linha 1.001; o Resumo
+   Mensal continua limitado por construção (`fillMonthGaps`).
 
 ## Decisões tomadas (2026-09-05)
 
@@ -116,6 +126,10 @@ npm run typecheck      # tsc --noEmit (passou: 0 erros)
 npm run lint
 # testes TS reais (scripts/test-*.ts, assert próprio, sem framework):
 npx tsx scripts/test-sheets-build.ts
+npx tsx scripts/test-planilha-formulas.ts   # planilha viva: fórmulas pt-BR avaliadas offline
+npx tsx scripts/test-sheets-stress.ts       # limite de linhas e crescimento da grade
+npx tsx scripts/test-planilha-bordas.ts
+npx tsx scripts/test-planilha-vs-app.ts
 npx tsx scripts/test-app-completo.ts
 npx tsx scripts/test-estorno.ts
 npx tsx scripts/test-estorno-totais.ts

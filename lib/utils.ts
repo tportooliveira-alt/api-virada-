@@ -213,7 +213,8 @@ export function getDashboardMetrics(data: ViradaData) {
   const incomeMonth = roundMoney(sumValues(monthIncomes, (item) => item.value));
   const expenseMonth = roundMoney(sumValues(monthExpenses, (item) => item.value));
   const balanceMonth = roundMoney(incomeMonth - expenseMonth);
-  const openDebtsTotal = roundMoney(sumValues(openDebts, (item) => item.totalValue));
+  // "Em aberto" = o que ainda falta pagar (total − pago), igual ao painel da planilha.
+  const openDebtsTotal = roundMoney(sumValues(openDebts, debtRemaining));
   const estimatedEconomy = roundMoney(
     sumValues(
       monthExpenses.filter((item) => item.nature === "impulso"),
@@ -328,9 +329,19 @@ function parcelaDevida(debt: Debt) {
   return debt.installmentValue > 0 ? Math.min(debt.installmentValue, restante) : restante;
 }
 
-export function dividasVencendoNoMes(data: ViradaData, monthKey: string) {
-  const vencendo = data.debts.filter((d) => isOpenDebt(d) && d.dueDate.slice(0, 7) === monthKey);
-  return { total: roundMoney(sumValues(vencendo, parcelaDevida)), quantidade: vencendo.length };
+function somaParcelas(debts: Debt[]) {
+  return { total: roundMoney(sumValues(debts, parcelaDevida)), quantidade: debts.length };
+}
+
+// Duas linhas que não se sobrepõem: "vencidas" = já passou da data (qualquer mês);
+// "vencendo" = ainda vai vencer dentro do mês escolhido (vence hoje conta aqui).
+// Uma dívida que venceu dia 5 deste mês só aparece em "vencidas" — nunca duas vezes.
+export function avisosDeDivida(debts: Debt[], mes: string, hoje = toInputDate()) {
+  const abertas = debts.filter(isOpenDebt);
+  return {
+    vencidas: somaParcelas(abertas.filter((d) => d.dueDate < hoje)),
+    vencendo: somaParcelas(abertas.filter((d) => d.dueDate >= hoje && d.dueDate.slice(0, 7) === mes)),
+  };
 }
 
 // Dia 31 fica na última missão (o `%` mandava de volta pra missão 1).

@@ -14,15 +14,17 @@ sai com código 1 se algo falhar). Exercitam a lógica de `lib/`, `providers/` e
 | `test-estorno-totais.ts` | Contrato de estorno nos totais + migração dos estornos antigos ("ESTORNO — X") |
 | `test-deletions.ts` | Exclusões e cascata |
 | `test-sheets-build.ts` | Geração da planilha Google (estrutura + fórmulas + dados), offline |
-| `test-sheets-stress.ts` | Massa de dados na planilha (smoke) e limite de linhas |
-| `test-planilha-bordas.ts` | Casos de borda da planilha Google |
+| `test-sheets-stress.ts` | Massa de dados na planilha (smoke), limite de linhas e crescimento da grade (formatos/filtro/zebra/proteção acompanham) |
+| `test-planilha-bordas.ts` | Casos de borda da planilha Google (inclui upgrade de planilha antiga) |
 | `test-planilha-vs-app.ts` | Planilha e tela Início têm que mostrar os mesmos números |
+| `test-planilha-formulas.ts` | Planilha "viva": toda fórmula é pt-BR (varredura), e Dashboard/Filtros/Bolsos/Dívidas/Metas/Fluxo/Resumo avaliados batem com o app ao centavo; planilha vazia sem `#…` |
+| `planilha-avaliador.ts` | Mini-avaliador de fórmulas do Sheets em pt-BR (SOMASES, CONT.SES, SE, MÁXIMO…) sobre os valueRanges gerados — módulo auxiliar dos testes de planilha e do `dump-formulas.ts` |
 | `test-webhooks.ts` | 6 adapters de webhook + ciclo refund + normalização (SQLite) |
 | `test-admin-session.ts` | Assinatura/verificação do cookie de admin |
 | `fake-googleapis.cjs` | Mock auxiliar dos testes de planilha |
 
-Sem credencial Google: `dump-formulas.ts` mostra as fórmulas da planilha e `preview-planilha.ts`
-gera a prévia — os dois são utilitários, não testes.
+Sem credencial Google: `dump-formulas.ts` mostra as fórmulas da planilha (e o valor que cada uma dá,
+pelo `planilha-avaliador.ts`) e `preview-planilha.ts` gera a prévia — os dois são utilitários, não testes.
 
 ## 2. Testes de integração HTTP antigos — REMOVIDOS
 `test_finance.js` e `test_performance.js` chamavam `POST /api/auth/login` e `GET/POST /api/finance`,

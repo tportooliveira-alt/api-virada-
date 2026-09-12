@@ -4,7 +4,7 @@
  *
  * Cobre o CA-02 (alvos, verde/vermelho, Outros por natureza, Empresa fora, renda
  * "baseado no que entrou") e o CA-12 (dados antigos sem `settings` abrem sem NaN),
- * mais sugerirFaseVirada e dividasVencendoNoMes na virada de ano.
+ * mais sugerirFaseVirada e avisosDeDivida (vencidas / vencendo) na virada de ano.
  *
  * Nada aqui depende do relógio: "hoje" e o mês são strings fixas passadas
  * explicitamente. Roda com: npx tsx scripts/test-bolsos.ts  (e com TZ=UTC).
@@ -12,7 +12,8 @@
 
 import { BUDGET_PHASES, BUDGET_PRESETS, POCKETS, POCKET_BY_CATEGORY, expenseCategories } from "../lib/constants";
 import type { Debt, Expense, Income, ViradaData } from "../lib/types";
-import { diasAte, dividasVencendoNoMes, getPockets, pocketOf, shiftMonth, sugerirFaseVirada } from "../lib/utils";
+import { avisosDeDivida, diasAte, getPockets, pocketOf, shiftMonth, sugerirFaseVirada } from "../lib/utils";
+import { parseLegacy } from "../providers/virada-provider";
 
 let passed = 0;
 let failed = 0;
@@ -248,7 +249,7 @@ section("CA-12 · dados antigos (sem settings, sem paidValue, sem debtId) passam
   assertEq(alvos(r), [1250, 750, 500], "alvos sobre as entradas do mês");
   assert(r.bolsos.every((b) => !Number.isNaN(b.alvo) && !Number.isNaN(b.gasto) && !Number.isNaN(b.sobra)), "sem NaN em alvo/gasto/sobra");
   assertEq(sugerirFaseVirada(antigo), true, "dívida antiga em aberto → sugere Fase de virada");
-  assertEq(dividasVencendoNoMes(antigo, MES), { total: 450, quantidade: 1 }, "dívida antiga sem paidValue: vence a parcela (450)");
+  assertEq(avisosDeDivida(antigo.debts, MES, HOJE).vencendo, { total: 450, quantidade: 1 }, "dívida antiga sem paidValue: vence a parcela (450)");
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -266,7 +267,7 @@ section("sugerirFaseVirada · fase manual, só sugestão");
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-section("dividasVencendoNoMes · em aberto, por mês, virada de ano");
+section("avisosDeDivida · em aberto, por mês, virada de ano");
 {
   const data: ViradaData = {
     ...vazio,
@@ -278,11 +279,36 @@ section("dividasVencendoNoMes · em aberto, por mês, virada de ano");
       debt({ name: "E", dueDate: "2027-01-20", installmentValue: 450, totalValue: 3200, paidValue: 3000 }), // última parcela: só faltam 200
     ],
   };
-  assertEq(dividasVencendoNoMes(data, "2026-12"), { total: 450, quantidade: 1 }, "dez/2026: só A (450)");
-  assertEq(dividasVencendoNoMes(data, "2027-01"), { total: 520, quantidade: 3 }, "jan/2027: B (200) + D (restante 120) + E (faltam 200); C quitada fora");
-  assertEq(dividasVencendoNoMes(data, "2027-02"), { total: 0, quantidade: 0 }, "fev/2027: nada");
-  assertEq(dividasVencendoNoMes(vazio, "2027-01"), { total: 0, quantidade: 0 }, "sem dívidas → 0 / 0");
+  // "hoje" antes de tudo: nada vencida, cada mês vê só o que vence nele.
+  const hoje = "2026-12-01";
+  const nada = { total: 0, quantidade: 0 };
+  assertEq(avisosDeDivida(data.debts, "2026-12", hoje), { vencidas: nada, vencendo: { total: 450, quantidade: 1 } }, "dez/2026: só A (450)");
+  assertEq(avisosDeDivida(data.debts, "2027-01", hoje), { vencidas: nada, vencendo: { total: 520, quantidade: 3 } }, "jan/2027: B (200) + D (restante 120) + E (faltam 200); C quitada fora");
+  assertEq(avisosDeDivida(data.debts, "2027-02", hoje), { vencidas: nada, vencendo: nada }, "fev/2027: nada");
+  assertEq(avisosDeDivida([], "2027-01", hoje), { vencidas: nada, vencendo: nada }, "sem dívidas → 0 / 0");
   // Depósitos em meta NÃO entram aqui nem nos bolsos: meta não tem data (só currentValue).
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+section("avisosDeDivida · vencidas × vencendo, sem contar duas vezes (regra do card)");
+{
+  const debts = [
+    debt({ name: "Velha", totalValue: 500, installmentValue: 100, dueDate: "2026-08-10" }), // mês passado
+    debt({ name: "Cartão", dueDate: `${MES}-05` }),                                          // este mês, já passou (hoje = 15)
+    debt({ name: "Hoje", totalValue: 800, installmentValue: 80, dueDate: HOJE }),            // vence hoje: ainda dá pra pagar
+    debt({ name: "Empréstimo", totalValue: 1000, installmentValue: 100, dueDate: `${MES}-28` }), // ainda vai vencer
+    debt({ name: "Depois", totalValue: 900, installmentValue: 90, dueDate: "2026-10-05" }),  // mês que vem
+    debt({ name: "Quitada", status: "quitada", dueDate: "2026-07-10" }),
+  ];
+  const r = avisosDeDivida(debts, MES, HOJE);
+  assertEq(r.vencidas, { total: 550, quantidade: 2 }, "vencidas = 100 (mês passado) + 450 (dia 5 deste mês); quitada fora");
+  assertEq(r.vencendo, { total: 180, quantidade: 2 }, "vencendo = vence hoje (80) + dia 28 (100); a do dia 5 não conta duas vezes; mês que vem fora");
+  // Mês escolhido no passado: tudo daquele mês já venceu — "vencendo" fica vazio.
+  const passado = avisosDeDivida([debt({ dueDate: "2026-08-10" })], "2026-08", HOJE);
+  assertEq(passado, { vencidas: { total: 450, quantidade: 1 }, vencendo: { total: 0, quantidade: 0 } }, "mês passado: vencida sim, vencendo não");
+  // Mês futuro: a vencida de agora continua vencida (qualquer mês), o do futuro está vencendo.
+  const futuro = avisosDeDivida([debt({ dueDate: `${MES}-05` }), debt({ dueDate: "2026-11-20", installmentValue: 300 })], "2026-11", HOJE);
+  assertEq(futuro, { vencidas: { total: 450, quantidade: 1 }, vencendo: { total: 300, quantidade: 1 } }, "mês futuro: vencida de hoje + vencendo de lá");
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -295,6 +321,26 @@ section("diasAte · 'vence em N dias' / 'venceu há N dias' por texto de data");
   assertEq(diasAte("2026-03-01", "2026-02-28"), 1, "fev → mar (2026 não é bissexto)");
   assertEq(diasAte("2024-03-01", "2024-02-28"), 2, "fev → mar em bissexto (29/02 existe)");
   assertEq(diasAte("2026-10-01", "2026-09-30"), 1, "1º do mês não some por fuso (calendário local, por texto)");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+section("Juiz #2 · migração do localStorage antigo mantém settings (renda e fase)");
+{
+  // readLegacy descartava `settings`: /seed-test (e qualquer import futuro) perdia a
+  // renda esperada e a fase, e o Início voltava ao convite "informe sua renda".
+  const legado: ViradaData = { ...vazio, expenses: [ex(10)], settings: { expectedIncome: 2500, budgetPhase: "virada" } };
+  const lido = parseLegacy(JSON.stringify(legado));
+  assertEq(lido?.settings, { expectedIncome: 2500, budgetPhase: "virada" }, "settings vem inteiro na migração");
+  assertEq(lido?.expenses.length, 1, "lançamentos continuam vindo");
+  assertEq(getPockets(lido!, MES, HOJE).renda, { valor: 2500, origem: "informada" }, "bolsos após migrar: renda 'informada' (não volta ao convite)");
+  assertEq(getPockets(lido!, MES, HOJE).fase, "virada", "fase 'virada' sobrevive à migração");
+
+  const semSettings = parseLegacy(JSON.stringify(vazio));
+  assert(semSettings !== null && !("settings" in semSettings), "dado antigo sem settings: a chave não aparece (nem como undefined)");
+  const parcial = { expenses: [ex(5)] };
+  assertEq(parseLegacy(JSON.stringify(parcial)), { ...vazio, expenses: parcial.expenses }, "JSON parcial: listas ausentes viram vazias");
+  assertEq(parseLegacy(null), null, "sem nada gravado → null");
+  assertEq(parseLegacy("{isso não é json"), null, "JSON quebrado → null (não derruba o app)");
 }
 
 // ─── Resultado ───────────────────────────────────────────────────────────────

@@ -18,6 +18,7 @@ import {
   dataClearRange,
 } from "./builder";
 import type { Row, SyncInput } from "./builder";
+import { SPREADSHEET_FIELDS, growGridCall, precisaCrescer, type SpreadsheetInfo } from "./sync-requests";
 
 type Request = sheets_v4.Schema$Request;
 
@@ -101,6 +102,7 @@ export async function syncDebts(spreadsheetId: string, rows: Row[]): Promise<voi
     dueDate: String(r.dueDate ?? ""),
     priority: String(r.priority ?? "baixa"),
     status: String(r.status ?? "aberta"),
+    paidValue: Number(r.paidValue) || 0,
   }));
   await applySync(spreadsheetId, { expenses: [], incomes: [], debts, goals: [] }, { onlyDebts: true });
 }
@@ -134,6 +136,14 @@ async function applySync(spreadsheetId: string, input: SyncInput, opts: { onlyDe
   } else if (opts.onlyGoals) {
     clearRanges = [dataClearRange("metas")];
     valueRanges = valueRanges.filter((v) => v.range.startsWith(TAB.metas));
+  }
+
+  // Acima da grade inicial o batchUpdate é recusado inteiro: cresce antes (com
+  // os ids de proteção e zebra, pra faixa nova nascer igual ao resto).
+  if (precisaCrescer(batch.linhas)) {
+    const info = await sheets.spreadsheets.get({ spreadsheetId, fields: SPREADSHEET_FIELDS });
+    const grow = growGridCall(info.data as SpreadsheetInfo, batch.linhas);
+    if (grow) await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: grow.requests as Request[] } });
   }
 
   if (clearRanges.length) {

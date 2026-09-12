@@ -5,9 +5,12 @@
  */
 
 // ─── Imports diretos dos módulos do app ──────────────────────────────────────
-import { buildSyncBatch, SyncInput } from "../lib/sheets/builder";
+import { buildStaticValues, buildSyncBatch, SyncInput } from "../lib/sheets/builder";
 import { getDashboardMetrics, getGoalProgress, sumValues, toInputDate } from "../lib/utils";
-import { isOpenDebt } from "../lib/types";
+import { debtRemaining, isOpenDebt } from "../lib/types";
+// Dashboard, "Em aberto", Faltando/Progresso e Resultado/Saldo acumulado são
+// FÓRMULAS na planilha: o valor vem do mini-avaliador, não do batch.
+import { montarPasta } from "./planilha-avaliador";
 import type { ViradaData, Expense, Income, Debt, Goal } from "../lib/types";
 
 // ─── Utilitários de teste ─────────────────────────────────────────────────────
@@ -121,6 +124,8 @@ assertCloseTo(totalDespesasSumValues, 2100.00, "sumValues(despesas) = 2100.00");
 section("B) Fluxo de caixa (buildSyncBatch)");
 
 const batch = buildSyncBatch(syncInput);
+const pasta = montarPasta(buildStaticValues(), batch.valueRanges);
+const celula = (ref: string) => Number(pasta.ler(ref));
 
 // Encontrar o range do Fluxo de Caixa
 const fluVR = batch.valueRanges.find((vr) => vr.range.startsWith("Fluxo de Caixa"));
@@ -132,26 +137,25 @@ if (fluVR) {
   // Deve ter 3 linhas (3 datas diferentes: hoje, ontem, antes de ontem)
   assertEq(rows.length, 3, "Fluxo de caixa tem 3 linhas (3 datas)");
 
-  // Verificar que o saldo acumulado final == saldo geral
-  const lastRow = rows[rows.length - 1];
-  const accFinal = lastRow[4] as number;
+  // Verificar que o saldo acumulado final == saldo geral (coluna E é fórmula)
+  const accFinal = celula(`Fluxo de Caixa!E${rows.length + 1}`);
   assertCloseTo(accFinal, 400.00, "Saldo acumulado final do fluxo = 400.00 (saldo geral)");
 
   // Verificar que o saldo acumulado cresce corretamente dia a dia
   let prevAcc = 0;
   let accOk = true;
-  for (const row of rows) {
+  rows.forEach((row, i) => {
     const inn = row[1] as number;
     const out = row[2] as number;
-    const diff = row[3] as number;
-    const acc = row[4] as number;
+    const diff = celula(`Fluxo de Caixa!D${i + 2}`);
+    const acc = celula(`Fluxo de Caixa!E${i + 2}`);
     const expectedDiff = inn - out;
     const expectedAcc = prevAcc + diff;
     if (Math.abs(diff - expectedDiff) > 0.01 || Math.abs(acc - expectedAcc) > 0.01) {
       accOk = false;
     }
     prevAcc = acc;
-  }
+  });
   assert(accOk, "Saldo acumulado dia a dia está correto");
 
   // Verificar agrupamento por data: cada linha deve ser uma data única
@@ -174,10 +178,10 @@ if (resVR) {
   // Todas as transações são do mesmo mês (2026-04), então deve ter 1 linha
   assertEq(rows.length, 1, "Resumo mensal tem 1 linha (mês 2026-04)");
 
-  const [_m, inn, out, result, _accM, eco, _count] = rows[0] as number[];
+  const [_m, inn, out, _result, _accM, eco, _count] = rows[0] as number[];
   assertCloseTo(inn, 2500.00, "Resumo mensal: entradas = 2500.00");
   assertCloseTo(out, 2100.00, "Resumo mensal: saídas = 2100.00");
-  assertCloseTo(result, 400.00, "Resumo mensal: resultado = 400.00");
+  assertCloseTo(celula("Resumo Mensal!D2"), 400.00, "Resumo mensal: resultado = 400.00 (fórmula B2-C2)");
 
   // Economia% = resultado / entradas
   const expectedEco = 400 / 2500; // 0.16
@@ -220,19 +224,20 @@ if (divVR) {
   const rows = divVR.values as unknown[][];
   assertEq(rows.length, 4, "Planilha dívidas tem 4 linhas");
 
-  // Coluna 6 (índice 6) = "Em aberto"
-  for (const row of rows) {
+  // Coluna G = Pago (valor), H = "Em aberto" (fórmula: SE quitada 0, senão total − pago)
+  rows.forEach((row, i) => {
     const name = row[0] as string;
     const status = row[3] as string;
-    const emAberto = row[6] as number;
-    const totalValue = row[5] as number;
+    const emAberto = celula(`Dívidas!H${i + 2}`);
+    const debt = debts.find((d) => d.name === name)!;
 
+    assertEq(row[6], 0, `"Pago" = 0 para dívida sem paidValue (${name})`);
     if (status === "quitada") {
       assertEq(emAberto, 0, `"Em aberto" = 0 para dívida quitada (${name})`);
     } else {
-      assertEq(emAberto, totalValue, `"Em aberto" = totalValue para dívida ${status} (${name})`);
+      assertEq(emAberto, debtRemaining(debt), `"Em aberto" = debtRemaining (= totalValue sem pagamento) para dívida ${status} (${name})`);
     }
-  }
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -248,12 +253,12 @@ if (metVR) {
   const rows = metVR.values as unknown[][];
   assertEq(rows.length, 2, "Planilha metas tem 2 linhas");
 
-  for (const row of rows) {
+  rows.forEach((row, i) => {
     const name = row[0] as string;
     const targetValue = row[2] as number;
     const currentValue = row[3] as number;
-    const missing = row[4] as number;
-    const progress = row[5] as number;
+    const missing = celula(`Metas!E${i + 2}`);
+    const progress = celula(`Metas!F${i + 2}`);
 
     // Faltando = max(target - current, 0) — nunca negativo
     const expectedMissing = Math.max(targetValue - currentValue, 0);
@@ -265,7 +270,7 @@ if (metVR) {
     const expectedProgress = targetValue > 0 ? Math.min(1, Math.max(0, currentValue / targetValue)) : 0;
     assertCloseTo(progress, expectedProgress, `Meta "${name}": progresso = min(1, max(0, current/target))`, 4);
     assert(progress >= 0 && progress <= 1, `Meta "${name}": progresso entre 0 e 1`);
-  }
+  });
 }
 
 // Teste com getGoalProgress (utils.ts) — retorna 0-100, capped em 100
@@ -303,9 +308,9 @@ if (desVR) {
 // "Desde o início". Os fixtures são de 2026-04, então o histórico vai em A8/D8/G8
 // e A6/D6/G6 têm que bater com getDashboardMetrics para o MESMO dado — assim o
 // assert não depende do mês em que o teste roda.
-const dashCell = (cell: string) => batch.valueRanges.find((vr) => vr.range === `Dashboard!${cell}`)?.values?.[0]?.[0];
+const dashCell = (cell: string) => celula(`Dashboard!${cell}`);
 for (const cell of ["A6", "D6", "G6", "J6", "A8", "D8", "G8", "J8"]) {
-  assert(dashCell(cell) !== undefined, `valueRanges contém Dashboard!${cell}`);
+  assert(String(pasta.bruto("Dashboard", cell)).startsWith("="), `Dashboard!${cell} é fórmula`);
 }
 assertEq(dashCell("A8"), 2500, "Dashboard A8 = 2500 (entradas desde o início)");
 assertEq(dashCell("D8"), 2100, "Dashboard D8 = 2100 (gastos desde o início)");
@@ -426,7 +431,8 @@ assertCloseTo(metrics.estimatedEconomy, 300.00, "getDashboardMetrics: estimatedE
 // Com dado do mês corrente, o KPI grande da planilha (linha 6) mostra o mesmo
 // número do Início — e coincide com o "Desde o início" porque só há um mês.
 const batchMesAtual = buildSyncBatch(dataThisMonth as SyncInput);
-const kpi = (cell: string) => batchMesAtual.valueRanges.find((vr) => vr.range === `Dashboard!${cell}`)?.values?.[0]?.[0];
+const pastaMesAtual = montarPasta(buildStaticValues(), batchMesAtual.valueRanges);
+const kpi = (cell: string) => pastaMesAtual.ler(`Dashboard!${cell}`);
 assertEq(kpi("A6"), 2500, "planilha A6 = 2500 (entradas do mês corrente = incomeMonth)");
 assertEq(kpi("D6"), 1000, "planilha D6 = 1000 (gastos do mês corrente = expenseMonth)");
 assertEq(kpi("G6"), 1500, "planilha G6 = 1500 (em caixa no mês = balanceMonth)");

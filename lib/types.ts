@@ -131,6 +131,24 @@ export function debtInstallmentsLeft(debt: Pick<Debt, "totalValue" | "paidValue"
   return Math.ceil(Math.round(debtRemaining(debt) * 100) / parcela);
 }
 
+/** Pagamento (e a dívida dele) que gerou o gasto `expenseId` via "Paguei a parcela".
+ *  `undefined` = gasto comum — inclusive gasto com `debtId` cuja dívida foi apagada:
+ *  sem pagamento registrado ele volta a ser um gasto normal, nada trava pra sempre. */
+export function findDebtPayment(debts: Debt[], expenseId: string): { debt: Debt; payment: DebtPayment } | undefined {
+  for (const debt of debts) {
+    const payment = debt.payments?.find((p) => p.expenseId === expenseId);
+    if (payment) return { debt, payment };
+  }
+  return undefined;
+}
+
+// ─── Contrato de GASTO DE PARCELA (app, planilha e prévia seguem isto) ───────
+// O gasto criado por "Paguei a parcela" NÃO edita, NÃO exclui e NÃO estorna por
+// fora (Relatórios, Lançar): a dívida seguiria marcando a parcela como paga com
+// o gasto sumido dos totais. O único caminho é undoDebtPayment (tela Dívidas),
+// que apaga o gasto E devolve a dívida. A tela avisa com MSG_GASTO_DE_PARCELA
+// (lib/constants.ts). "Em aberto" no Início e na planilha = debtRemaining.
+
 // ─── Contrato de DÍVIDA EM ABERTO (app, planilha e prévia seguem isto) ───────
 // "Em aberto" = "aberta" OU "negociando". Uma dívida negociando ainda é devida;
 // só "quitada" sai dos totais. Lista explícita (e não `!== "quitada"`) para um

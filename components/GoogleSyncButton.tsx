@@ -7,7 +7,7 @@
  *  1. Usuário clica "Conectar Google Planilhas"
  *  2. Popup OAuth do Google → "Permitir"
  *  3. App cria/atualiza a planilha NO DRIVE DO USUÁRIO (layout, formatos,
- *     fórmulas pt-BR, gráficos — ver lib/sheets/builder.ts)
+ *     fórmulas pt-BR, menus da aba Filtros, gráficos — ver lib/sheets/builder.ts)
  *  4. Cartão vira "Virada Financeira · Atualizada há …" com Abrir / Atualizar agora.
  *
  * Sem service account, sem .env do server, sem upload manual. Token vive
@@ -18,14 +18,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, RefreshCcw } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
+import { useVirada } from "@/providers/virada-provider";
 import { LAYOUT_VERSION, type SyncInput } from "@/lib/sheets/builder";
 // Os corpos dos requests são montados em lib/sheets/sync-requests.ts (puro,
 // testado offline); aqui fica só o HTTP com o token do usuário.
 import {
+  SPREADSHEET_FIELDS,
   chartsCall,
   createWorkbookBody,
+  growGridCall,
   layoutCall,
   missingTabsCall,
+  precisaCrescer,
   pushDataCalls,
   readSheetIds,
   staticValuesCall,
@@ -85,12 +89,8 @@ async function googleFetch(method: string, endpoint: string, token: string, body
  * desconectar e conectar de novo. Idempotente: recria as abas que faltarem e
  * apaga os gráficos antigos antes de inserir os novos (senão duplicariam).
  */
-async function upgradeLayout(token: string, spreadsheetId: string): Promise<void> {
-  const info = (await googleFetch(
-    "GET",
-    `/spreadsheets/${spreadsheetId}?fields=sheets.properties(sheetId,title),sheets.charts(chartId),sheets.bandedRanges(bandedRangeId),sheets.protectedRanges(protectedRangeId),sheets.conditionalFormats`,
-    token,
-  )) as SpreadsheetInfo;
+async function upgradeLayout(token: string, spreadsheetId: string, versaoAnterior?: string): Promise<void> {
+  const info = (await googleFetch("GET", `/spreadsheets/${spreadsheetId}?fields=${SPREADSHEET_FIELDS}`, token)) as SpreadsheetInfo;
 
   let ids = readSheetIds(info);
 
@@ -103,7 +103,7 @@ async function upgradeLayout(token: string, spreadsheetId: string): Promise<void
     );
   }
 
-  await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, upgradeLayoutCall(info, ids));
+  await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, upgradeLayoutCall(info, ids, versaoAnterior));
   await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchUpdate`, token, staticValuesCall());
   await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, chartsCall(ids));
 }
@@ -137,7 +137,15 @@ async function createWorkbook(token: string, email: string): Promise<{ spreadshe
 }
 
 async function pushData(token: string, spreadsheetId: string, input: SyncInput): Promise<void> {
-  const { clear, update } = pushDataCalls(input);
+  const { clear, update, linhas } = pushDataCalls(input);
+  // Acima de ~1.009 lançamentos a grade da aba acaba e o batchUpdate é recusado
+  // INTEIRO. Só nesse caso busca o tamanho real (com os ids de proteção e zebra,
+  // que crescem junto) e cresce o que falta, já formatado.
+  if (precisaCrescer(linhas)) {
+    const info = (await googleFetch("GET", `/spreadsheets/${spreadsheetId}?fields=${SPREADSHEET_FIELDS}`, token)) as SpreadsheetInfo;
+    const grow = growGridCall(info, linhas);
+    if (grow) await etapa("grade", () => googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, grow));
+  }
   if (clear) await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchClear`, token, clear);
   if (update) await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchUpdate`, token, update);
 }
@@ -152,6 +160,9 @@ interface Props {
 
 export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }: Props) {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+  // Renda esperada e fase dos bolsos (aba Bolsos da planilha) vêm do contexto,
+  // não de prop: o cartão da Conta não precisa saber que a planilha as usa.
+  const { settings } = useVirada();
   const tokenClientRef = useRef<{ requestAccessToken: () => void } | null>(null);
   const oauthPopupTimeoutRef = useRef<number | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -205,10 +216,10 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       } else if (meta?.layoutVersion !== LAYOUT_VERSION) {
         // planilha antiga: traz o visual novo antes de mandar os dados
         setUpgrading(true);
-        await upgradeLayout(accessToken, sheetId);
+        await upgradeLayout(accessToken, sheetId, meta?.layoutVersion);
         setUpgrading(false);
       }
-      await pushData(accessToken, sheetId, { expenses, incomes, debts, goals });
+      await pushData(accessToken, sheetId, { expenses, incomes, debts, goals, settings });
       const newMeta: SheetMeta = {
         spreadsheetId: sheetId,
         spreadsheetUrl: sheetUrl ?? `https://docs.google.com/spreadsheets/d/${sheetId}`,
@@ -227,7 +238,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       setStatus("err");
     }
     setSyncing(false);
-  }, [meta, expenses, incomes, debts, goals, userEmail]);
+  }, [meta, expenses, incomes, debts, goals, settings, userEmail]);
 
   useEffect(() => {
     const init = getInitTokenClient();

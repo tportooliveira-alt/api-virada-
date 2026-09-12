@@ -9,6 +9,10 @@
  */
 
 import Module from "node:module";
+import { buildStaticValues } from "../lib/sheets/builder";
+// Dashboard, "Em aberto", Faltando/Progresso e Resultado são FÓRMULAS (v3):
+// o número vem do mini-avaliador rodando a fórmula sobre o que o sync gravou.
+import { montarPasta } from "./planilha-avaliador";
 
 const captured: { method: string; arg: any }[] = [];
 let nextSheetId = 100;
@@ -40,6 +44,8 @@ function fakeSheetsApi() {
               { properties: { title: "Fluxo de Caixa", sheetId: 106 } },
               { properties: { title: "Resumo Mensal", sheetId: 107 } },
               { properties: { title: "Como usar", sheetId: 108 } },
+              { properties: { title: "Bolsos", sheetId: 109 } },
+              { properties: { title: "Filtros", sheetId: 110 } },
             ],
           },
         };
@@ -126,8 +132,8 @@ async function main() {
 
   // 9 abas criadas
   const tabs = create?.arg?.requestBody?.sheets ?? [];
-  check("9 abas criadas", tabs.length === 9, `recebeu ${tabs.length}`);
-  const expectedTabs = ["Dashboard", "Lançamentos", "Receitas", "Despesas", "Dívidas", "Metas", "Fluxo de Caixa", "Resumo Mensal", "Como usar"];
+  check("11 abas criadas", tabs.length === 11, `recebeu ${tabs.length}`);
+  const expectedTabs = ["Dashboard", "Bolsos", "Filtros", "Lançamentos", "Receitas", "Despesas", "Dívidas", "Metas", "Fluxo de Caixa", "Resumo Mensal", "Como usar"];
   for (const name of expectedTabs) {
     check(`aba "${name}" existe`, tabs.some((t: any) => t.properties.title === name));
   }
@@ -164,9 +170,9 @@ async function main() {
   check("gráfico linha", chartTypes.includes("LINE"));
   check("gráfico barra", chartTypes.includes("BAR"));
 
-  // Proteção — 9 protectedRanges (1 por aba)
+  // Proteção — 11 protectedRanges (1 por aba)
   const protects = layoutReqs.filter((r: any) => r.addProtectedRange);
-  check("9 abas protegidas (read-only)", protects.length === 9, `recebeu ${protects.length}`);
+  check("11 abas protegidas (read-only)", protects.length === 11, `recebeu ${protects.length}`);
   for (const p of protects) {
     check(`aba ${p.addProtectedRange.protectedRange.description.substring(0, 30)} não é warningOnly`,
       p.addProtectedRange.protectedRange.warningOnly === false);
@@ -195,19 +201,23 @@ async function main() {
   const condRules = layoutReqs.filter((r: any) => r.addConditionalFormatRule);
   check("formatações condicionais aplicadas (>=8)", condRules.length >= 8, `recebeu ${condRules.length}`);
 
-  // Banding (zebra) em 7 abas de dados + 2 áreas do dashboard
+  // Banding (zebra) em 7 abas de dados + 2 áreas do dashboard + 2 tabelas dos Bolsos
   const bandings = layoutReqs.filter((r: any) => r.addBanding);
-  check("banding (zebra) nas áreas esperadas", bandings.length === 9, `recebeu ${bandings.length}`);
+  check("banding (zebra) nas áreas esperadas", bandings.length === 11, `recebeu ${bandings.length}`);
+
+  // Menus da aba Filtros: 5 validações de dados apontando pras listas
+  const validations = layoutReqs.filter((r: any) => r.setDataValidation);
+  check("5 menus (validação de dados) na aba Filtros", validations.length === 5, `recebeu ${validations.length}`);
 
   // Auto-filter em 7 abas
   const filters = layoutReqs.filter((r: any) => r.setBasicFilter);
   check("auto-filter em 7 abas", filters.length === 7, `recebeu ${filters.length}`);
 
-  // Hide gridlines (Dashboard + Como usar)
+  // Hide gridlines (Dashboard, Bolsos, Filtros, Como usar)
   const hideGrid = layoutReqs.filter((r: any) =>
     r.updateSheetProperties?.properties?.gridProperties?.hideGridlines === true,
   );
-  check("gridlines escondidas em Dashboard + Como usar", hideGrid.length === 2);
+  check("gridlines escondidas em Dashboard + Bolsos + Filtros + Como usar", hideGrid.length === 4, `recebeu ${hideGrid.length}`);
 
   // Cabeçalhos das tabelas
   const valData = values.flatMap((v) => v.arg.requestBody.data ?? []);
@@ -216,7 +226,11 @@ async function main() {
   const headerReceitas = valData.find((v: any) => v.range === "Receitas!A1");
   check("cabeçalho Receitas", headerReceitas?.values[0]?.[3] === "Valor");
   const headerDividas = valData.find((v: any) => v.range === "Dívidas!A1");
-  check("cabeçalho Dívidas", headerDividas?.values[0]?.[6] === "Em aberto");
+  check("cabeçalho Dívidas", headerDividas?.values[0]?.[6] === "Pago" && headerDividas?.values[0]?.[7] === "Em aberto");
+  check("cabeçalho Lançamentos termina em Mês/Estornado/Bolso + Anotações", JSON.stringify(headerLanc?.values[0]?.slice(9)) === JSON.stringify(["Mês", "Estornado", "Bolso", "Anotações"]));
+  const kpiA6 = valData.find((v: any) => v.range === "Dashboard!A6");
+  check("Dashboard A6 é fórmula SOMASES sobre Lançamentos", String(kpiA6?.values[0]?.[0]).startsWith("=SOMASES('Lançamentos'!"));
+  check("Filtros!B10 (Entradas) é fórmula", String(valData.find((v: any) => v.range === "Filtros!A10:B14")?.values[0]?.[1]).startsWith("=SOMASES("));
 
   // Banner do Dashboard
   const dashBanner = valData.find((v: any) => v.range === "Dashboard!A1");
@@ -225,8 +239,10 @@ async function main() {
   // Aba Como usar com 5 passos
   const helpHeader = valData.find((v: any) => v.range === "Como usar!A1");
   check("aba Como usar tem hero", !!helpHeader);
-  const helpStepRanges = valData.filter((v: any) => /^Como usar!A\d+$/.test(v.range || ""));
-  check("Como usar tem 5+ passos", helpStepRanges.length >= 5);
+  const helpStepRanges = valData.filter((v: any) => /^Como usar!A\d+$/.test(v.range || "") && v.range !== "Como usar!A1");
+  check("Como usar tem 6 passos (Filtros, Bolsos e Anotações explicados)", helpStepRanges.length === 6, `recebeu ${helpStepRanges.length}`);
+  const helpTexto = valData.filter((v: any) => String(v.range).startsWith("Como usar!")).map((v: any) => JSON.stringify(v.values)).join(" ");
+  check("Como usar fala de Filtros, Bolsos e Anotações", helpTexto.includes("Filtros") && helpTexto.includes("Bolsos") && helpTexto.includes("Anotações"));
 
   // ─── Sync de dados ─────────────────────────────────────────────────────────
   console.log("\n[2] syncTransactions — limpa e popula dados");
@@ -243,11 +259,12 @@ async function main() {
 
   const batchClears = captured.filter((c) => c.method === "values.batchClear");
   const batchUpds = captured.filter((c) => c.method === "values.batchUpdate");
-  check("limpou abas e blocos do dashboard", batchClears.length === 1 && batchClears[0].arg.requestBody.ranges.length === 9);
+  check("limpou abas, blocos do dashboard e listas dos menus", batchClears.length === 1 && batchClears[0].arg.requestBody.ranges.length === 10, `recebeu ${batchClears[0]?.arg.requestBody.ranges.length}`);
   check("populou tudo num batch", batchUpds.length === 1);
 
   const valueRanges: any[] = batchUpds[0]?.arg.requestBody.data ?? [];
   const find = (prefix: string) => valueRanges.find((v) => v.range?.startsWith(prefix));
+  const pasta = montarPasta(buildStaticValues(), valueRanges);
 
   const lanc = find("Lançamentos");
   check("Lançamentos com 5 linhas", lanc?.values.length === 5);
@@ -262,13 +279,17 @@ async function main() {
   check("Resumo com 1 mês", res?.values.length === 1);
   check("Resumo entrada total = 3500", res?.values[0][1] === 3500);
   check("Resumo saída total = 2250", res?.values[0][2] === 2250);
-  check("Resumo resultado = 1250", res?.values[0][3] === 1250);
+  check("Resumo resultado é fórmula B2-C2", res?.values[0][3] === "=B2-C2");
+  check("Resumo resultado avaliado = 1250", pasta.ler("Resumo Mensal!D2") === 1250);
 
   const ranges = valueRanges.map((v) => v.range);
-  check("Dashboard A6 (entradas) atualizado", ranges.includes("Dashboard!A6"));
-  check("Dashboard D6 (saídas) atualizado", ranges.includes("Dashboard!D6"));
-  check("Dashboard G6 (saldo) atualizado", ranges.includes("Dashboard!G6"));
-  check("Dashboard categorias atualizadas", ranges.includes("Dashboard!A12:B21"));
+  check("Dashboard B3 (mês de referência) atualizado", ranges.includes("Dashboard!B3"));
+  check("Dashboard categorias (nomes) atualizadas", ranges.includes("Dashboard!A12:A21"));
+  check("Dashboard A8 (fórmula) = 3500", pasta.ler("Dashboard!A8") === 3500);
+  check("Dashboard D8 (fórmula) = 2250", pasta.ler("Dashboard!D8") === 2250);
+  check("Dashboard G8 (fórmula) = 1250", pasta.ler("Dashboard!G8") === 1250);
+  check("listas dos menus atualizadas (Filtros!H4..L4)", ["H", "I", "J", "K", "L"].every((c) => ranges.includes(`Filtros!${c}4`)));
+  check("Bolsos: renda e fase atualizadas", ranges.includes("Bolsos!B4:C4") && ranges.includes("Bolsos!B5:C5"));
 
   // ─── Dívidas ───────────────────────────────────────────────────────────────
   console.log("\n[3] syncDebts — ordena e calcula valor em aberto");
@@ -283,14 +304,18 @@ async function main() {
   // coluna J (escritos só na criação). Só até a última coluna de dados, e aberta
   // (sem linha final) pra não deixar linha fantasma depois da 1000.
   const divClear = captured.find((c) => c.method === "values.batchClear");
-  check("syncDebts limpa só Dívidas!A2:G (não A2:Z1000)", JSON.stringify(divClear?.arg.requestBody.ranges) === JSON.stringify(["Dívidas!A2:G"]), JSON.stringify(divClear?.arg.requestBody.ranges));
+  check("syncDebts limpa só Dívidas!A2:H (não A2:Z1000)", JSON.stringify(divClear?.arg.requestBody.ranges) === JSON.stringify(["Dívidas!A2:H"]), JSON.stringify(divClear?.arg.requestBody.ranges));
   const divBatch = captured.find((c) => c.method === "values.batchUpdate");
   const divRange = (divBatch?.arg.requestBody.data ?? []).find((d: any) => d.range?.startsWith("Dívidas"));
   const divRows = divRange?.values;
   check("Dívidas: 4 linhas", divRows?.length === 4);
   check("ordenado por prioridade (alta primeiro)", divRows?.[0][2] === "alta");
-  check("quitada com 'em aberto' = 0", divRows?.find((r: any) => r[3] === "quitada")?.[6] === 0);
-  check("aberta com 'em aberto' = totalValue", divRows?.find((r: any) => r[0] === "Cartão Nubank")?.[6] === 1800);
+  const pastaDiv = montarPasta(buildStaticValues(), divBatch?.arg.requestBody.data ?? []);
+  const linhaDiv = (nome: string) => divRows.findIndex((r: any) => r[0] === nome) + 2;
+  check("'em aberto' é fórmula SE(quitada;0;MÁXIMO(0;total−pago))", String(divRows?.[0][7]).startsWith("=SE(D2=\"quitada\";0;MÁXIMO(0;F2-G2))"));
+  check("quitada com 'em aberto' = 0", pastaDiv.ler(`Dívidas!H${linhaDiv("Antiga")}`) === 0);
+  check("aberta sem pagamento: 'em aberto' = totalValue", pastaDiv.ler(`Dívidas!H${linhaDiv("Cartão Nubank")}`) === 1800);
+  check("'pago' = 0 quando não há paidValue", divRows?.find((r: any) => r[0] === "Cartão Nubank")?.[6] === 0);
 
   // ─── Metas ─────────────────────────────────────────────────────────────────
   console.log("\n[4] syncGoals — calcula faltando e progresso");
@@ -305,9 +330,11 @@ async function main() {
   const metasRange = (metasBatch?.arg.requestBody.data ?? []).find((d: any) => d.range?.startsWith("Metas"));
   const metasRows = metasRange?.values;
   check("Metas: 2 linhas", metasRows?.length === 2);
-  check("faltando calculado", metasRows?.[0][4] === 9000);
-  check("progresso em decimal (0-1)", Math.abs(metasRows?.[0][5] - 0.25) < 0.001);
-  check("meta cumprida = 1.0", metasRows?.[1][5] === 1);
+  const pastaMetas = montarPasta(buildStaticValues(), metasBatch?.arg.requestBody.data ?? []);
+  check("faltando é fórmula MÁXIMO(0;C−D)", metasRows?.[0][4] === "=MÁXIMO(0;C2-D2)");
+  check("faltando calculado = 9000", pastaMetas.ler("Metas!E2") === 9000);
+  check("progresso em decimal (0-1)", Math.abs(Number(pastaMetas.ler("Metas!F2")) - 0.25) < 0.001);
+  check("meta cumprida = 1.0", pastaMetas.ler("Metas!F3") === 1);
 
   // ─── Locale pt_BR: nada de ponto decimal em valor digitado ─────────────────
   // A planilha nasce com locale pt_BR, então userEnteredValue é lido como o

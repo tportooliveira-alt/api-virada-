@@ -60,6 +60,9 @@ export function AppShell({ children }: PropsWithChildren) {
   // Remove barra final para normalizar: /app/lancar/ → /app/lancar
   const pathname = rawPath.replace(/\/$/, "") || "/";
   const meta = pageMeta[pathname] ?? pageMeta["/app/inicio"];
+  // Em Lançar no celular o título gastava ~110px e empurrava o Confirmar pra baixo do
+  // menu (360×640). O menu de baixo já diz "Lançar"; o h1 fica só pra leitor de tela.
+  const semTitulo = pathname === "/app/lancar";
 
   return (
     <div className="app-shell mx-auto flex w-full max-w-[1240px] flex-col gap-4 px-4 pb-[calc(100px+env(safe-area-inset-bottom))] pt-4 lg:flex-row lg:items-start lg:gap-7 lg:px-6 lg:pb-10 lg:pt-5">
@@ -108,7 +111,10 @@ export function AppShell({ children }: PropsWithChildren) {
 
       {/* Conteúdo principal */}
       <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
-        <Header title={meta.title} subtitle={meta.subtitle} aside={pathname === "/app/inicio" ? <MonthChip /> : null} />
+        {semTitulo && <h1 className="sr-only lg:hidden">{meta.title}</h1>}
+        <div className={semTitulo ? "hidden lg:block" : "contents"}>
+          <Header title={meta.title} subtitle={meta.subtitle} aside={pathname === "/app/inicio" ? <MonthChip /> : null} />
+        </div>
         <main className="w-full min-w-0">{children}</main>
       </div>
 

@@ -3,6 +3,7 @@
 /**
  * ExpenseChart — análise de gastos.
  * 100% SVG + CSS. Zero dependências externas.
+ * O período vem do pai ("AAAA-MM" ou "all") — o seletor de período mora na tela.
  */
 
 import { useMemo, useState } from "react";
@@ -11,33 +12,42 @@ import { groupTopCategories, inPeriod, roundMoney, type Period } from "@/lib/uti
 
 type Expense = { category: string; value: number; date: string; nature?: string; estornadoEm?: string };
 type Income  = { value: number; date: string; estornadoEm?: string };
-type Nature  = "all" | "essencial" | "impulso";
+export type ChartNature = "all" | "essencial" | "impulso";
 
 interface Props {
   expenses: Expense[];
   incomes:  Income[];
-  /** Período inicial (padrão "mes"). Existe pra teste renderizar cada período sem clique. */
+  /** "AAAA-MM" (um mês), "all" (tudo) ou um Period de lib/utils. Padrão: mês corrente. */
+  period?: string;
+  /** Mesmo papel de `period`; nome antigo mantido pros testes que renderizam "7d"/"30d". */
   defaultPeriod?: Period;
-  /** Filtro de natureza inicial (padrão "all"). Idem. */
-  defaultNature?: Nature;
+  /** Filtro de natureza: controlado pelo pai (nature + onNatureChange) ou interno. */
+  nature?: ChartNature;
+  onNatureChange?: (nature: ChartNature) => void;
+  defaultNature?: ChartNature;
+  /** Com onSelectCategory a legenda vira botão: toque marca/desmarca a categoria. */
+  selectedCategory?: string | null;
+  onSelectCategory?: (category: string | null) => void;
+  /** false = sem os cards Entradas/Saídas/Saldo (a tela já mostra os seus). */
+  showTotals?: boolean;
 }
 
 // Paleta de gráfico do design system (--chart-1..10 em globals.css)
 const CHART_COLORS = Array.from({ length: 10 }, (_, i) => `var(--chart-${i + 1})`);
 
-const PERIODS: { key: Period; label: string }[] = [
-  { key: "mes",  label: "Mês" },
-  { key: "30d",  label: "30d" },
-  { key: "7d",   label: "7d"  },
-  { key: "ano",  label: "Ano" },
-  { key: "all",  label: "Tudo"},
-];
-
-const NATURES: { key: Nature; label: string }[] = [
+const NATURES: { key: ChartNature; label: string }[] = [
   { key: "all",      label: "Todos"    },
   { key: "essencial",label: "Essencial"},
   { key: "impulso",  label: "Impulso"  },
 ];
+
+const MONTH_KEY = /^\d{4}-\d{2}$/;
+
+// "AAAA-MM" → inPeriod "mes" ancorado no dia 1º daquele mês; o resto é um Period.
+function noPeriodo(date: string, period: string) {
+  if (MONTH_KEY.test(period)) return inPeriod(date, "mes", `${period}-01`);
+  return inPeriod(date, period as Period);
+}
 
 function brl(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -85,14 +95,30 @@ function Donut({ data, total, label }: DonutProps) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export function ExpenseChart({ expenses, incomes, defaultPeriod = "mes", defaultNature = "all" }: Props) {
-  const [period, setPeriod] = useState<Period>(defaultPeriod);
-  const [nature, setNature] = useState<Nature>(defaultNature);
+export function ExpenseChart({
+  expenses,
+  incomes,
+  period,
+  defaultPeriod = "mes",
+  nature: natureProp,
+  onNatureChange,
+  defaultNature = "all",
+  selectedCategory = null,
+  onSelectCategory,
+  showTotals = true,
+}: Props) {
+  const activePeriod = period ?? defaultPeriod;
+  const [ownNature, setOwnNature] = useState<ChartNature>(defaultNature);
+  const nature = natureProp ?? ownNature;
+  function setNature(next: ChartNature) {
+    setOwnNature(next);
+    onNatureChange?.(next);
+  }
 
   const { byCategory, totalOut, totalIn, natureTotal } = useMemo(() => {
     // Estornado fica fora de todo total (contrato em lib/types.ts).
-    const exp = semEstornados(expenses).filter((e) => inPeriod(e.date, period));
-    const inc = semEstornados(incomes).filter((i) => inPeriod(i.date, period));
+    const exp = semEstornados(expenses).filter((e) => noPeriodo(e.date, activePeriod));
+    const inc = semEstornados(incomes).filter((i) => noPeriodo(i.date, activePeriod));
     // O chip Essencial/Impulso filtra só o donut/ranking: os cards Entradas/Saídas/Saldo
     // são do período inteiro, senão "Impulso" mostrava saldo de R$ 2.700 pra quem tem R$ 200.
     const expNature = exp.filter((e) => nature === "all" || e.nature === nature);
@@ -103,33 +129,17 @@ export function ExpenseChart({ expenses, incomes, defaultPeriod = "mes", default
       totalIn:     roundMoney(inc.reduce((s, e) => s + e.value, 0)),
       natureTotal: roundMoney(expNature.reduce((s, e) => s + e.value, 0)),
     };
-  }, [expenses, incomes, period, nature]);
+  }, [expenses, incomes, activePeriod, nature]);
 
   const balance = roundMoney(totalIn - totalOut);
   const hasAny = expenses.length > 0 || incomes.length > 0;
   const natureLabel = NATURES.find((n) => n.key === nature)?.label ?? "Todos";
+  const periodoLabel = MONTH_KEY.test(activePeriod) ? "neste mês" : "neste período";
 
   return (
     <div className="flex flex-col gap-[18px]">
-      {/* Período */}
-      <div className="flex gap-0.5 rounded-[10px] bg-ink-100 p-1" role="tablist" aria-label="Período">
-        {PERIODS.map((p) => (
-          <button
-            key={p.key}
-            type="button"
-            role="tab"
-            aria-selected={period === p.key}
-            onClick={() => setPeriod(p.key)}
-            className={`flex-1 rounded-[7px] py-[7px] text-xs font-semibold transition-colors duration-150 ${
-              period === p.key ? "bg-white text-ink-900 shadow-segment" : "text-ink-500 hover:text-ink-700"
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
       {/* Entradas / Saídas / Saldo — do período inteiro, sem o filtro de natureza */}
+      {showTotals && (
       <div className="grid grid-cols-3 gap-2">
         <div className="min-w-0 rounded-[10px] bg-green-50 px-2.5 py-2.5 sm:px-3">
           <p className="text-xs font-semibold uppercase tracking-[0.06em] text-green-700">Entradas</p>
@@ -144,6 +154,7 @@ export function ExpenseChart({ expenses, incomes, defaultPeriod = "mes", default
           <p className={`money mt-1 text-sm font-bold ${balance >= 0 ? "text-blue-700" : "text-[#C2410C]"}`}>{brl(balance)}</p>
         </div>
       </div>
+      )}
 
       {/* Tipo de gasto — filtra o donut e o ranking abaixo */}
       <div className="flex flex-wrap gap-2">
@@ -169,29 +180,54 @@ export function ExpenseChart({ expenses, incomes, defaultPeriod = "mes", default
           {!hasAny
             ? "Nenhum lançamento ainda. Toque em Lançar."
             : nature === "all"
-              ? "Nenhum gasto neste período."
-              : `Nenhum gasto ${nature === "impulso" ? "por impulso" : "essencial"} neste período.`}
+              ? `Nenhum gasto ${periodoLabel}.`
+              : `Nenhum gasto ${nature === "impulso" ? "por impulso" : "essencial"} ${periodoLabel}.`}
         </p>
       ) : (
         <>
-          {/* Donut + legenda (todas as fatias: os % somam 100) */}
-          <div className="flex flex-wrap items-center gap-5">
+          {/* Donut + legenda (todas as fatias: os % somam 100). Em tela estreita a legenda
+              fica ABAIXO do donut: lado a lado, "Mercado" virava "M…" e ninguém sabia em que
+              fatia estava tocando. */}
+          <div className="flex flex-col min-[480px]:flex-row min-[480px]:items-center gap-5">
             <Donut data={byCategory} total={natureTotal} label={nature === "all" ? "Saídas" : natureLabel} />
-            <div className="flex min-w-[160px] flex-1 flex-col gap-2">
-              {byCategory.map((c) => (
-                <div key={c.name} className="flex items-center gap-2.5 text-[13px] text-ink-700">
-                  <i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
-                  <span className="min-w-0 flex-1 truncate">{c.name}</span>
-                  <span className="money text-xs text-ink-400">{brl(c.value)}</span>
-                  <b className="w-[38px] text-right tabular-nums text-ink-900">{c.pct}%</b>
-                </div>
-              ))}
+            <div className="flex w-full min-w-0 flex-1 flex-col gap-2">
+              {byCategory.map((c) => {
+                const conteudo = (
+                  <>
+                    <i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: c.color }} />
+                    <span className="min-w-0 flex-1 text-left">{c.name}</span>
+                    <span className="money text-xs text-ink-400">{brl(c.value)}</span>
+                    <b className="w-[38px] text-right tabular-nums text-ink-900">{c.pct}%</b>
+                  </>
+                );
+                if (!onSelectCategory) {
+                  return (
+                    <div key={c.name} className="flex items-center gap-2.5 text-[13px] text-ink-700">
+                      {conteudo}
+                    </div>
+                  );
+                }
+                const ativa = selectedCategory === c.name;
+                return (
+                  <button
+                    key={c.name}
+                    type="button"
+                    aria-pressed={ativa}
+                    onClick={() => onSelectCategory(ativa ? null : c.name)}
+                    className={`-mx-2 flex min-h-[36px] items-center gap-2.5 rounded-[8px] px-2 text-[13px] text-ink-700 transition-colors duration-150 ${
+                      ativa ? "bg-ink-100" : "hover:bg-ink-50"
+                    }`}
+                  >
+                    {conteudo}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Ranking */}
           <div className="flex flex-col gap-3 border-t border-ink-100 pt-[18px]">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Maior gasto do período</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Maior gasto {periodoLabel === "neste mês" ? "do mês" : "do período"}</p>
             {byCategory.slice(0, 5).map((c, i) => (
               <div key={c.name}>
                 <div className="mb-1.5 flex items-center justify-between gap-3 text-[13px] text-ink-700">

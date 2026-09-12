@@ -6,16 +6,26 @@
  * faltam, vencimento +1 mês), pagar até quitar (status vira "quitada" e sai de
  * openDebtsTotal), 31/01 → 28/02 (e 29/02 em bissexto), desfazer devolvendo o estado
  * EXATO (deep-equal), desfazer 2x é no-op, dados antigos sem paidValue → "R$ 0 pagos".
+ * Rodada 2 (juiz): openDebtsTotal = soma de debtRemaining (igual ao painel da planilha)
+ * e gasto de parcela (debtId + payment) não edita/exclui/estorna fora de Dívidas.
  *
  * Nada depende do relógio: "hoje" é string fixa. Roda com:
  *   npx tsx scripts/test-dividas-parcela.ts   (e com TZ=UTC)
  */
 
 import { deepStrictEqual } from "node:assert";
-import { debtInstallmentsLeft, debtPaid, debtRemaining, isOpenDebt } from "../lib/types";
+import { debtInstallmentsLeft, debtPaid, debtRemaining, findDebtPayment, isEstornado, isOpenDebt } from "../lib/types";
 import type { Debt, Expense, ViradaData } from "../lib/types";
+import { MSG_GASTO_DE_PARCELA } from "../lib/constants";
 import { addMonths, getDashboardMetrics } from "../lib/utils";
-import { applyDebtPayment, applyUndoDebtPayment } from "../providers/virada-provider";
+import { buildSyncBatch, type SyncInput } from "../lib/sheets/builder";
+import {
+  applyDebtPayment,
+  applyEstorno,
+  applyRemoveExpense,
+  applyUndoDebtPayment,
+  applyUpdateExpense,
+} from "../providers/virada-provider";
 
 let passed = 0;
 let failed = 0;
@@ -234,7 +244,7 @@ section("Desfazer · devolve o estado EXATO (deep-equal estrito) e 2x é no-op")
   assertEq(q.data.debts[0].status, "quitada", "3.000 + 450 ≥ 3.200 → quitada");
   const qd = applyUndoDebtPayment(q.data, q.paymentId);
   assertDeep(qd, quase, "desfazer a parcela que quitou devolve 'negociando' com 3.000 pagos");
-  assertEq(getDashboardMetrics(qd).openDebtsTotal, 3200, "voltou a contar em openDebtsTotal");
+  assertEq(getDashboardMetrics(qd).openDebtsTotal, 200, "voltou a contar em openDebtsTotal: 3.200 − 3.000 pagos = 200 (em aberto = o que falta)");
 
   // desfazer o penúltimo de dois pagamentos: subtrai o valor certo e tira só o gasto dele
   const p1 = applyDebtPayment(base, "d1", { hoje: "2026-09-15" })!;
@@ -254,6 +264,82 @@ section("CA-12 · dívida antiga (JSON sem os campos novos) passa por tudo sem N
   assert(Number.isFinite(debtPaid(d)) && Number.isFinite(debtRemaining(d)) && Number.isFinite(debtInstallmentsLeft(d)), "helpers sem NaN/Infinity");
   assertEq(debtPaid(d), 450, "paidValue undefined + 450 = 450 (não NaN)");
   assertDeep(applyUndoDebtPayment(r.data, r.paymentId), antigo, "desfazer sobre dado antigo devolve o JSON original");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+section("Juiz #1 · 'Total em aberto' = total − pago, no app E na planilha (um contrato só)");
+{
+  // Dívida 3.200 com 450 pagos: a pessoa quer saber o que ainda deve (2.750),
+  // não o tamanho original da dívida. O painel Dívidas!O5 da planilha já somava
+  // debtRemaining; o Início somava totalValue — com paidValue > 0 divergiam.
+  const paga = applyDebtPayment(base, "d1", { hoje: HOJE })!.data;
+  assertEq(getDashboardMetrics(paga).openDebtsTotal, 2750, "app: openDebtsTotal = 3.200 − 450 = 2.750");
+
+  const varias: ViradaData = {
+    ...vazio,
+    debts: [
+      { ...cartao, id: "a", paidValue: 450 },                                      // 2.750
+      { ...cartao, id: "b", status: "negociando", totalValue: 1000, paidValue: 100 }, // 900 (negociando é em aberto)
+      { ...cartao, id: "c", status: "quitada", totalValue: 500, paidValue: 500 },    // 0 (quitada fora)
+      { ...cartao, id: "d", totalValue: 100, paidValue: 130 },                     // 0 (pagou a mais, não fica negativo)
+    ],
+  };
+  const app = getDashboardMetrics(varias).openDebtsTotal;
+  assertEq(app, 3650, "app: 2.750 + 900 + 0 + 0 = 3.650");
+  assertEq(app, Math.round(varias.debts.filter(isOpenDebt).reduce((s, d) => s + debtRemaining(d), 0) * 100) / 100, "app = soma de debtRemaining das em aberto");
+
+  const batch = buildSyncBatch(varias as SyncInput);
+  const painel = (batch.valueRanges.find((v) => v.range === "Dívidas!O4:O7")?.values ?? []) as unknown[][];
+  const totalPlanilha = String(painel[1]?.[0] ?? "").replace(/\u00a0/g, " ");
+  assertEq(totalPlanilha, "R$ 3.650,00", "planilha: painel 'Total em aberto' (Dívidas!O5) = o mesmo 3.650");
+
+  // sem paidValue (dado antigo) o número não muda: restante = total
+  assertEq(getDashboardMetrics(base).openDebtsTotal, 3200, "dado antigo sem paidValue: 3.200 (igual a antes)");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+section("Juiz #3 · gasto de parcela (debtId + payment) só se desfaz em Dívidas");
+{
+  // Contrato (a): o gasto criado por "Paguei a parcela" NÃO edita, NÃO exclui e
+  // NÃO estorna por fora — senão a dívida seguiria marcando a parcela como paga
+  // com o gasto sumido dos totais. O caminho é undoDebtPayment (Dívidas).
+  const pago = applyDebtPayment(base, "d1", { hoje: HOJE })!;
+  const dados = pago.data;
+  const gasto = dados.expenses.find((e) => e.id === pago.expenseId)!;
+
+  const achado = findDebtPayment(dados.debts, pago.expenseId);
+  assert(achado !== undefined, "findDebtPayment acha o pagamento pelo expenseId");
+  assertEq(achado?.debt.id, "d1", "…e a dívida dele");
+  assertEq(achado?.payment.id, pago.paymentId, "…com o paymentId certo (pra undoDebtPayment)");
+  assertEq(findDebtPayment(dados.debts, "e0"), undefined, "gasto normal: undefined");
+  assertEq(findDebtPayment(dados.debts, gasto.id.toUpperCase()), undefined, "id parecido não vale (comparação exata)");
+
+  assert(applyUpdateExpense(dados, pago.expenseId, { value: 1 }) === dados, "editar gasto de parcela: recusa (mesma referência)");
+  assert(applyRemoveExpense(dados, pago.expenseId) === dados, "excluir gasto de parcela: recusa (mesma referência)");
+  assert(applyEstorno(dados, { id: pago.expenseId, type: "expense" }, HOJE) === dados, "estornar gasto de parcela: recusa (mesma referência)");
+  assertEq(debtPaid(dados.debts[0]), 450, "a dívida não mudou (450 pagos)");
+
+  // gasto comum continua editável/excluível/estornável pelo mesmo caminho
+  const semAntigo = applyRemoveExpense(dados, "e0");
+  assertEq(semAntigo.expenses.map((e) => e.id), [pago.expenseId], "excluir gasto comum: some (o de parcela fica)");
+  assert(applyRemoveExpense(semAntigo, "e0") === semAntigo, "excluir id inexistente: no-op (mesma referência)");
+  assertEq(applyUpdateExpense(dados, "e0", { value: 1 }).expenses.find((e) => e.id === "e0")?.value, 1, "editar gasto comum: aplica");
+  assert(isEstornado(applyEstorno(dados, { id: "e0", type: "expense" }, HOJE).expenses.find((e) => e.id === "e0")!), "estornar gasto comum: marca");
+
+  // o caminho certo: desfazer em Dívidas apaga o gasto E devolve a dívida
+  const desfeito = applyUndoDebtPayment(dados, pago.paymentId);
+  assertEq(desfeito.expenses.map((e) => e.id), ["e0"], "undoDebtPayment: o gasto de parcela sai por aqui");
+  assertEq(debtPaid(desfeito.debts[0]), 0, "…e a dívida volta a 0 pagos");
+
+  // dívida apagada (removeDebt): o gasto vira um gasto comum de novo — nada trava pra sempre
+  const orfao: ViradaData = { ...dados, debts: [] };
+  assertEq(findDebtPayment(orfao.debts, pago.expenseId), undefined, "sem a dívida, não há pagamento: gasto órfão é comum");
+  assertEq(applyRemoveExpense(orfao, pago.expenseId).expenses.map((e) => e.id), ["e0"], "gasto órfão (debtId sem dívida) pode ser excluído");
+  assertEq(applyUpdateExpense(orfao, pago.expenseId, { value: 99 }).expenses[0].value, 99, "gasto órfão pode ser editado");
+
+  // mensagem única pra toda tela (Relatórios, Lançar): curta, em português, aponta o caminho
+  assert(typeof MSG_GASTO_DE_PARCELA === "string" && /parcela/i.test(MSG_GASTO_DE_PARCELA) && /Dívidas/.test(MSG_GASTO_DE_PARCELA), "MSG_GASTO_DE_PARCELA fala de parcela e manda pra Dívidas");
+  assert(MSG_GASTO_DE_PARCELA.length <= 70, "mensagem cabe num toast de celular (≤ 70 caracteres)");
 }
 
 // ─── Resultado ───────────────────────────────────────────────────────────────

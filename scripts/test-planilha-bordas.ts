@@ -18,10 +18,14 @@
  *      mandar dados) monta os requests sem apagar os rótulos da coluna J.
  *  B12 "Melhor dia"/"Pior dia" com um só dia vêm rotulados.
  *
+ * Dashboard, Faltando/Progresso e Resultado/Saldo acumulado são FÓRMULAS (v3):
+ * onde o teste precisa do número, roda a fórmula no mini-avaliador.
+ *
  * Roda com: npx tsx scripts/test-planilha-bordas.ts
  */
 
-import { buildStaticValues, buildSyncBatch, buildLayoutRequests, MAX_DATA_ROWS, TAB } from "../lib/sheets/builder";
+import { buildStaticValues, buildSyncBatch, buildLayoutRequests, colunaAnotacoes, mesChave, LAYOUT_VERSION, MAX_DATA_ROWS, TAB, type DataTabKey } from "../lib/sheets/builder";
+import { montarPasta } from "./planilha-avaliador";
 import {
   createWorkbookBody,
   layoutCall,
@@ -61,6 +65,8 @@ function section(name: string) {
 type Batch = ReturnType<typeof buildSyncBatch>;
 const rows = (batch: Batch, range: string) => (batch.valueRanges.find((v) => v.range === range)?.values ?? []) as unknown[][];
 const has = (batch: Batch, range: string) => batch.valueRanges.some((v) => v.range === range);
+const ler = (batch: Batch, ref: string) => montarPasta(buildStaticValues(), batch.valueRanges).ler(ref);
+const PAINEL = "O4:O7";
 // Intl separa "R$" do número com espaço duro (U+00A0); normaliza pra comparar.
 const txt = (v: unknown) => String(v ?? "").replace(/\u00a0/g, " ");
 const gasto = (id: string, description: string, value: number, date: string, category = "Mercado") =>
@@ -100,11 +106,20 @@ section("B3) Injeção via USER_ENTERED — texto do usuário vira texto, não f
   const cats = rows(b, "Despesas!A2").map((r) => r[2]);
   assertEq(cats[0], "'=SOMA(A1:A9)", "categoria '=SOMA(...)' vai com apóstrofo");
   assertEq(cats[1], "'-Cartão", "categoria '-Cartão' vai com apóstrofo");
-  const top = rows(b, "Dashboard!A12:B21").map((r) => r[0]);
+  const top = rows(b, "Dashboard!A12:A21").map((r) => r[0]);
   assert(top.includes("'=SOMA(A1:A9)") && top.includes("'-Cartão"), "top categorias do Dashboard também sanitizadas", JSON.stringify(top.slice(0, 2)));
   assertEq(rows(b, "Dívidas!A2")[0]?.[0], "'=Dívida()", "nome de dívida sanitizado");
   assertEq(rows(b, "Metas!A2")[0]?.[0], "'+Meta", "nome de meta sanitizado");
-  assert(String(rows(b, "Metas!K4:K7")[3]?.[0]).startsWith("'+Meta"), "painel 'Melhor progresso' (começa com o nome) sanitizado");
+  assert(String(rows(b, `Metas!${PAINEL}`)[3]?.[0]).startsWith("'+Meta"), "painel 'Melhor progresso' (começa com o nome) sanitizado");
+  const lancB3 = rows(b, "Lançamentos!A2");
+  // Juiz (rodada 1): "'2026-09" é texto, mas TEM CARA DE DATA — o SOMASES real
+  // pode coagir o critério pra data e zerar A6/D6/J6. A chave agora leva o nome
+  // do mês ("2026-09 (set)"): nenhum parser de data engole, e ordena por AAAA-MM.
+  assert(lancB3.every((r) => r[9] === mesChave("2026-09")), "coluna Mês usa a chave mesChave (\"2026-09 (set)\", não parece data)", String(lancB3[0]?.[9]));
+  assert(/^\d{4}-\d{2} \([a-z]{3}\)$/.test(mesChave("2026-09")) && mesChave("2026-09") === "2026-09 (set)", "mesChave = AAAA-MM (mmm), sem apóstrofo", mesChave("2026-09"));
+  assert(lancB3.every((r) => r[10] === "Não"), "coluna Estornado sempre preenchida (Não)");
+  assert(lancB3.every((r) => r[7] === "Casa"), "Escopo ausente vira 'Casa' (célula de critério nunca vazia)");
+  assert(lancB3.filter((r) => r[1] === "Entrada").every((r) => r[5] === "—" && r[6] === "—" && r[11] === "—"), "entrada: Pagamento/Natureza/Bolso = '—' (nunca vazio)");
   assertEq(typeof rows(b, "Receitas!A2")[0]?.[3], "number", "valor continua número");
   assertEq(rows(b, "Receitas!A2")[0]?.[0], "01/09/2026", "data continua dd/mm/aaaa");
 }
@@ -117,11 +132,12 @@ section("B4) Planilha vazia — nada inventado");
   assert(!has(b, "Fluxo de Caixa!A2"), "sem lançamentos: aba Fluxo não recebe linha [hoje,0,0,0,0]");
   assert(!has(b, "Dívidas!A2"), "sem dívidas: aba Dívidas não recebe 'Sem dívidas em aberto'");
   assert(!has(b, "Resumo Mensal!A2") && !has(b, "Metas!A2") && !has(b, "Lançamentos!A2"), "demais abas de dados vazias");
-  assertEq(txt(JSON.stringify(rows(b, "Fluxo de Caixa!K4:K7"))), JSON.stringify([["0"], ["—"], ["—"], ["R$ 0,00"]]), "painel Fluxo: 0 dias, '—', '—', R$ 0,00");
-  assertEq(JSON.stringify(rows(b, "Resumo Mensal!K4:K7")), JSON.stringify([["0"], ["—"], ["—"], ["—"]]), "painel Resumo: 0 meses e '—' nos demais (não 'Sem meses'/'0,0%')");
-  assertEq(txt(JSON.stringify(rows(b, "Dívidas!K4:K7"))), JSON.stringify([["0"], ["R$ 0,00"], ["0"], ["—"]]), "painel Dívidas zerado");
-  assertEq(rows(b, "Dashboard!A6")[0]?.[0], 0, "KPI mês = 0");
-  assertEq(rows(b, "Dashboard!A8")[0]?.[0], 0, "KPI desde o início = 0");
+  assertEq(txt(JSON.stringify(rows(b, `Fluxo de Caixa!${PAINEL}`))), JSON.stringify([["0"], ["—"], ["—"], ["R$ 0,00"]]), "painel Fluxo: 0 dias, '—', '—', R$ 0,00");
+  assertEq(JSON.stringify(rows(b, `Resumo Mensal!${PAINEL}`)), JSON.stringify([["0"], ["—"], ["—"], ["—"]]), "painel Resumo: 0 meses e '—' nos demais (não 'Sem meses'/'0,0%')");
+  assertEq(txt(JSON.stringify(rows(b, `Dívidas!${PAINEL}`))), JSON.stringify([["0"], ["R$ 0,00"], ["0"], ["—"]]), "painel Dívidas zerado");
+  assertEq(ler(b, "Dashboard!A6"), 0, "KPI mês = 0 (fórmula sobre aba vazia)");
+  assertEq(ler(b, "Dashboard!A8"), 0, "KPI desde o início = 0");
+  assertEq(JSON.stringify(rows(b, "Filtros!H4")), JSON.stringify([["Todos"]]), "lista de meses do menu = só 'Todos'");
   assert(b.clearRanges.some((r) => r.startsWith(`${TAB.fluxo}!A2`)) && b.clearRanges.some((r) => r.startsWith(`${TAB.dividas}!A2`)), "abas vazias ainda são limpas (dados antigos somem)");
 }
 
@@ -130,12 +146,12 @@ section("B12) Um só dia — Melhor/Pior dia rotulados");
 // ─────────────────────────────────────────────────────────────────────────────
 {
   const b = buildSyncBatch({ incomes: [], expenses: [gasto("e", "Gás", 110, "2026-09-10")], debts: [], goals: [] });
-  const painel = rows(b, "Fluxo de Caixa!K4:K7");
+  const painel = rows(b, `Fluxo de Caixa!${PAINEL}`);
   assertEq(painel[0]?.[0], "1", "1 dia com movimento");
   assert(txt(painel[1]?.[0]).includes("-R$ 110,00") && txt(painel[1]?.[0]).includes("dia único"), "Melhor dia rotulado 'dia único'", String(painel[1]?.[0]));
   assert(String(painel[2]?.[0]).includes("dia único"), "Pior dia rotulado 'dia único'");
   const b2 = buildSyncBatch({ incomes: [entrada("i", "x", 500, "2026-09-11")], expenses: [gasto("e", "Gás", 110, "2026-09-10")], debts: [], goals: [] });
-  assert(!String(rows(b2, "Fluxo de Caixa!K4:K7")[1]?.[0]).includes("único"), "com dois dias não há rótulo");
+  assert(!String(rows(b2, `Fluxo de Caixa!${PAINEL}`)[1]?.[0]).includes("único"), "com dois dias não há rótulo");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -181,8 +197,9 @@ section("B8) Buraco na série mensal — meses sem movimento entram zerados");
   const resumo = rows(b, "Resumo Mensal!A2");
   assertEq(resumo.length, 5, "5 meses no Resumo (os dois buracos preenchidos)");
   assertEq(JSON.stringify(resumo.map((r) => r[0])), JSON.stringify([-4, -3, -2, -1, 0].map((n) => `${mesRel(n)}-01`)), "meses contíguos");
-  assertEq(JSON.stringify(resumo[1]?.slice(1)), JSON.stringify([0, 0, 0, 1000, "—", 0]), "mês parado: zeros, saldo acumulado 1000 mantido, economia '—', 0 lançamentos");
-  assertEq(resumo[4]?.[4], 2600, "saldo acumulado no mês corrente = 2600");
+  assertEq(JSON.stringify(resumo[1]?.slice(1)), JSON.stringify([0, 0, "=B3-C3", "=E2+D3", "—", 0]), "mês parado: zeros, Resultado/Saldo por fórmula, economia '—', 0 lançamentos");
+  assertEq(ler(b, "Resumo Mensal!E3"), 1000, "mês parado: saldo acumulado 1000 mantido (fórmula)");
+  assertEq(ler(b, "Resumo Mensal!E6"), 2600, "saldo acumulado no mês corrente = 2600 (fórmula)");
   // R-B1c: comparativo do Dashboard = 10 últimos meses do CALENDÁRIO até hoje
   const dash = rows(b, "Dashboard!G12:J21");
   assertEq(JSON.stringify(dash.map((r) => r[0])), JSON.stringify(ultimos10), "Dashboard G12:G21 = 10 últimos meses do calendário, terminando no mês corrente");
@@ -193,7 +210,7 @@ section("B8) Buraco na série mensal — meses sem movimento entram zerados");
   // R-B2: painéis do Resumo só enxergam meses COM movimento
   const b2 = buildSyncBatch({ incomes: [entrada("a", "x", 500, dia(-2), "Salário"), entrada("b", "x", 300, dia(0), "Salário")], expenses: [], debts: [], goals: [] });
   assertEq(rows(b2, "Resumo Mensal!A2").length, 3, "aba Resumo mantém o mês parado (série do gráfico)");
-  const painel = rows(b2, "Resumo Mensal!K4:K7");
+  const painel = rows(b2, `Resumo Mensal!${PAINEL}`);
   assertEq(painel[0]?.[0], "2", "painel 'Meses no histórico' = 2 (o mês parado não conta)");
   assert(txt(painel[1]?.[0]).includes("R$ 500,00") && txt(painel[1]?.[0]).startsWith(`${mesRel(-2).slice(5)}/${mesRel(-2).slice(0, 4)}`), "Melhor mês = o de +500", txt(painel[1]?.[0]));
   assert(txt(painel[2]?.[0]).includes("R$ 300,00") && !txt(painel[2]?.[0]).includes("R$ 0,00"), "Pior mês = o de +300 (não o mês parado com R$ 0,00)", txt(painel[2]?.[0]));
@@ -254,11 +271,10 @@ section("R-B3) Progresso de meta na planilha — teto 1 E piso 0, como no app");
     { id: "neg", name: "Negativa", targetValue: 1000, currentValue: -100, type: "reserva" },
     { id: "zero", name: "Alvo zero", targetValue: 0, currentValue: 50, type: "reserva" },
   ] });
-  const metas = rows(b, "Metas!A2");
-  assertEq(metas[0]?.[5], 0, "atual −100 de 1.000: progresso = 0 (não −0,10)");
-  assertEq(metas[0]?.[4], 1100, "atual −100: faltando = 1.100 (mesma conta do Relatórios do app: alvo − atual)");
-  assertEq(metas[1]?.[5], 0, "alvo 0: progresso = 0");
-  assert(String(rows(b, "Metas!K4:K7")[3]?.[0]).includes("0,0%"), "painel 'Melhor progresso' = 0,0%");
+  assertEq(ler(b, "Metas!F2"), 0, "atual −100 de 1.000: progresso = 0 (não −0,10)");
+  assertEq(ler(b, "Metas!E2"), 1100, "atual −100: faltando = 1.100 (mesma conta do Relatórios do app: alvo − atual)");
+  assertEq(ler(b, "Metas!F3"), 0, "alvo 0: progresso = 0 (SE protege a divisão)");
+  assert(String(rows(b, `Metas!${PAINEL}`)[3]?.[0]).includes("0,0%"), "painel 'Melhor progresso' = 0,0%");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -289,16 +305,17 @@ section("B10) Caminho real do navegador (GoogleSyncButton) — requests puros");
   assertEq(body.properties.locale, "pt_BR", "criar: locale pt_BR");
   assertEq(body.properties.timeZone, "America/Sao_Paulo", "criar: fuso São Paulo");
   assert(String(body.properties.title).includes("fulano@gmail.com"), "criar: título leva o e-mail");
-  assertEq(body.sheets.length, 9, "criar: 9 abas");
+  assertEq(body.sheets.length, 11, "criar: 11 abas");
 
   const created: SpreadsheetInfo = { sheets: body.sheets.map((s: any, i: number) => ({ properties: { title: s.properties.title, sheetId: 100 + i } })) };
   const ids = readSheetIds(created);
   assertEq(ids["Dashboard"], 100, "readSheetIds mapeia título → sheetId");
-  assertEq(Object.keys(ids).length, 9, "readSheetIds: 9 abas");
+  assertEq(Object.keys(ids).length, 11, "readSheetIds: 11 abas");
   assert((layoutCall(ids) as any).requests.length > 50, "layout: muitos requests");
   const sv = staticValuesCall() as any;
   assertEq(sv.valueInputOption, "USER_ENTERED", "conteúdo estático: USER_ENTERED (fórmulas pt-BR precisam)");
-  assert(sv.data.some((d: any) => d.range === "Dívidas!J4:J7"), "conteúdo estático escreve os rótulos da coluna J");
+  assert(sv.data.some((d: any) => d.range === "Dívidas!N4:N7"), "conteúdo estático escreve os rótulos do painel (coluna N)");
+  assert(sv.data.some((d: any) => d.range === "Dashboard!A6" && String(d.values[0][0]).startsWith("=SOMASES(")), "conteúdo estático grava as fórmulas dos KPIs");
   assertEq((chartsCall(ids) as any).requests.length, 4, "gráficos: 4 addChart");
 
   // upgrade: planilha antiga sem a aba "Como usar", com gráfico/zebra/proteção/regras velhas
@@ -309,7 +326,8 @@ section("B10) Caminho real do navegador (GoogleSyncButton) — requests puros");
     ],
   };
   const faltando = missingTabsCall(readSheetIds(antiga)) as any;
-  assert(faltando && faltando.requests.length === 7 && faltando.requests.every((r: any) => r.addSheet), "upgrade: cria as 7 abas que faltam");
+  assert(faltando && faltando.requests.length === 9 && faltando.requests.every((r: any) => r.addSheet), "upgrade: cria as 9 abas que faltam (inclui Bolsos e Filtros)");
+  assert(faltando.requests.every((r: any) => typeof r.addSheet.properties.index === "number"), "upgrade: aba nova vai pra posição de hoje (não pro fim)");
   assertEq(missingTabsCall(ids), null, "upgrade: nada a criar quando todas existem");
 
   const idsAntiga = { ...ids, Dashboard: 1, "Lançamentos": 2 };
@@ -320,23 +338,57 @@ section("B10) Caminho real do navegador (GoogleSyncButton) — requests puros");
   assertEq(kinds.filter((k: string) => k === "deleteProtectedRange").length, 1, "upgrade: apaga a proteção antiga");
   const condIdx = up.requests.filter((r: any) => r.deleteConditionalFormatRule).map((r: any) => r.deleteConditionalFormatRule.index);
   assertEq(JSON.stringify(condIdx), JSON.stringify([2, 1, 0]), "upgrade: regras condicionais apagadas de trás pra frente");
-  const primeiroLayout = kinds.findIndex((k: string) => !k.startsWith("delete"));
-  assert(primeiroLayout === 8, "upgrade: toda limpeza (2+2+1+3 = 8) vem ANTES do layout novo", `primeiro request de layout na posição ${primeiroLayout}`);
+  const primeiroLayout = kinds.findIndex((k: string) => !k.startsWith("delete") && k !== "unmergeCells");
+  assert(primeiroLayout === 10, "upgrade: toda limpeza (2+2+1+3 + 2 unmerge = 10) vem ANTES do layout novo", `primeiro request de layout na posição ${primeiroLayout}`);
+  assertEq(kinds.filter((k: string) => k === "unmergeCells").length, 2, "upgrade: desmescla cada aba (o painel mudou de coluna)");
   assert(!up.requests.some((r: any) => r.updateCells || r.appendCells), "upgrade: não toca nos DADOS do usuário (sem updateCells)");
+
+  // Juiz (rodada 1): planilha antiga (9 abas, 12 colunas) tinha o painel em J:L
+  // (título J1:L1, dica J2, rótulos J4:J7, valores K4:L7, notas J10:J14). O clear
+  // do sync para na última coluna gerada (Receitas!A2:F…), então esse lixo ficava
+  // escondido nas colunas H..M. O upgrade tem que limpá-lo nessas 6 abas — e só
+  // quando a versão gravada é anterior ao layout v3 (Lançamentos não: J:L virou dado).
+  const abasAntigas = ["Dashboard", "Lançamentos", "Receitas", "Despesas", "Dívidas", "Metas", "Fluxo de Caixa", "Resumo Mensal", "Como usar"];
+  const antiga9: SpreadsheetInfo = { sheets: abasAntigas.map((title, i) => ({ properties: { title, sheetId: 200 + i, gridProperties: { rowCount: 1010, columnCount: 12 } } })) };
+  const ids9 = { ...ids, ...readSheetIds(antiga9) };
+  const seisAbas = ["Receitas", "Despesas", "Dívidas", "Metas", "Fluxo de Caixa", "Resumo Mensal"];
+  const limpezas = (versao?: string) => (upgradeLayoutCall(antiga9, ids9, versao) as any).requests
+    .map((r: any, i: number) => ({ r, i }))
+    .filter(({ r }: any) => r.updateCells)
+    .map(({ r, i }: any) => ({ i, sheetId: r.updateCells.range.sheetId, range: r.updateCells.range, fields: r.updateCells.fields, rows: r.updateCells.rows }));
+  for (const versao of [undefined, "2026-09-02.1", "2026-09-11.1"]) {
+    const l = limpezas(versao);
+    assertEq(l.length, 6, `upgrade de ${versao ?? "sem versão"}: limpa o painel antigo em 6 abas`);
+    assert(seisAbas.every((t) => l.some((x: any) => x.sheetId === ids9[t])), `upgrade de ${versao ?? "sem versão"}: as 6 abas certas`, JSON.stringify(l.map((x: any) => x.sheetId)));
+    assert(!l.some((x: any) => x.sheetId === ids9["Lançamentos"] || x.sheetId === ids9["Dashboard"]), `upgrade de ${versao ?? "sem versão"}: Lançamentos e Dashboard não são limpos`);
+    assert(l.every((x: any) => x.range.startRowIndex === 0 && x.range.endRowIndex >= 14 && x.range.endRowIndex <= 20 && x.range.startColumnIndex === 9 && x.range.endColumnIndex >= 12 && x.range.endColumnIndex <= 13), `upgrade de ${versao ?? "sem versão"}: range J1:M20 (cobre J1:L14)`, JSON.stringify(l[0]?.range));
+    assert(l.every((x: any) => x.fields === "userEnteredValue" && x.rows === undefined), `upgrade de ${versao ?? "sem versão"}: só apaga o valor (fields=userEnteredValue, sem rows) — formato fica escondido`);
+    const primeiroLayout9 = (upgradeLayoutCall(antiga9, ids9, versao) as any).requests.findIndex((r: any) => { const k = Object.keys(r)[0]; return !k.startsWith("delete") && k !== "unmergeCells" && k !== "updateCells"; });
+    assert(l.every((x: any) => x.i < primeiroLayout9), `upgrade de ${versao ?? "sem versão"}: limpeza vem ANTES do layout novo`);
+  }
+  assertEq(limpezas(LAYOUT_VERSION).length, 0, "upgrade na versão atual: nada a limpar (idempotente)");
+  assertEq(limpezas("2026-09-11.2").length, 0, "upgrade a partir do v3 (2026-09-11.2): painel já está em N:P, nada a limpar");
+  // planilha antiga sem as 6 abas: nada a limpar nelas (só o que existe)
+  assertEq(((upgradeLayoutCall(antiga, idsAntiga, "2026-09-02.1") as any).requests.filter((r: any) => r.updateCells)).length, 0, "upgrade: só limpa abas que existem na planilha antiga");
 
   // pushData: limpa e escreve — sem passar da última coluna de dados
   const push = pushDataCalls({ incomes: [entrada("a", "x", 10, "2026-08-05")], expenses: [], debts: [], goals: [] }) as any;
   assertEq(push.update.valueInputOption, "USER_ENTERED", "pushData: USER_ENTERED");
   assert(push.clear.ranges.length > 0, "pushData: limpa antes de escrever");
   const colunaFinal = (r: string) => (r.split("!")[1].split(":")[1] ?? "").replace(/\d+$/, "");
-  const limites: Record<string, string> = { "Lançamentos": "I", Receitas: "F", Despesas: "G", "Dívidas": "G", Metas: "F", "Fluxo de Caixa": "E", "Resumo Mensal": "G" };
+  const limites: Record<string, string> = { "Lançamentos": "L", Receitas: "F", Despesas: "G", "Dívidas": "H", Metas: "F", "Fluxo de Caixa": "E", "Resumo Mensal": "G" };
   for (const [aba, ultima] of Object.entries(limites)) {
     const r = push.clear.ranges.find((x: string) => x.startsWith(`${aba}!A2`));
-    assertEq(r ? colunaFinal(r) : undefined, ultima, `pushData: limpeza de ${aba} para na coluna ${ultima} (não apaga J:L)`);
+    assertEq(r ? colunaFinal(r) : undefined, ultima, `pushData: limpeza de ${aba} para na coluna ${ultima} (antes de Anotações e do painel)`);
   }
-  const nasAbasDeDados = (r: string) => !r.startsWith("Dashboard!");
-  assert(!push.clear.ranges.filter(nasAbasDeDados).some((r: string) => /:[J-Z]\d*$/.test(r)), "pushData: nenhuma limpeza de aba de dados alcança J..Z");
-  assert(!push.update.data.map((d: any) => d.range).filter(nasAbasDeDados).some((r: string) => /![J-L]\d+$/.test(r) && !/K4:K7$/.test(r)), "pushData: só K4:K7 é escrito no painel (rótulos J ficam)");
+  const dataTabs: DataTabKey[] = ["lancamentos", "receitas", "despesas", "dividas", "metas", "fluxo", "resumo"];
+  for (const key of dataTabs) {
+    const r = push.clear.ranges.find((x: string) => x.startsWith(`${TAB[key]}!A2`));
+    assert(!!r && colunaFinal(r) < colunaAnotacoes(key), `pushData: limpeza de ${TAB[key]} não alcança Anotações (${colunaAnotacoes(key)})`);
+  }
+  const nasAbasDeDados = (r: string) => dataTabs.some((k) => r.startsWith(`${TAB[k]}!`));
+  assert(!push.clear.ranges.filter(nasAbasDeDados).some((r: string) => /:[N-Z]\d*$/.test(r)), "pushData: nenhuma limpeza de aba de dados alcança o painel N..P");
+  assert(!push.update.data.map((d: any) => d.range).filter(nasAbasDeDados).some((r: string) => /![N-P]\d+$/.test(r) && !/O4:O7$/.test(r)), "pushData: só O4:O7 é escrito no painel (rótulos N ficam)");
   const vazio = pushDataCalls({ incomes: [], expenses: [], debts: [], goals: [] }) as any;
   assert(vazio.clear && vazio.update, "pushData vazio: ainda limpa e escreve painéis/KPIs");
 }

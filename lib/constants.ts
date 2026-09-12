@@ -321,3 +321,6 @@ export const lessons: Lesson[] = [
   { id: "lesson-6", title: "Reserva de emergência", text: "Reserva não é luxo. É proteção para você respirar quando algo aperta.", action: "Separe qualquer valor e registre como começo da sua reserva." },
   { id: "lesson-7", title: "Direção financeira", text: "Você não precisa de promessa mágica. Precisa de um plano que caiba na sua vida.", action: "Atualize uma meta e defina o próximo passo do seu mês." },
 ];
+
+/** Toast quando a pessoa tenta editar/excluir/estornar um gasto de parcela (ver lib/types.ts). */
+export const MSG_GASTO_DE_PARCELA = "Esse gasto veio de uma parcela — desfaça em Dívidas";

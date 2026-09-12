@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowRight, ArrowUp, ExternalLink, Mic, Table } from "lucide-react";
-import { ExpenseChart } from "@/components/ExpenseChart";
+import { useEffect, useState } from "react";
+import { ArrowDown, ArrowRight, ArrowUp, ExternalLink, Mic, PenLine, Table } from "lucide-react";
+import { PocketsCard } from "@/components/PocketsCard";
 import { isEstornado } from "@/lib/types";
 import { formatCurrency, formatDate, getDashboardMetrics } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
@@ -36,12 +37,25 @@ function Skeleton() {
 export default function InicioPage() {
   const data = useVirada();
   const metrics = getDashboardMetrics(data);
+  // Só promete "por voz" se o navegador tem reconhecimento de voz (mesma regra do botão em Lançar).
+  const [temVoz, setTemVoz] = useState(false);
+  useEffect(() => {
+    const w = window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown };
+    setTemVoz(Boolean(w.SpeechRecognition ?? w.webkitSpeechRecognition));
+  }, []);
 
   if (!data.isReady) return <Skeleton />;
 
   const positive = metrics.balanceMonth >= 0;
   const monthCount = metrics.monthExpenses.length + metrics.monthIncomes.length;
   const impulseCount = metrics.monthExpenses.filter((item) => item.nature === "impulso").length;
+
+  // Mês sem nada lançado não é "Positivo": é só vazio. O chip diz isso, neutro.
+  const chip = monthCount === 0
+    ? { classe: "bg-white/[0.08] text-ink-300", ponto: "bg-ink-400", texto: "Sem lançamentos neste mês" }
+    : positive
+      ? { classe: "bg-green-500/[0.14] text-green-300", ponto: "bg-green-500", texto: "Positivo · O caixa está respirando." }
+      : { classe: "bg-amber-500/[0.16] text-amber-100", ponto: "bg-amber-500", texto: "Negativo · Gasto maior que entrada." };
 
   // Histórico mostra tudo, inclusive estornados (com selo) — só os totais os ignoram.
   const latest = [
@@ -79,13 +93,9 @@ export default function InicioPage() {
               {formatCurrency(metrics.balanceMonth)}
             </p>
           </div>
-          <span
-            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-semibold ${
-              positive ? "bg-green-500/[0.14] text-green-300" : "bg-amber-500/[0.16] text-amber-100"
-            }`}
-          >
-            <i className={`h-2 w-2 rounded-full ${positive ? "bg-green-500" : "bg-amber-500"}`} />
-            {positive ? "Positivo · O caixa está respirando." : "Negativo · Gasto maior que entrada."}
+          <span className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-semibold ${chip.classe}`}>
+            <i className={`h-2 w-2 rounded-full ${chip.ponto}`} />
+            {chip.texto}
           </span>
         </div>
 
@@ -117,25 +127,19 @@ export default function InicioPage() {
           href="/app/lancar"
           className="flex min-h-[52px] items-center justify-center gap-2.5 rounded-xl bg-green-500 px-4 py-3 text-[15px] font-bold text-green-900 transition-colors duration-150 hover:bg-green-400"
         >
-          <Mic className="h-[18px] w-[18px] shrink-0" />
+          {temVoz ? <Mic className="h-[18px] w-[18px] shrink-0" /> : <PenLine className="h-[18px] w-[18px] shrink-0" />}
           <span className="text-center">
-            Lançar agora <span className="font-medium text-green-800">— por voz ou texto</span>
+            Lançar agora{temVoz && <span className="font-medium text-green-800"> — por voz ou texto</span>}
           </span>
         </Link>
       </section>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-start gap-5">
-        {/* Análise de gastos */}
-        <section className="surface-card flex min-w-0 flex-col gap-[18px] p-5 sm:p-[22px]">
-          <div>
-            <p className="eyebrow">Análise de gastos</p>
-            <h2 className="mt-1 text-lg font-bold tracking-[-0.01em] text-ink-900">Pra onde está indo seu dinheiro?</h2>
-          </div>
-          <ExpenseChart expenses={data.expenses} incomes={data.incomes} />
-        </section>
+        {/* Seus 3 bolsos — o mês corrente */}
+        <PocketsCard data={data} />
 
         <div className="flex min-w-0 flex-col gap-5">
-          {/* Últimos lançamentos */}
+          {/* Últimos lançamentos — tocar abre a edição */}
           <section className="surface-card flex flex-col gap-2 p-5 sm:p-[22px]">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-lg font-bold tracking-[-0.01em] text-ink-900">Últimos lançamentos</h2>
@@ -155,7 +159,11 @@ export default function InicioPage() {
                 {latest.map((item) => {
                   const income = item.value >= 0;
                   return (
-                    <div key={item.id} className="flex items-center justify-between gap-3 border-b border-ink-100 py-3 last:border-b-0">
+                    <Link
+                      key={item.id}
+                      href={`/app/lancar?editar=${item.id}`}
+                      className="-mx-2 flex items-center justify-between gap-3 rounded-[10px] border-b border-ink-100 px-2 py-3 transition-colors duration-150 last:border-b-0 hover:bg-ink-50"
+                    >
                       <span className="flex min-w-0 items-center gap-3">
                         <span
                           className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-[13px] font-bold ${
@@ -183,7 +191,7 @@ export default function InicioPage() {
                       >
                         {signed(item.value)}
                       </strong>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -201,7 +209,7 @@ export default function InicioPage() {
                 <p className="mt-1 text-sm leading-5 text-ink-700">
                   {data.sheet.sheetUrl
                     ? "Sua planilha está conectada e recebe cada lançamento."
-                    : "Base completa em abas: lançamentos, metas, dívidas, pontos e logs."}
+                    : "Dashboard, filtros, bolsos, lançamentos, dívidas e metas — com fórmulas que recalculam sozinhas."}
                 </p>
               </div>
             </div>

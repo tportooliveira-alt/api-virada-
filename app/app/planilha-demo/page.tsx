@@ -9,7 +9,14 @@ import { useState, useMemo } from "react";
 import { useVirada } from "@/providers/virada-provider";
 import { ExpenseChart } from "@/components/ExpenseChart";
 import { isEstornado, isOpenDebt, semEstornados } from "@/lib/types";
-import { getGoalProgress, groupTopCategories, roundMoney, savingsRate } from "@/lib/utils";
+import { getGoalProgress, groupTopCategories, roundMoney, savingsRate, shiftMonth, toInputDate } from "@/lib/utils";
+
+// "2026-09" → "Setembro 2026" (mesmo rótulo de Relatórios)
+function monthLabel(ym: string) {
+  const [year, month] = ym.split("-").map(Number);
+  const nome = new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(new Date(year, month - 1, 1));
+  return `${nome.charAt(0).toUpperCase() + nome.slice(1)} ${year}`;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function brl(v: number) {
@@ -144,6 +151,8 @@ const TABS = [
 export default function PlanilhaDemoPage() {
   const data = useVirada();
   const [activeTab, setActiveTab] = useState("dashboard");
+  // O gráfico é de um mês por vez, como em Relatórios (‹ mês ›); os KPIs acima são desde o início.
+  const [mes, setMes] = useState(() => toInputDate().slice(0, 7));
 
   // Totais, gráficos, fluxo e resumo: sem estornados (contrato em lib/types.ts).
   // As tabelas continuam listando tudo, com selo ESTORNADO.
@@ -203,8 +212,19 @@ export default function PlanilhaDemoPage() {
 
             {/* Gráfico de gastos */}
             <div className="rounded-xl border border-virada-line bg-white p-4">
-              <p className="mb-4 text-sm font-bold text-ink-900">📊 Onde está indo seu dinheiro</p>
-              <ExpenseChart expenses={data.expenses} incomes={data.incomes} />
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <p className="text-sm font-bold text-ink-900">📊 Onde está indo seu dinheiro</p>
+                <div className="flex items-center gap-1">
+                  <button type="button" aria-label="Mês anterior" onClick={() => setMes((m) => shiftMonth(m, -1))} className="grid h-8 w-8 place-items-center rounded-lg border border-ink-200 text-ink-700 hover:bg-ink-50">
+                    ‹
+                  </button>
+                  <span aria-live="polite" className="min-w-[120px] text-center text-xs font-semibold text-ink-700">{monthLabel(mes)}</span>
+                  <button type="button" aria-label="Próximo mês" onClick={() => setMes((m) => shiftMonth(m, 1))} className="grid h-8 w-8 place-items-center rounded-lg border border-ink-200 text-ink-700 hover:bg-ink-50">
+                    ›
+                  </button>
+                </div>
+              </div>
+              <ExpenseChart expenses={data.expenses} incomes={data.incomes} period={mes} />
             </div>
 
             {/* Gastos por categoria */}

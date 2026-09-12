@@ -20,7 +20,10 @@
 
 import { buildStaticValues, buildSyncBatch, type SyncInput } from "../lib/sheets/builder";
 import { getDashboardMetrics, getGoalProgress, savingsRate, toInputDate } from "../lib/utils";
-import { isOpenDebt, semEstornados } from "../lib/types";
+import { debtRemaining, isOpenDebt, semEstornados } from "../lib/types";
+// Dashboard, "Em aberto", Faltando/Progresso são FÓRMULAS na planilha (v3):
+// o número vem do mini-avaliador rodando a fórmula sobre o que o sync gravou.
+import { montarPasta } from "./planilha-avaliador";
 import type { Debt, Expense, Goal, Income, ViradaData } from "../lib/types";
 
 let passed = 0;
@@ -50,7 +53,13 @@ function section(name: string) {
 const centavos = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 type Batch = ReturnType<typeof buildSyncBatch>;
-const cell = (batch: Batch, range: string) => batch.valueRanges.find((v) => v.range === range)?.values?.[0]?.[0];
+// Número volta arredondado ao centavo — é o que a célula MOSTRA (formato R$);
+// A6−D6 em ponto flutuante dá 3079.9300000000003, na planilha e no app.
+const cell = (batch: Batch, range: string) => {
+  const v = montarPasta(buildStaticValues(), batch.valueRanges).ler(range);
+  return typeof v === "number" ? centavos(v) : v;
+};
+const PAINEL = "O4:O7";
 // Intl separa "R$" do número com espaço duro (U+00A0); normaliza pra comparar.
 const txt = (v: unknown) => String(v ?? "").replace(/\u00a0/g, " ");
 const rows = (batch: Batch, range: string) => (batch.valueRanges.find((v) => v.range === range)?.values ?? []) as unknown[][];
@@ -122,39 +131,40 @@ section("B2) Meta estourada — progresso trava em 100% como no app");
 // ─────────────────────────────────────────────────────────────────────────────
 
 const metas = rows(batch, "Metas!A2");
-const cofrinho = metas.find((r) => r[0] === "Cofrinho");
-const reserva = metas.find((r) => r[0] === "Reserva");
-assertEq(cofrinho?.[5], 1, "Cofrinho (2.500 de 1.000): progresso = 1 (100%), não 2,5");
-assertEq(cofrinho?.[4], 0, "Cofrinho: faltando = 0");
-assertEq(reserva?.[5], 0.25, "Reserva: progresso = 0,25");
+const linhaMeta = (nome: string) => metas.findIndex((r) => r[0] === nome) + 2;
+assertEq(cell(batch, `Metas!F${linhaMeta("Cofrinho")}`), 1, "Cofrinho (2.500 de 1.000): progresso = 1 (100%), não 2,5");
+assertEq(cell(batch, `Metas!E${linhaMeta("Cofrinho")}`), 0, "Cofrinho: faltando = 0");
+assertEq(cell(batch, `Metas!F${linhaMeta("Reserva")}`), 0.25, "Reserva: progresso = 0,25");
 assertEq(getGoalProgress(goals[1]), 100, "app: getGoalProgress(Cofrinho) = 100");
-const painelMetas = rows(batch, "Metas!K4:K7");
+const painelMetas = rows(batch, `Metas!${PAINEL}`);
 assert(String(painelMetas[3]?.[0]).includes("100,0%"), "painel 'Melhor progresso' mostra 100,0%", String(painelMetas[3]?.[0]));
 assert(!String(painelMetas[3]?.[0]).includes("250"), "painel 'Melhor progresso' não mostra 250%");
 assert(String(painelMetas[3]?.[0]).toLowerCase().includes("meta batida"), "painel diz 'meta batida' quando atual ≥ alvo");
 {
   const quase = buildSyncBatch({ incomes: [], expenses: [], debts: [], goals: [{ id: "g", name: "Quase", targetValue: 1000, currentValue: 999.99, type: "economia" }] });
-  assert(!String(rows(quase, "Metas!K4:K7")[3]?.[0]).toLowerCase().includes("meta batida"), "999,99 de 1.000 NÃO é 'meta batida'");
+  assert(!String(rows(quase, `Metas!${PAINEL}`)[3]?.[0]).toLowerCase().includes("meta batida"), "999,99 de 1.000 NÃO é 'meta batida'");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 section("B6) Dívidas — contrato isOpenDebt (aberta OU negociando)");
 // ─────────────────────────────────────────────────────────────────────────────
 
-const painelDividas = rows(batch, "Dívidas!K4:K7");
+const painelDividas = rows(batch, `Dívidas!${PAINEL}`);
 const abertoRef = centavos(debts.filter(isOpenDebt).reduce((s, d) => s + d.totalValue, 0));
-assertEq(txt(painelDividas[1]?.[0]), "R$ 6.800,00", "painel 'Total em aberto' = aberta + negociando (6.800)");
+assertEq(txt(painelDividas[1]?.[0]), "R$ 6.800,00", "painel 'Total em aberto' = aberta + negociando (6.800; sem pagamento, restante = total)");
 assertEq(abertoRef, app.openDebtsTotal, "app openDebtsTotal = mesmo contrato");
+assertEq(abertoRef, centavos(debts.filter(isOpenDebt).reduce((s, d) => s + debtRemaining(d), 0)), "sem paidValue, debtRemaining = totalValue (mesmo número)");
 const dividas = rows(batch, "Dívidas!A2");
-assertEq(dividas.find((r) => r[0] === "Empréstimo")?.[6], 5000, "negociando conta como 'Em aberto' na linha");
-assertEq(dividas.find((r) => r[0] === "Velha")?.[6], 0, "quitada tem 'Em aberto' = 0");
+const linhaDivida = (nome: string) => dividas.findIndex((r) => r[0] === nome) + 2;
+assertEq(cell(batch, `Dívidas!H${linhaDivida("Empréstimo")}`), 5000, "negociando conta como 'Em aberto' na linha (fórmula)");
+assertEq(cell(batch, `Dívidas!H${linhaDivida("Velha")}`), 0, "quitada tem 'Em aberto' = 0");
 assertEq(dividas[dividas.length - 1]?.[0], "Velha", "quitada vai por último na ordenação");
 assertEq(dividas[0]?.[0], "Cartão", "aberta de prioridade alta vem primeiro");
 {
   const tudoQuitado = buildSyncBatch({ incomes: [], expenses: [], goals: [], debts: [
     { id: "q1", name: "Paga", totalValue: 1000, installmentValue: 100, dueDate: "2026-02-01", priority: "alta", status: "quitada" },
   ] });
-  const painel = rows(tudoQuitado, "Dívidas!K4:K7");
+  const painel = rows(tudoQuitado, `Dívidas!${PAINEL}`);
   assertEq(painel[3]?.[0], "—", "tudo quitado: 'Prioridade mais crítica' = '—' (não 'Alta')");
   assertEq(painel[2]?.[0], "1", "tudo quitado: 'Quitadas' = 1");
 }
@@ -166,7 +176,7 @@ assertEq(dividas[0]?.[0], "Cartão", "aberta de prioridade alta vem primeiro");
   ] });
   const nomes = rows(misto, "Dívidas!A2").map((r) => r[0]);
   assertEq(JSON.stringify(nomes), JSON.stringify(["Negociando baixa 7000", "Aberta baixa 5000", "Quitada alta 0"]), "abertas primeiro (prioridade, depois maior valor), quitada por último");
-  assertEq(rows(misto, "Dívidas!K4:K7")[3]?.[0], "Baixa", "prioridade crítica só entre abertas (Baixa, não Alta da quitada)");
+  assertEq(rows(misto, `Dívidas!${PAINEL}`)[3]?.[0], "Baixa", "prioridade crítica só entre abertas (Baixa, não Alta da quitada)");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -181,7 +191,7 @@ assertEq(savingsRate(0, 110), null, "app: savingsRate(0, 110) = null (não exist
 {
   const soGasto = buildSyncBatch({ incomes: [], expenses: [{ id: "e", description: "Gás", value: 110, category: "Outros", date: HOJE, paymentMethod: "Pix", nature: "essencial" }], debts: [], goals: [] });
   assertEq(rows(soGasto, "Resumo Mensal!A2")[0]?.[5], "—", "mês só com gasto: Economia = '—' (não 0,0%)");
-  assertEq(rows(soGasto, "Resumo Mensal!K4:K7")[3]?.[0], "—", "painel 'Economia média' = '—' quando nenhum mês tem entrada");
+  assertEq(rows(soGasto, `Resumo Mensal!${PAINEL}`)[3]?.[0], "—", "painel 'Economia média' = '—' quando nenhum mês tem entrada");
   const tresVezes = buildSyncBatch({ incomes: [{ id: "i", description: "x", value: 100, category: "Venda", date: HOJE }], expenses: [{ id: "e", description: "Gás", value: 300, category: "Outros", date: HOJE, paymentMethod: "Pix", nature: "essencial" }], debts: [], goals: [] });
   assertEq(rows(tresVezes, "Resumo Mensal!A2")[0]?.[5], -2, "gastou 3x o que entrou: Economia = −2 (−200%, sem piso)");
 }
@@ -222,7 +232,7 @@ assertEq(cell(be, "Dashboard!A8"), 6000, "Desde o início: entradas sem a receit
 assertEq(cell(be, "Dashboard!D8"), centavos(800.33 + 120.5), "Desde o início: gastos sem a despesa estornada");
 assertEq(cell(be, "Dashboard!J8"), 4, "Desde o início: 4 lançamentos válidos");
 
-const topCat = rows(be, "Dashboard!A12:B21").map((r) => r[0]);
+const topCat = rows(be, "Dashboard!A12:A21").map((r) => r[0]);
 assert(!topCat.includes("Lazer"), "top categorias não inclui a categoria só da despesa estornada");
 const fluxo = rows(be, "Fluxo de Caixa!A2");
 const somaFluxoSaidas = centavos(fluxo.reduce((s, r) => s + Number(r[2] || 0), 0));
@@ -232,9 +242,13 @@ const mesAtual = resumoE.find((r) => String(r[0]).startsWith(mesKey));
 assertEq(mesAtual?.[1], 3000, "Resumo: entradas do mês sem a receita estornada");
 assertEq(mesAtual?.[2], 120.5, "Resumo: saídas do mês sem a despesa estornada");
 assertEq(mesAtual?.[6], 2, "Resumo: 2 lançamentos no mês (estornados fora)");
-assertEq(rows(be, "Lançamentos!K4:K7")[0]?.[0], "4", "painel Lançamentos 'Total lançado' = 4 válidos");
-assertEq(rows(be, "Receitas!K4:K7")[0]?.[0], "2", "painel Receitas 'Qtde de entradas' = 2 válidas");
-assertEq(txt(rows(be, "Despesas!K4:K7")[1]?.[0]), "R$ 920,83", "painel Despesas 'Total gasto' sem a estornada");
+assertEq(rows(be, `Lançamentos!${PAINEL}`)[0]?.[0], "4", "painel Lançamentos 'Total lançado' = 4 válidos");
+assertEq(rows(be, `Receitas!${PAINEL}`)[0]?.[0], "2", "painel Receitas 'Qtde de entradas' = 2 válidas");
+assertEq(txt(rows(be, `Despesas!${PAINEL}`)[1]?.[0]), "R$ 920,83", "painel Despesas 'Total gasto' sem a estornada");
+// A coluna Estornado é o critério das fórmulas — tem que estar marcada certo
+const lancE = rows(be, "Lançamentos!A2");
+assertEq(lancE.filter((r) => r[10] === "Sim").length, 2, "Lançamentos: 2 linhas com Estornado = Sim");
+assertEq(lancE.filter((r) => r[10] === "Não").length, 4, "Lançamentos: 4 linhas com Estornado = Não");
 
 // ─────────────────────────────────────────────────────────────────────────────
 console.log("\n" + "═".repeat(60));

@@ -243,6 +243,42 @@ export const STYLE: Record<string, CellFormat> = {
     numberFormat: { type: "CURRENCY", pattern: FORMAT.brlPlain },
   },
 
+  // Dashboard linha 3: "Mês de referência" + chave AAAA-MM que os KPIs filtram
+  refLabel: {
+    backgroundColor: white,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 2, right: 12, bottom: 2, left: 12 },
+    textFormat: text(9, slate500, true),
+  },
+  refValue: {
+    backgroundColor: amberSoft,
+    horizontalAlignment: "CENTER",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 2, right: 8, bottom: 2, left: 8 },
+    textFormat: text(10, amberDeep, true),
+    borders: allBorders(amberLine),
+  },
+  // Filtros: célula com menu (seta de validação) — a única que a pessoa mexe
+  menuCell: {
+    backgroundColor: white,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 6, right: 10, bottom: 6, left: 10 },
+    textFormat: text(11, ink, true),
+    borders: allBorders(green),
+  },
+  // Abas de dados: coluna Anotações (livre, sem zebra, fonte normal)
+  notesCell: {
+    backgroundColor: amberSoft,
+    horizontalAlignment: "LEFT",
+    verticalAlignment: "MIDDLE",
+    padding: { top: 4, right: 8, bottom: 4, left: 8 },
+    textFormat: text(10, ink),
+    borders: allBorders(amberLine),
+    wrapStrategy: "CLIP",
+  },
+
   // Dashboard: células com SPARKLINE ao lado das tabelas
   sparkCell: {
     backgroundColor: white,
@@ -405,6 +441,49 @@ export function hideColumns(sheetId: number, startCol: number, endCol: number) {
   };
 }
 
+export function showColumns(sheetId: number, startCol: number, endCol: number) {
+  return {
+    updateDimensionProperties: {
+      range: { sheetId, dimension: "COLUMNS", startIndex: startCol, endIndex: endCol },
+      properties: { hiddenByUser: false },
+      fields: "hiddenByUser",
+    },
+  };
+}
+
+// Planilha antiga nasceu com 12 colunas; a v3 precisa de mais. Só o número de
+// colunas — as linhas crescem por appendDimension no sync (growGridCall).
+export function setColumnCount(sheetId: number, columnCount: number) {
+  return {
+    updateSheetProperties: {
+      properties: { sheetId, gridProperties: { columnCount } },
+      fields: "gridProperties.columnCount",
+    },
+  };
+}
+
+// Desfaz toda mesclagem da aba: no upgrade, o painel muda de coluna e as
+// mesclas velhas (J1:L1…) cairiam em cima das colunas novas de dados.
+export function unmergeAll(sheetId: number) {
+  return { unmergeCells: { range: { sheetId } } };
+}
+
+// Menu suspenso alimentado por uma faixa (ONE_OF_RANGE): a lista é gravada pelo
+// sync, então o menu acompanha os dados sem reaplicar o layout. Sem "strict":
+// um mês que sumiu da lista continua escolhido, só com o aviso.
+export function dataValidationFromRange(sheetId: number, row: number, col: number, rangeFormula: string) {
+  return {
+    setDataValidation: {
+      range: { sheetId, startRowIndex: row, endRowIndex: row + 1, startColumnIndex: col, endColumnIndex: col + 1 },
+      rule: {
+        condition: { type: "ONE_OF_RANGE", values: [{ userEnteredValue: rangeFormula }] },
+        showCustomUi: true,
+        strict: false,
+      },
+    },
+  };
+}
+
 export function setRowHeight(sheetId: number, startRow: number, endRow: number, pixels: number) {
   return {
     updateDimensionProperties: {
@@ -465,14 +544,20 @@ export function protectSheet(sheetId: number, description: string) {
   };
 }
 
+// Faixa de uma regra condicional. endRow null = sem fim de linha (até o fim da
+// coluna): a regra acompanha a grade quando o sync a cresce (appendDimension).
+function condRange(sheetId: number, startRow: number, endRow: number | null, startCol: number, endCol: number) {
+  return { sheetId, startRowIndex: startRow, ...(endRow === null ? {} : { endRowIndex: endRow }), startColumnIndex: startCol, endColumnIndex: endCol };
+}
+
 export function condFormatPositiveNegative(
   sheetId: number,
   startRow: number,
-  endRow: number,
+  endRow: number | null,
   startCol: number,
   endCol: number,
 ) {
-  const ranges = [{ sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startCol, endColumnIndex: endCol }];
+  const ranges = [condRange(sheetId, startRow, endRow, startCol, endCol)];
   return [
     {
       addConditionalFormatRule: {
@@ -504,11 +589,11 @@ export function condFormatPositiveNegative(
 export function condFormatProgressBands(
   sheetId: number,
   startRow: number,
-  endRow: number,
+  endRow: number | null,
   startCol: number,
   endCol: number,
 ) {
-  const ranges = [{ sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startCol, endColumnIndex: endCol }];
+  const ranges = [condRange(sheetId, startRow, endRow, startCol, endCol)];
   const band = (condition: Record<string, unknown>, bg: RGB, fg: RGB, index: number) => ({
     addConditionalFormatRule: {
       rule: { ranges, booleanRule: { condition, format: { backgroundColor: bg, textFormat: { foregroundColor: fg, bold: true } } } },
@@ -550,7 +635,7 @@ export function condFormatGradient(
 export function condFormatTextEquals(
   sheetId: number,
   startRow: number,
-  endRow: number,
+  endRow: number | null,
   startCol: number,
   endCol: number,
   value: string,
@@ -561,7 +646,7 @@ export function condFormatTextEquals(
   return {
     addConditionalFormatRule: {
       rule: {
-        ranges: [{ sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startCol, endColumnIndex: endCol }],
+        ranges: [condRange(sheetId, startRow, endRow, startCol, endCol)],
         booleanRule: {
           condition: { type: "TEXT_EQ", values: [{ userEnteredValue: value }] },
           format: { backgroundColor: bg, textFormat: { foregroundColor: fg, bold: true } },
