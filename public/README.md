@@ -17,6 +17,7 @@ Tudo aqui é servido na raiz do site (ex.: `public/vendas.html` → `/vendas.htm
 | `planilha-preview.html` | Prévia visual da planilha premium |
 | `politica-privacidade.html`, `termos-de-uso.html` | Obrigatórios da Kiwify/Cakto (linkados no rodapé da landing). Placeholders `[SEU NOME OU CNPJ]` e `[SUA CIDADE — Estado]` a preencher |
 | `manifest.webmanifest` | Manifesto do PWA |
+| `sw.js` | **Service worker**: é ele que faz o Chrome oferecer "Instalar aplicativo" e o app abrir sem internet. Ao editar, suba a `VERSION` no topo do arquivo — é ela que limpa os caches antigos |
 
 > Os PDFs em `downloads/` são saída do build — pra mudar o conteúdo, edite os `.md`
 > em `content/` e rode `scripts/build_pdfs.py`.

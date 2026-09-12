@@ -3,6 +3,7 @@ import { Figtree, Onest } from "next/font/google";
 import "./globals.css";
 import { ViradaProvider } from "@/providers/virada-provider";
 import { AuthGate } from "@/components/AuthGate";
+import { PwaRegister } from "@/components/PwaRegister";
 
 const onest = Onest({
   subsets: ["latin"],
@@ -41,6 +42,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${onest.variable} ${figtree.variable}`}>
+        <PwaRegister />
         <AuthGate>
           <ViradaProvider>{children}</ViradaProvider>
         </AuthGate>
