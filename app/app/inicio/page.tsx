@@ -4,7 +4,7 @@ import Link from "next/link";
 import { 
   ArrowDown, ArrowRight, ArrowUp, Mic, Sparkles, Award 
 } from "lucide-react";
-import { formatCurrency, formatDate, getDashboardMetrics } from "@/lib/utils";
+import { formatCurrency, formatDate, getDashboardMetrics, formatDecimal } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
 import { computeFinancialIntelligence } from "@/lib/financial-intelligence";
 import { useMemo } from "react";
@@ -130,7 +130,7 @@ export default function InicioPage() {
               <Sparkles className="h-3.5 w-3.5 text-emerald-400" /> Sobra Real (%)
             </p>
             <p className="money mt-1.5 font-display text-lg font-bold text-white sm:text-xl">
-              {intel.savingsRate.pct.toFixed(1)}%
+              {formatDecimal(intel.savingsRate.pct)}%
             </p>
             <p className="mt-1 text-[11px] text-emerald-300 font-medium">
               Runway: {intel.runway.days} dias de respiro
@@ -195,7 +195,7 @@ export default function InicioPage() {
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-semibold text-ink-700">Essenciais (Meta: até 50%)</span>
                 <span className={`font-bold ${intel.rule503020.essentials.isOver ? "text-amber-600" : "text-emerald-700"}`}>
-                  {intel.rule503020.essentials.pct.toFixed(1)}% ({formatCurrency(intel.rule503020.essentials.value)})
+                  {formatDecimal(intel.rule503020.essentials.pct)}% ({formatCurrency(intel.rule503020.essentials.value)})
                 </span>
               </div>
               <div className="h-2.5 w-full rounded-full bg-ink-100 overflow-hidden">
@@ -210,7 +210,7 @@ export default function InicioPage() {
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-semibold text-ink-700">Estilo de Vida & Impulso (Meta: até 30%)</span>
                 <span className={`font-bold ${intel.rule503020.lifestyle.isOver ? "text-red-600" : "text-blue-700"}`}>
-                  {intel.rule503020.lifestyle.pct.toFixed(1)}% ({formatCurrency(intel.rule503020.lifestyle.value)})
+                  {formatDecimal(intel.rule503020.lifestyle.pct)}% ({formatCurrency(intel.rule503020.lifestyle.value)})
                 </span>
               </div>
               <div className="h-2.5 w-full rounded-full bg-ink-100 overflow-hidden">
@@ -225,7 +225,7 @@ export default function InicioPage() {
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-semibold text-ink-700">Reserva & Liberdade (Meta: min. 20%)</span>
                 <span className="font-bold text-purple-700">
-                  {intel.rule503020.future.pct.toFixed(1)}% ({formatCurrency(intel.savingsRate.value)})
+                  {formatDecimal(intel.rule503020.future.pct)}% ({formatCurrency(intel.savingsRate.value)})
                 </span>
               </div>
               <div className="h-2.5 w-full rounded-full bg-ink-100 overflow-hidden">

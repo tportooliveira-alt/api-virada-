@@ -1,3 +1,4 @@
+import { formatDecimal } from "@/lib/utils";
 /**
  * Motor de Inteligência Financeira e Diagnóstico Patrimonial
  * Código da Virada — Transforma dados brutos em diagnóstico de alto valor percebido.
@@ -68,13 +69,13 @@ export function computeFinancialIntelligence(params: {
   let runwayLabel = `${runwayDays} dias de cobertura`;
   if (runwayMonths >= 6) {
     runwayStatus = "excelente";
-    runwayLabel = `${runwayMonths.toFixed(1)} meses (Reserva Blindada)`;
+    runwayLabel = `${formatDecimal(runwayMonths)} meses (Reserva Blindada)`;
   } else if (runwayMonths >= 3) {
     runwayStatus = "seguro";
-    runwayLabel = `${runwayMonths.toFixed(1)} meses de respiro`;
+    runwayLabel = `${formatDecimal(runwayMonths)} meses de respiro`;
   } else if (runwayMonths >= 1) {
     runwayStatus = "atencao";
-    runwayLabel = `${runwayMonths.toFixed(1)} mês de cobertura`;
+    runwayLabel = `${formatDecimal(runwayMonths)} mês de cobertura`;
   }
 
   // 3. Regra 50/30/20 Automática
