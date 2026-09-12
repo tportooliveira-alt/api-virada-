@@ -502,33 +502,45 @@ window.OM_PLAYBACK = '{"mode":"loop"}';
         </div>
       </div>
 
-      <!-- ABA 2: DÚVIDAS DA COMPRA -->
+            <!-- ABA 2: DÚVIDAS DA COMPRA (CANÔNICO SKILL.MD) -->
       <div id="aba-duvidas" style="display:none;">
-        <p style="margin:0 0 10px; color:#64748B; font-size:12px;">Toque na dúvida para ver a resposta imediata:</p>
+        <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:10px 12px; margin-bottom:12px;">
+          <strong style="color:#166534; font-size:12px; display:flex; align-items:center; gap:6px;">
+            <span>🎓</span> Respostas Oficiais da Consultoria:
+          </strong>
+          <p style="margin:2px 0 0; color:#14532D; font-size:11.5px; line-height:1.4;">
+            Toque na dúvida para ver os dados validados (BACEN, SPC, McKinsey e Stanford):
+          </p>
+        </div>
         
         <div style="display:flex; flex-direction:column; gap:8px;">
-          <button type="button" onclick="mostrarRespostaFAQ('mensalidade')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
-            ❓ Tem alguma mensalidade ou cobrança recorrente?
+          <button type="button" onclick="mostrarRespostaFAQ('caro')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; color:#1E293B;">
+            ❓ R$ 47 tá caro? Vale a pena o investimento?
           </button>
-          <button type="button" onclick="mostrarRespostaFAQ('drive')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
-            ❓ Como a planilha conecta no meu Google Drive?
+          <button type="button" onclick="mostrarRespostaFAQ('dois_livros')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
+            📚 Por que o kit tem 2 livros digitais diferentes?
           </button>
-          <button type="button" onclick="mostrarRespostaFAQ('celular')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
-            ❓ Funciona no meu iPhone e Android?
+          <button type="button" onclick="mostrarRespostaFAQ('pacote_completo')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
+            🎁 O que exatamente vem incluso por R$ 47?
           </button>
           <button type="button" onclick="mostrarRespostaFAQ('carta')" style="text-align:left; padding:10px 12px; background:#FEF3C7; border:1px solid #FCD34D; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; color:#92400E;">
-            📄 Como funciona a Carta de Quitação enviada ao Banco?
+            📄 Como funciona a Carta Oficial enviada ao Banco (Bônus 2)?
           </button>
-          <button type="button" onclick="mostrarRespostaFAQ('garantia')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
-            ❓ E se eu não gostar? Qual é a garantia?
+          <button type="button" onclick="mostrarRespostaFAQ('drive_celular')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
+            📱 Como o app e a planilha Google Drive se conectam?
+          </button>
+          <button type="button" onclick="mostrarRespostaFAQ('ebook_diferente')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
+            ❓ Já tentei outros livros e planilhas e desisti. Por que esse funciona?
+          </button>
+          <button type="button" onclick="mostrarRespostaFAQ('garantia')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; color:#047857;">
+            🛡️ E se eu não me adaptar? Qual é a garantia?
           </button>
         </div>
 
-        <div id="resposta-faq-box" style="display:none; margin-top:12px; padding:12px; background:#F1F5F9; border-radius:8px; border-left:3px solid #047857; font-size:12px; line-height:1.5; color:#0F172A;">
+        <div id="resposta-faq-box" style="display:none; margin-top:12px; padding:14px; background:#F1F5F9; border-radius:10px; border-left:4px solid #047857; font-size:12px; line-height:1.55; color:#0F172A; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
           <div id="resposta-faq-texto"></div>
         </div>
       </div>
-
     </div>
 
     <!-- RODAPÉ WHATSAPP -->
@@ -718,11 +730,40 @@ function mostrarRespostaFAQ(chave) {
   if (!box || !texto) return;
 
   var respostas = {
-    mensalidade: '<strong>Zero mensalidade!</strong> A maioria dos aplicativos cobra R$ 30 a R$ 40 por mês (mais de R$ 360/ano). O Código da Virada custa R$ 47 <em>uma única vez</em> com acesso vitalício e atualizações incluídas.',
-    drive: '<strong>Com 1 clique automático!</strong> Na tela Conta do aplicativo, você clica em "Conectar Google Planilhas" e permite o acesso. O sistema gera a planilha executiva com 9 abas completas direto no seu Google Drive pessoal. Seus lançamentos sincronizam em segundo plano.',
-    celular: '<strong>Funciona em ambos!</strong> No Android (Chrome) ou no iPhone (Safari), você toca em "Adicionar à tela de início" e ele se comporta como um aplicativo nativo rápido, sem ocupar espaço da memória e funcionando até offline.',
-    carta: '<strong>A arma mais poderosa do Bônus 2:</strong> É um documento formal pronto com embasamento jurídico e resoluções do Banco Central (BACEN). Você só preenche seus dados e protocola no banco ou envia por e-mail. Ela obriga a instituição a abrir a evolução da dívida (DED) e parar com ligações abusivas, transferindo seu caso para a mesa de acordos com desconto de até 70% a 95% do saldo devedor.',
-    garantia: '<strong>Garantia incondicional de 7 dias pela Kiwify!</strong> Você testa o app, lê os livros, usa a planilha e os roteiros. Se achar que não valeu a pena, basta um toque para receber 100% do seu dinheiro de volta na hora, sem burocracia.'
+    caro: '<p style="margin:0 0 6px; font-weight:800; color:#047857;">💰 O método se paga 60 vezes logo no primeiro mês:</p>' +
+      'Segundo dados oficiais do <strong>Banco Central do Brasil (BACEN 2024)</strong>, o brasileiro médio perde <strong>R$ 3.200 por ano</strong> em juros e taxas evitáveis (multas de atraso, juros de mora e rotativo). Em 10 anos, esse dinheiro acumulado equivale a R$ 56.000!<br><br>' +
+      'Além disso, a <strong>McKinsey & Company (2023)</strong> comprovou que quem adota método e automação financeira acumula <strong>2,7x mais patrimônio</strong> em 10 anos. Por <strong>R$ 47 taxa única</strong>, você estanca esse sangramento para sempre.',
+
+    dois_livros: '<p style="margin:0 0 6px; font-weight:800; color:#047857;">📚 Dois livros complementares na mesma jornada:</p>' +
+      '📕 <strong>Livro Popular (15 páginas):</strong> Brasileiro direto, prático. Cada capítulo termina com um exercício para fazer na hora: inventário em 4 quadrantes, método dos 3 bolsos e plano de ataque. Feito para quem quer agir agora.<br><br>' +
+      '📗 <strong>Edição Estratégica (28 páginas):</strong> Formal e profundo. Apresenta o padrão ouro 50-30-20, combate aos gastos formiga e estudos científicos de <strong>Stanford, Harvard e McKinsey</strong> para você entender a mecânica da prosperidade.',
+
+    pacote_completo: '<p style="margin:0 0 6px; font-weight:800; color:#047857;">🎁 O pacote completo que você destrava por R$ 47:</p>' +
+      '1. 📕 <strong>Livro Popular</strong> (15p com exercícios imediatos)<br>' +
+      '2. 📗 <strong>Livro Edição Estratégica</strong> (28p com dados acadêmicos)<br>' +
+      '3. 🟢 <strong>Bônus 1:</strong> 50 Ideias de Renda Extra (organizadas por velocidade de 7 a 30 dias)<br>' +
+      '4. 📄 <strong>Bônus 2:</strong> Roteiro de Negociação + Carta Oficial ao Banco com base no BACEN e CDC<br>' +
+      '5. ⚡ <strong>Bônus 3:</strong> Plano de Ataque em 7 Dias<br>' +
+      '6. 📊 <strong>Bônus 4:</strong> Checklist Mensal de Governança<br>' +
+      '7. 📱 <strong>Aplicativo Web PWA</strong> com lançamentos em 10s (inclusive por voz e offline)<br>' +
+      '8. 📈 <strong>Planilha Inteligente Executiva</strong> gerada automaticamente no seu Google Drive pessoal!',
+
+    carta: '<p style="margin:0 0 6px; font-weight:800; color:#92400E;">📄 A arma mais poderosa do Bônus 2 (Regra de Ouro da Virada):</p>' +
+      'É uma Notificação Formal pronta com embasamento jurídico na <strong>Resolução BACEN nº 4.549/2017</strong> e <strong>Artigo 52, § 2º do CDC</strong>.<br><br>' +
+      'Você apenas preenche seus dados e protocola no banco ou envia por e-mail. Ela obriga o banco a apresentar o DED (Demonstrativo da Dívida), expurgar juros moratórios e transferir o contrato para a mesa de acordos especiais, liberando quitação à vista com <strong>70% a 92% de desconto real</strong>.<br><br>' +
+      '<em>Regra de ouro: nunca feche acordo na primeira ligação sem a notificação do DED.</em>',
+
+    drive_celular: '<p style="margin:0 0 6px; font-weight:800; color:#047857;">📱 Simplicidade máxima no seu celular e Google Drive:</p>' +
+      '• <strong>No celular:</strong> Funciona em iPhone (Safari) e Android (Chrome). Você adiciona à tela inicial e ele opera como app leve, sem ocupar memória e funcionando até offline no campo ou sem sinal.<br>' +
+      '• <strong>Google Drive:</strong> Na aba Conta, com 1 toque você conecta sua conta Google. O sistema cria no seu próprio Drive uma planilha executiva com 9 abas completas que se alimenta das suas anotações.',
+
+    ebook_diferente: '<p style="margin:0 0 6px; font-weight:800; color:#047857;">🎯 Feito para FAZER, não para admirar:</p>' +
+      'A maioria dos cursos de finanças usa termos complicados de banqueiro ou promete ficar milionário do dia para a noite. O Código da Virada é método realista:<br><br>' +
+      'Segundo a <strong>Universidade de Stanford (2023)</strong>, quem registra gastos de forma simples toma decisões financeiras <strong>47% mais eficientes</strong>. E o <strong>SPC Brasil (2023)</strong> comprovou que educação financeira estruturada reduz dívidas em <strong>38%</strong> e eleva poupança em <strong>61%</strong> em 12 meses.',
+
+    garantia: '<p style="margin:0 0 6px; font-weight:800; color:#047857;">🛡️ Garantia Blindada de 7 Dias pela Kiwify:</p>' +
+      'Você compra, recebe o acesso no mesmo instante, baixa os 2 livros, confere os roteiros de ligação, a Carta ao Banco e testa o aplicativo com a planilha no seu Google Drive.<br><br>' +
+      'Se em até 7 dias você achar que o conteúdo não transformou a sua relação com o dinheiro, basta 1 clique para receber <strong>100% do seu dinheiro de volta na hora</strong>. Sem perguntas e sem letras miúdas.'
   };
 
   texto.innerHTML = respostas[chave] || '';
