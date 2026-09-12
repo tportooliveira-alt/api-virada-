@@ -6,6 +6,7 @@ import { PropsWithChildren } from "react";
 import { BookOpen, CalendarDays, FileSpreadsheet, HandCoins, Smartphone } from "lucide-react";
 import { BottomNav, isActivePath, mainNavItems } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
+import { AutoPlanilha } from "@/components/AutoPlanilha";
 import { UpdateBanner } from "@/components/UpdateBanner";
 
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
@@ -111,6 +112,8 @@ export function AppShell({ children }: PropsWithChildren) {
 
       <BottomNav />
       <UpdateBanner />
+      {/* Sem UI: cria a planilha do comprador no primeiro acesso, se ainda nao existir. */}
+      <AutoPlanilha />
     </div>
   );
 }

@@ -12,6 +12,7 @@
 
 import { PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { LOGIN_SCOPES, saveGoogleToken } from "@/lib/sheets/oauth";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -177,7 +178,8 @@ export function AuthGate({ children }: PropsWithChildren) {
 
     const tokenClient = oauth2.initTokenClient({
       client_id: clientId,
-      scope: "openid email profile",
+      // Uma tela do Google so: identidade + permissao da planilha (lib/sheets/oauth.ts).
+      scope: LOGIN_SCOPES,
       callback: (response) => {
         if (finished) return;
         finished = true;
@@ -187,6 +189,8 @@ export function AuthGate({ children }: PropsWithChildren) {
           setSubmitting(false);
           return;
         }
+        // Guarda o token: e com ele que AutoPlanilha cria a planilha logo apos entrar.
+        saveGoogleToken(response.access_token);
         void authenticate({ accessToken: response.access_token });
       },
     });
