@@ -10,144 +10,70 @@
  *     fórmulas pt-BR, menus da aba Filtros, gráficos — ver lib/sheets/builder.ts)
  *  4. Cartão vira "Virada Financeira · Atualizada há …" com Abrir / Atualizar agora.
  *
- * Sem service account, sem .env do server, sem upload manual. Token vive
- * no localStorage por 55 min (re-auth silencioso depois).
- * Erros pro usuário são sempre humanos; o detalhe técnico vai pro console.
+ * Daqui pra frente ela também se atualiza SOZINHA: quem faz isso é o AutoSync
+ * do providers/virada-provider.tsx, usando o MESMO motor (lib/sheets/sync-runner).
+ * Este arquivo é só a interface — botão, estados e mensagens. A divisão de
+ * trabalho é: o automático nunca fala com a pessoa; o botão é quem explica o
+ * que houve e é o caminho pra religar quando o Google derruba a conexão.
+ *
+ * Sem service account, sem .env do server, sem upload manual. O token vive no
+ * localStorage por ~55 min; depois disso o botão tenta renovar em silêncio e só
+ * abre o consentimento se o Google exigir.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, RefreshCcw } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
-import { LAYOUT_VERSION, type SyncInput } from "@/lib/sheets/builder";
-// Os corpos dos requests são montados em lib/sheets/sync-requests.ts (puro,
-// testado offline); aqui fica só o HTTP com o token do usuário.
+import { type SyncInput } from "@/lib/sheets/builder";
+// O motor (sequência de chamadas ao Google, token e meta no aparelho) vive fora
+// do React em lib/sheets/sync-runner.ts — é o mesmo que o automático usa.
 import {
-  SPREADSHEET_FIELDS,
-  chartsCall,
-  createWorkbookBody,
-  growGridCall,
-  layoutCall,
-  missingTabsCall,
-  precisaCrescer,
-  pushDataCalls,
-  readSheetIds,
-  staticValuesCall,
-  upgradeLayoutCall,
-  type SpreadsheetInfo,
-} from "@/lib/sheets/sync-requests";
+  META_EVENT,
+  SCOPES,
+  ehErroDeAutorizacao,
+  gravarMeta,
+  gravarToken,
+  lerMeta,
+  lerToken,
+  limparMeta,
+  limparToken,
+  sincronizar,
+  tokenValido,
+  type SheetMeta,
+  type Token,
+} from "@/lib/sheets/sync-runner";
 
-const SCOPES = [
-  "https://www.googleapis.com/auth/spreadsheets",
-  "https://www.googleapis.com/auth/drive.file",
-].join(" ");
+/**
+ * Suporte no WhatsApp — o mesmo número que o AuthGate mostra quando o login não
+ * abre. Está repetido aqui de propósito: são dois componentes independentes, e
+ * quem trocar o número tem de trocar nos dois (um grep por "wa.me" acha os dois).
+ */
+const WHATSAPP_SUPORTE = "https://wa.me/5577999872390";
 
-const STORAGE_KEY = "virada_google_token";
-const SHEET_KEY = "virada_sheet_meta";
+/** Margem de segurança: não tentar usar um token que vence no meio do envio. */
+const FOLGA_TOKEN_MS = 60 * 1000;
+const VIDA_PADRAO_S = 3600;
 
-interface SheetMeta {
-  spreadsheetId: string;
-  spreadsheetUrl: string;
-  lastSync: string;
-  /** Layout aplicado nessa planilha. Ausente = planilha anterior ao versionamento. */
-  layoutVersion?: string;
+interface TokenResponse {
+  error?: string;
+  error_description?: string;
+  access_token?: string;
+  expires_in?: number;
 }
 
-interface Token {
-  access_token: string;
-  expires_at: number;
-}
+type PedidoDeToken = (opts?: { prompt?: string }) => void;
 
 type OAuth2InitTokenClient = (cfg: {
   client_id: string;
   scope: string;
-  callback: (resp: { error?: string; access_token?: string }) => void;
-}) => { requestAccessToken: () => void };
+  callback: (resp: TokenResponse) => void;
+  error_callback?: (err: { type?: string; message?: string }) => void;
+}) => { requestAccessToken: PedidoDeToken };
 
 function getInitTokenClient(): OAuth2InitTokenClient | null {
   const g = (window as unknown as { google?: { accounts?: { oauth2?: { initTokenClient?: OAuth2InitTokenClient } } } }).google;
   return g?.accounts?.oauth2?.initTokenClient ?? null;
-}
-
-async function googleFetch(method: string, endpoint: string, token: string, body?: unknown): Promise<unknown> {
-  const url = endpoint.startsWith("http") ? endpoint : `https://sheets.googleapis.com/v4${endpoint}`;
-  const res = await fetch(url, {
-    method,
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
-  if (!res.ok) {
-    const err = (await res.json().catch(() => ({}))) as { error?: { message?: string; status?: string } };
-    throw new Error(`HTTP ${res.status} ${err.error?.status ?? ""} — ${err.error?.message ?? "sem detalhe"}`.trim());
-  }
-  return res.json();
-}
-
-/**
- * Reaplica o visual numa planilha que já existe — é o que faz a planilha do
- * usuário "se ajeitar sozinha" quando o layout do app muda, sem precisar
- * desconectar e conectar de novo. Idempotente: recria as abas que faltarem e
- * apaga os gráficos antigos antes de inserir os novos (senão duplicariam).
- */
-async function upgradeLayout(token: string, spreadsheetId: string, versaoAnterior?: string): Promise<void> {
-  const info = (await googleFetch("GET", `/spreadsheets/${spreadsheetId}?fields=${SPREADSHEET_FIELDS}`, token)) as SpreadsheetInfo;
-
-  let ids = readSheetIds(info);
-
-  // planilha de uma versão antiga pode não ter todas as abas de hoje
-  const faltando = missingTabsCall(ids);
-  if (faltando) {
-    await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, faltando);
-    ids = readSheetIds(
-      (await googleFetch("GET", `/spreadsheets/${spreadsheetId}?fields=sheets.properties(sheetId,title)`, token)) as SpreadsheetInfo,
-    );
-  }
-
-  await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, upgradeLayoutCall(info, ids, versaoAnterior));
-  await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchUpdate`, token, staticValuesCall());
-  await googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, chartsCall(ids));
-}
-
-async function etapa<T>(nome: string, fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (err) {
-    throw new Error(`[${nome}] ${err instanceof Error ? err.message : String(err)}`);
-  }
-}
-
-async function createWorkbook(token: string, email: string): Promise<{ spreadsheetId: string; spreadsheetUrl: string; ids: Record<string, number> }> {
-  const created = (await googleFetch("POST", "/spreadsheets", token, createWorkbookBody(email))) as SpreadsheetInfo & { spreadsheetId: string };
-  const ids = readSheetIds(created);
-
-  // Layout: banner, kpi, formatos, proteção, ajuda
-  await etapa("layout", () => googleFetch("POST", `/spreadsheets/${created.spreadsheetId}:batchUpdate`, token, layoutCall(ids)));
-
-  // Conteúdo estático: cabeçalhos, banner, ajuda
-  await etapa("conteúdo", () => googleFetch("POST", `/spreadsheets/${created.spreadsheetId}/values:batchUpdate`, token, staticValuesCall()));
-
-  // Gráficos
-  await etapa("gráficos", () => googleFetch("POST", `/spreadsheets/${created.spreadsheetId}:batchUpdate`, token, chartsCall(ids)));
-
-  return {
-    spreadsheetId: created.spreadsheetId,
-    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${created.spreadsheetId}`,
-    ids,
-  };
-}
-
-async function pushData(token: string, spreadsheetId: string, input: SyncInput): Promise<void> {
-  const { clear, update, linhas } = pushDataCalls(input);
-  // Acima de ~1.009 lançamentos a grade da aba acaba e o batchUpdate é recusado
-  // INTEIRO. Só nesse caso busca o tamanho real (com os ids de proteção e zebra,
-  // que crescem junto) e cresce o que falta, já formatado.
-  if (precisaCrescer(linhas)) {
-    const info = (await googleFetch("GET", `/spreadsheets/${spreadsheetId}?fields=${SPREADSHEET_FIELDS}`, token)) as SpreadsheetInfo;
-    const grow = growGridCall(info, linhas);
-    if (grow) await etapa("grade", () => googleFetch("POST", `/spreadsheets/${spreadsheetId}:batchUpdate`, token, grow));
-  }
-  if (clear) await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchClear`, token, clear);
-  if (update) await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchUpdate`, token, update);
 }
 
 interface Props {
@@ -163,8 +89,12 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   // Renda esperada e fase dos bolsos (aba Bolsos da planilha) vêm do contexto,
   // não de prop: o cartão da Conta não precisa saber que a planilha as usa.
   const { settings } = useVirada();
-  const tokenClientRef = useRef<{ requestAccessToken: () => void } | null>(null);
+  const tokenClientRef = useRef<{ requestAccessToken: PedidoDeToken } | null>(null);
   const oauthPopupTimeoutRef = useRef<number | null>(null);
+  // A renovação silenciosa (prompt vazio) pode ser recusada pelo Google quando o
+  // consentimento precisa ser mostrado de novo. Esta marca diz se o pedido que
+  // falhou era o silencioso — só nesse caso vale reabrir com consentimento.
+  const pedidoSilenciosoRef = useRef(false);
   const [syncing, setSyncing] = useState(false);
   const [meta, setMeta] = useState<SheetMeta | null>(null);
   const [upgrading, setUpgrading] = useState(false);
@@ -173,6 +103,14 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   const [status, setStatus] = useState<"idle" | "ok" | "err">("idle");
   const [errMsg, setErrMsg] = useState("");
   const [gisLoaded, setGisLoaded] = useState(false);
+
+  // O nome da variável de ambiente só existe aqui, onde só quem mantém o app
+  // olha. Na tela, o comprador vê um caminho pra resolver.
+  useEffect(() => {
+    if (!clientId) {
+      console.error("[GoogleSync] NEXT_PUBLIC_GOOGLE_CLIENT_ID não foi definido no build. Sem ele a planilha não conecta.");
+    }
+  }, [clientId]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !clientId) return;
@@ -189,16 +127,24 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     document.head.appendChild(s);
   }, [clientId]);
 
+  // Estado inicial: meta da planilha e token do aparelho. Token vencido é
+  // APAGADO aqui — deixá-lo ali fazia o mesmo erro genérico se repetir por até
+  // 55 minutos, sem ninguém entender que bastava religar.
   useEffect(() => {
-    try {
-      const savedMeta = localStorage.getItem(SHEET_KEY);
-      const savedToken = localStorage.getItem(STORAGE_KEY);
-      if (savedMeta) setMeta(JSON.parse(savedMeta) as SheetMeta);
-      if (savedToken) {
-        const t = JSON.parse(savedToken) as Token;
-        if (t.expires_at > Date.now()) setToken(t);
-      }
-    } catch { /* ignore */ }
+    setMeta(lerMeta());
+    const salvo = lerToken();
+    if (tokenValido(salvo, Date.now())) setToken(salvo);
+    else if (salvo) limparToken();
+  }, []);
+
+  // O automático também grava a meta (hora do último envio). Sem ouvir isso, o
+  // cartão ficaria dizendo "Atualizada há 3 h" com a planilha recém-atualizada.
+  useEffect(() => {
+    function reler() {
+      setMeta(lerMeta());
+    }
+    window.addEventListener(META_EVENT, reler);
+    return () => window.removeEventListener(META_EVENT, reler);
   }, []);
 
   const doSync = useCallback(async (accessToken: string) => {
@@ -207,67 +153,107 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     setErrMsg("");
     setErrDetail("");
     try {
-      let sheetId = meta?.spreadsheetId;
-      let sheetUrl = meta?.spreadsheetUrl;
-      if (!sheetId) {
-        const created = await createWorkbook(accessToken, userEmail);
-        sheetId = created.spreadsheetId;
-        sheetUrl = created.spreadsheetUrl;
-      } else if (meta?.layoutVersion !== LAYOUT_VERSION) {
-        // planilha antiga: traz o visual novo antes de mandar os dados
-        setUpgrading(true);
-        await upgradeLayout(accessToken, sheetId, meta?.layoutVersion);
-        setUpgrading(false);
-      }
-      await pushData(accessToken, sheetId, { expenses, incomes, debts, goals, settings });
-      const newMeta: SheetMeta = {
-        spreadsheetId: sheetId,
-        spreadsheetUrl: sheetUrl ?? `https://docs.google.com/spreadsheets/d/${sheetId}`,
-        lastSync: new Date().toISOString(),
-        layoutVersion: LAYOUT_VERSION,
-      };
-      localStorage.setItem(SHEET_KEY, JSON.stringify(newMeta));
-      window.dispatchEvent(new Event("virada-sheet-meta-changed"));
-      setMeta(newMeta);
+      const novo = await sincronizar({
+        token: accessToken,
+        meta: lerMeta(), // sempre o mais recente: o automático pode ter gravado no meio
+        dados: { expenses, incomes, debts, goals, settings },
+        email: userEmail,
+        aoAtualizarLayout: setUpgrading,
+      });
+      gravarMeta(novo);
+      setMeta(novo);
       setStatus("ok");
     } catch (err) {
       console.error("[GoogleSync] falha ao sincronizar:", err);
       setUpgrading(false);
-      setErrMsg("Não deu para atualizar a planilha agora. Tente de novo em alguns segundos.");
+      if (ehErroDeAutorizacao(err)) {
+        // Token morto/revogado: apagar é o que destrava — senão a pessoa clica,
+        // clica, e leva o mesmo erro até o token "vencer" sozinho.
+        limparToken();
+        setToken(null);
+        setErrMsg("O Google desligou a conexão por segurança. Toque para religar.");
+      } else {
+        setErrMsg("Não deu para atualizar a planilha agora. Tente de novo em alguns segundos.");
+      }
       setErrDetail(err instanceof Error ? err.message : String(err));
       setStatus("err");
     }
     setSyncing(false);
-  }, [meta, expenses, incomes, debts, goals, settings, userEmail]);
+  }, [expenses, incomes, debts, goals, settings, userEmail]);
+
+  // O token client é criado UMA vez (o script do Google não gosta de ser
+  // reinicializado a cada tecla digitada no app). Como o callback precisa dos
+  // dados mais novos e da função de pedir token, ele os alcança por referência.
+  const doSyncRef = useRef(doSync);
+  doSyncRef.current = doSync;
+
+  const pedirToken = useCallback((silencioso: boolean) => {
+    if (!tokenClientRef.current) return;
+    pedidoSilenciosoRef.current = silencioso;
+    if (oauthPopupTimeoutRef.current !== null) window.clearTimeout(oauthPopupTimeoutRef.current);
+    // Em alguns navegadores o popup OAuth pode ser bloqueado sem callback
+    // nenhum. Este tempo limite evita botão travado em "criando".
+    oauthPopupTimeoutRef.current = window.setTimeout(() => {
+      oauthPopupTimeoutRef.current = null;
+      setSyncing(false);
+      setStatus("err");
+      setErrMsg("Não consegui abrir a janela do Google. Libere popups para este site e tente de novo.");
+    }, 12000);
+    // prompt vazio = renovar sem incomodar quem já autorizou antes; o Google só
+    // mostra tela se realmente precisar (e aí caímos no consentimento normal).
+    tokenClientRef.current.requestAccessToken(silencioso ? { prompt: "" } : { prompt: "consent" });
+  }, []);
+
+  const pedirTokenRef = useRef(pedirToken);
+  pedirTokenRef.current = pedirToken;
 
   useEffect(() => {
     const init = getInitTokenClient();
     if (!gisLoaded || !init || !clientId) return;
+
+    function falhou(motivo: string) {
+      if (oauthPopupTimeoutRef.current !== null) {
+        window.clearTimeout(oauthPopupTimeoutRef.current);
+        oauthPopupTimeoutRef.current = null;
+      }
+      console.error("[GoogleSync] OAuth:", motivo);
+      // Se o que falhou foi a renovação em silêncio, ainda há uma carta na
+      // manga: abrir o consentimento de verdade.
+      if (pedidoSilenciosoRef.current) {
+        pedidoSilenciosoRef.current = false;
+        setTimeout(() => pedirTokenRef.current(false), 0);
+        return;
+      }
+      setErrMsg("Não deu para entrar com o Google agora. Tente de novo em alguns segundos.");
+      setStatus("err");
+      setSyncing(false);
+    }
+
     tokenClientRef.current = init({
       client_id: clientId,
       scope: SCOPES,
       callback: async (resp) => {
+        if (resp.error || !resp.access_token) {
+          falhou(resp.error_description ?? resp.error ?? "sem token");
+          return;
+        }
         if (oauthPopupTimeoutRef.current !== null) {
           window.clearTimeout(oauthPopupTimeoutRef.current);
           oauthPopupTimeoutRef.current = null;
         }
-        if (resp.error || !resp.access_token) {
-          console.error("[GoogleSync] OAuth:", resp.error);
-          setErrMsg("Não deu para entrar com o Google agora. Tente de novo em alguns segundos.");
-          setStatus("err");
-          setSyncing(false);
-          return;
-        }
-        const newToken: Token = {
+        pedidoSilenciosoRef.current = false;
+        const novo: Token = {
           access_token: resp.access_token,
-          expires_at: Date.now() + 55 * 60 * 1000,
+          expires_at: Date.now() + ((resp.expires_in ?? VIDA_PADRAO_S) * 1000 - FOLGA_TOKEN_MS),
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newToken));
-        setToken(newToken);
-        await doSync(newToken.access_token);
+        gravarToken(novo);
+        setToken(novo);
+        await doSyncRef.current(novo.access_token);
       },
+      // Popup fechado na cara, bloqueado pelo navegador etc.
+      error_callback: (err) => falhou(err.type ?? err.message ?? "popup"),
     });
-  }, [gisLoaded, clientId, doSync]);
+  }, [gisLoaded, clientId]);
 
   function handleConnect() {
     if (!tokenClientRef.current) {
@@ -291,40 +277,42 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     }
 
     setSyncing(true);
-    if (token && token.expires_at > Date.now()) void doSync(token.access_token);
-    else {
-      // Em alguns navegadores o popup OAuth pode ser bloqueado sem callback.
-      // Este timeout evita botão travado em estado "criando".
-      if (oauthPopupTimeoutRef.current !== null) {
-        window.clearTimeout(oauthPopupTimeoutRef.current);
-      }
-      oauthPopupTimeoutRef.current = window.setTimeout(() => {
-        oauthPopupTimeoutRef.current = null;
-        setSyncing(false);
-        setStatus("err");
-        setErrMsg("Não consegui abrir a janela do Google. Libere popups para este site e tente de novo.");
-      }, 12000);
-
-      tokenClientRef.current.requestAccessToken();
+    if (tokenValido(token, Date.now())) {
+      void doSync(token.access_token);
+      return;
     }
+    // Sem token válido. Se já existe planilha, essa pessoa já autorizou um dia:
+    // tenta renovar em silêncio antes de jogar um consentimento na cara dela.
+    pedirToken(Boolean(meta));
   }
 
   function handleDisconnect() {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(SHEET_KEY);
-    window.dispatchEvent(new Event("virada-sheet-meta-changed"));
+    limparToken();
+    limparMeta();
     setToken(null);
     setMeta(null);
     setStatus("idle");
   }
 
+  // Falta configuração do nosso lado. Quem está na tela pagou e não tem nada a
+  // ver com isso: o detalhe técnico vai pro console (mesmo padrão do AuthGate) e
+  // aqui fica só o caminho pra resolver.
   if (!clientId) {
     return (
       <div className="rounded-xl border border-amber-300 bg-white px-4 py-3">
-        <p className="text-sm font-bold text-amber-800">Google Planilhas indisponível neste ambiente</p>
-        <p className="mt-1 text-xs text-ink-500">
-          Falta configurar <code className="rounded bg-ink-100 px-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> no .env.local.
+        <p className="text-sm font-bold text-ink-900">A planilha está indisponível agora.</p>
+        <p className="mt-1 text-[13px] leading-[1.45] text-ink-700">
+          É aqui do nosso lado, não é com a sua compra — seus lançamentos continuam salvos neste aparelho. Chama a gente no
+          WhatsApp que a gente resolve.
         </p>
+        <a
+          href={WHATSAPP_SUPORTE}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-green-700/40 bg-green-50 px-4 py-2.5 text-sm font-semibold text-green-700 transition-colors duration-150 hover:bg-green-100"
+        >
+          Falar no WhatsApp
+        </a>
       </div>
     );
   }
@@ -335,9 +323,18 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
         <>
           <h3 className="text-lg font-bold text-ink-900">Conectar sua planilha</h3>
           <p className="text-sm leading-[1.5] text-ink-600">
-            Seus lançamentos, dívidas e metas vão para uma planilha completa no seu Google Drive. Só este app acessa, e só o
-            que ele criou.
+            Seus lançamentos, dívidas e metas vão para uma planilha completa no seu Google Drive.
           </p>
+          {/* A segunda tela (a do Google, pedindo permissão) assusta quem acabou
+              de pagar e some com o clique. Dizer o que vai acontecer ANTES evita
+              a desistência — e é a verdade: o escopo pedido é só drive.file. */}
+          <div className="rounded-xl border border-amber-200 bg-white px-3.5 py-3 text-[13px] leading-[1.5] text-ink-700">
+            <p className="font-semibold text-ink-900">O Google vai pedir sua permissão. É normal.</p>
+            <p className="mt-1">
+              A planilha nasce na sua conta do Google e é sua. O app só enxerga a planilha que ele mesmo cria — nenhum outro
+              arquivo do seu Drive.
+            </p>
+          </div>
           <button
             type="button"
             onClick={handleConnect}

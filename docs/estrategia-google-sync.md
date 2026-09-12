@@ -47,11 +47,21 @@ RESULTADO: Planilha criada automaticamente no Google Drive do usuário
    - Token é salvo no localStorage
    - Quando expira, pede novo com 1 clique
 
-### Escopos solicitados (mínimos, não assustam o usuário)
+### Escopos solicitados
+
+> ⚠️ **HISTÓRICO — escrito antes de 12/09/2026.** O bloco de escopos abaixo descreve o que o
+> app pedia ANTES e **não vale mais**. Em 12/09/2026 (CLAUDE.md, decisão #13) o app passou a
+> pedir **um único** escopo, `https://www.googleapis.com/auth/drive.file` — a fonte da verdade
+> é a constante `SCOPES` em `lib/sheets/sync-runner.ts`, e `scripts/test-textos-verdadeiros.ts`
+> quebra se algum texto discordar dela. O escopo largo `.../auth/spreadsheets` (ler e escrever
+> TODAS as planilhas da conta) foi abandonado por dois motivos: o app nunca precisou dele (toda
+> planilha nasce do próprio app) e ele é escopo **sensível**, que exige verificação do Google e
+> aparece pra quem acabou de pagar como "ver, editar e apagar todas as suas planilhas".
 
 ```javascript
+// HISTÓRICO (até 12/09/2026) — hoje é só drive.file:
 scopes: [
-  'https://www.googleapis.com/auth/spreadsheets',     // criar/editar planilhas
+  'https://www.googleapis.com/auth/spreadsheets',     // ABANDONADO: escopo largo/sensível
   'https://www.googleapis.com/auth/drive.file',        // só arquivos criados pelo app
 ]
 ```

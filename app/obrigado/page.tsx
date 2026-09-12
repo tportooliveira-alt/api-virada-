@@ -10,6 +10,11 @@ import { BookOpen, CalendarCheck, CheckCircle2, HandCoins, ListChecks, MessageCi
  * fora, acha que foi golpe e pede reembolso. Essa tela avisa antes de acontecer.
  *
  * Fica fora de /app de propósito: quem chega aqui ainda não passou pelo login.
+ * E, pra valer mesmo, a rota está em ROTAS_PUBLICAS (components/AuthGate.tsx):
+ * o AuthGate embrulha o app inteiro pelo layout, então sem essa exceção esta
+ * página nasceria atrás da tela de login — parede na cara de quem acabou de
+ * pagar. Se mudar o caminho desta página, mude a lista lá junto
+ * (scripts/test-authgate.ts cobra).
  */
 export const metadata: Metadata = {
   title: "Compra confirmada — Código da Virada",

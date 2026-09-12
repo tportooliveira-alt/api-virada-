@@ -7,8 +7,23 @@ import { GoogleSyncButton } from "@/components/GoogleSyncButton";
 import { getLocalUser, logOut } from "@/components/AuthGate";
 import { Sheet, SheetAction } from "@/components/ui/Sheet";
 import { BUDGET_PHASES } from "@/lib/constants";
-import { budgetPhaseOf, formatCurrency, sugerirFaseVirada } from "@/lib/utils";
+import { budgetPhaseOf, formatCurrency, sugerirFaseVirada, timeAgo } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
+
+// Estado da sincronização automática em português de gente. "Desligado" não é
+// defeito: quase sempre é só a autorização do Google que venceu, e o caminho é
+// o botão logo acima.
+function textoAutoSync({ estado, ultimoEnvio }: { estado: string; ultimoEnvio: string | null }) {
+  if (estado === "sincronizando") return "Salvando na sua planilha…";
+  if (estado === "em dia") {
+    return ultimoEnvio
+      ? `Atualiza sozinha. Último envio ${timeAgo(ultimoEnvio)}.`
+      : "Atualiza sozinha alguns segundos depois de cada mudança.";
+  }
+  return ultimoEnvio
+    ? `Atualização automática parada. Último envio ${timeAgo(ultimoEnvio)} — toque em Atualizar agora para religar.`
+    : "Atualização automática parada. Toque em Atualizar agora para religar.";
+}
 
 export default function ContaPage() {
   const data = useVirada();
@@ -176,6 +191,11 @@ export default function ContaPage() {
             goals={data.goals}
             userEmail={user?.email ?? "usuario"}
           />
+          {/* Sem isto, a pessoa não tem como saber que a planilha anda sozinha —
+              e fica apertando "Atualizar agora" achando que precisa. */}
+          {data.sheet.sheetUrl && (
+            <p className="text-[13px] leading-[1.45] text-amber-800">{textoAutoSync(data.autoSync)}</p>
+          )}
         </section>
 
         {/* Zona de perigo */}
@@ -197,9 +217,13 @@ export default function ContaPage() {
       </div>
 
       <Sheet open={askReset} onClose={() => setAskReset(false)} title="Apagar tudo deste celular?">
+        {/* Promessa que o código cumpre (ver PulaUmaRodada no provider e
+            apagariaAPlanilha no motor): apagar aqui não manda nada pra planilha.
+            A segunda frase é a parte honesta — a planilha espelha este aparelho,
+            então quando a pessoa voltar a lançar ela passa a mostrar o que é novo. */}
         <p className="-mt-2 text-sm leading-[1.5] text-ink-600">
           {data.sheet.sheetUrl
-            ? "Sua planilha Google continua intacta. Só os dados guardados neste aparelho serão removidos."
+            ? "Sua planilha Google não é apagada: ela continua com tudo o que já foi enviado. Some só o que está guardado neste aparelho — e, se você voltar a lançar aqui, a planilha passa a mostrar os lançamentos novos."
             : "Você ainda não conectou a planilha Google — sem ela, não há como recuperar esses dados depois."}
         </p>
         <div className="grid grid-cols-2 gap-2.5">

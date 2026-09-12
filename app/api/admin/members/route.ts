@@ -1,20 +1,16 @@
 /**
  * GET /api/admin/members — lista todos os membros (somente ADMIN_EMAILS).
- * Auth: header `x-admin-email` deve estar em process.env.ADMIN_EMAILS (csv).
+ * Auth: cookie de sessão admin assinado (ver app/api/admin/guard.ts).
  */
 import { NextResponse } from "next/server";
 import { listMembers } from "@/lib/access/members";
-
-function isAdmin(email: string | null): boolean {
-  if (!email) return false;
-  const list = (process.env.ADMIN_EMAILS || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
-  return list.includes(email.trim().toLowerCase());
-}
+import { authenticateAdmin } from "../guard";
 
 export async function GET(request: Request) {
-  const headerEmail = request.headers.get("x-admin-email");
-  if (!isAdmin(headerEmail)) {
-    return NextResponse.json({ message: "nao autorizado" }, { status: 401 });
+  const auth = authenticateAdmin(request);
+  if (!auth.email) {
+    // 503 = falta configurar o servidor; 401 = a pessoa resolve entrando de novo.
+    return NextResponse.json({ message: auth.message ?? "Não autorizado." }, { status: auth.status ?? 401 });
   }
   const members = listMembers();
   const summary = {
@@ -27,5 +23,8 @@ export async function GET(request: Request) {
       return acc;
     }, {} as Record<string, number>),
   };
-  return NextResponse.json({ summary, members });
+  // `aviso` só vem preenchido quando a porta abriu sem segredo de administrador
+  // (só acontece fora de produção). O painel mostra em tela pra ninguém achar
+  // que o servidor de verdade está assim.
+  return NextResponse.json({ summary, members, aviso: auth.warning ?? null });
 }

@@ -5,9 +5,13 @@
  *
  * Fluxo:
  *  1) Usuário toca "Entrar com Google"
- *  2) Tenta ID token (Google One Tap/FedCM)
- *  3) Se FedCM falhar no navegador, cai automaticamente no popup OAuth
- *  4) /api/access/check valida e diz se o email é comprador (lista de compradores)
+ *  2) Abre o popup OAuth na hora do clique (popup fora do gesto do usuário é
+ *     bloqueado por Safari e Chrome — foi por isso que o One Tap saiu daqui)
+ *  3) /api/access/check valida e diz se o email é comprador (lista de compradores)
+ *
+ * A lógica que dá pra provar sem navegador mora nas funções exportadas no topo
+ * (isRotaPublica, criarTentativaDeLogin, promptDoLogin) e é testada por
+ * scripts/test-authgate.ts. O resto é React puro.
  */
 
 import { PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
@@ -49,6 +53,9 @@ declare global {
 
 const STORAGE_KEY = "virada_access_v2";
 
+/** Mesmo número que aparece em /obrigado — o comprador já viu esse contato. */
+const WHATSAPP_SUPORTE = "https://wa.me/5577999872390";
+
 interface AccessRecord {
   email: string;
   sub: string;
@@ -84,6 +91,132 @@ export function getLocalUser(): AccessRecord | null {
   return loadAccess();
 }
 
+// ─── Regras que dá pra provar sem navegador (scripts/test-authgate.ts) ──────
+
+/**
+ * Páginas que precisam abrir SEM login.
+ *
+ * /obrigado é a mais importante: é pra lá que a Kiwify manda quem acabou de
+ * pagar, e é lá que está o aviso "entre com o MESMO e-mail da compra". Se ela
+ * nascer atrás da tela de login, o comprador bate numa parede logo depois de
+ * pagar — que é exatamente a hora em que ele mais desconfia.
+ *
+ * "/" e "/vendas" só chegam aqui por teimosia: o next.config.mjs reescreve as
+ * duas pra public/vendas.html, que é arquivo estático e nem passa pelo React.
+ * Ficam na lista porque custam nada e evitam que uma mudança de rewrite derrube
+ * a landing.
+ */
+export const ROTAS_PUBLICAS = ["/", "/vendas", "/obrigado"] as const;
+
+/**
+ * As páginas .html soltas em `public/` — servidas como arquivo estático, nunca
+ * renderizadas por este componente. Estão aqui pra que a resposta desta função
+ * case com a realidade de quem clica no link.
+ *
+ * A lista é EXPLÍCITA de propósito. Antes bastava terminar em ".html"
+ * (`rota.endsWith(".html")`) e qualquer caminho passava — inclusive
+ * "/app/inicio.html" e "/admin/membros.html". Hoje nenhuma rota do app termina
+ * assim, então nada vazava; mas era uma porta aberta esperando alguém criar o
+ * arquivo errado. `scripts/test-authgate.ts` compara esta lista com o conteúdo
+ * real de `public/`: pôr um .html novo lá quebra o teste e obriga a decidir se
+ * ele é público mesmo.
+ */
+export const ARQUIVOS_PUBLICOS = [
+  "/vendas.html",
+  "/politica-privacidade.html",
+  "/termos-de-uso.html",
+  "/planilha-preview.html",
+] as const;
+
+export function isRotaPublica(pathname: string | null | undefined): boolean {
+  if (!pathname) return false; // sem saber onde estamos, protege
+  // tira barra do fim e normaliza caixa: link digitado à mão vale igual
+  const rota = (pathname.replace(/\/+$/, "") || "/").toLowerCase();
+  if (ROTAS_PUBLICAS.includes(rota as (typeof ROTAS_PUBLICAS)[number])) return true;
+  return ARQUIVOS_PUBLICOS.includes(rota as (typeof ARQUIVOS_PUBLICOS)[number]);
+}
+
+/** Mensagens que o comprador lê. Exportadas pro teste conferir qual apareceu. */
+export const MSG_DEMORA =
+  "A janela do Google está demorando. Se ela não abriu, o navegador pode ter bloqueado: libere as janelas pop-up para este site e toque de novo. Se ela abriu, é só terminar por lá que a gente entra sozinho.";
+export const MSG_LOGIN_FALHOU =
+  "Não deu para entrar com o Google agora. Toque em entrar de novo em alguns segundos.";
+export const MSG_SEM_GOOGLE =
+  "Não consegui abrir o login do Google neste navegador. Tente abrir o app no Chrome ou no Safari.";
+
+export interface RespostaOAuth {
+  access_token?: string;
+  error?: string;
+  error_description?: string;
+}
+
+export interface TentativaDeLoginDeps {
+  setSubmitting: (v: boolean) => void;
+  setError: (msg: string) => void;
+  /** chamado uma única vez, quando o Google devolve um token bom */
+  onToken: (accessToken: string) => void;
+  /** timers injetados pra o teste rodar sem navegador */
+  agendar: (fn: () => void, ms: number) => number;
+  cancelar: (id: number) => void;
+  esperaMs?: number;
+}
+
+/**
+ * Uma tentativa de login pelo popup do Google.
+ *
+ * O cronômetro aqui serve pra UMA coisa só: destravar a interface se o Google
+ * demorar, porque botão travado em "carregando" parece app quebrado. Ele NÃO
+ * cancela a tentativa. Antes cancelava — e quem tem senha longa, verificação em
+ * duas etapas ou celular lento terminava o login no Google e o app jogava fora
+ * uma resposta legítima ("if (finished) return"). Agora a resposta que chega
+ * atrasada vale do mesmo jeito e o aviso de demora some sozinho.
+ *
+ * Devolve o callback que vai ser entregue ao initTokenClient do Google.
+ */
+export function criarTentativaDeLogin(deps: TentativaDeLoginDeps): (r: RespostaOAuth) => void {
+  const espera = deps.esperaMs ?? 12000;
+  let respondido = false; // o Google às vezes chama o callback mais de uma vez
+
+  const cronometro = deps.agendar(() => {
+    if (respondido) return;
+    deps.setSubmitting(false);
+    deps.setError(MSG_DEMORA);
+  }, espera);
+
+  return (resposta: RespostaOAuth) => {
+    if (respondido) return;
+    respondido = true;
+    deps.cancelar(cronometro);
+
+    if (resposta.error || !resposta.access_token) {
+      deps.setError(MSG_LOGIN_FALHOU);
+      deps.setSubmitting(false);
+      return;
+    }
+
+    deps.setError(""); // se o aviso de demora já tinha aparecido, apaga
+    deps.setSubmitting(true); // volta pro "carregando" enquanto confere a compra
+    deps.onToken(resposta.access_token);
+  };
+}
+
+/**
+ * Qual `prompt` mandar pro Google.
+ *
+ * NUNCA "consent": isso obrigava a tela de permissão a aparecer em TODO login,
+ * inclusive pra quem já tinha autorizado — e tela de permissão repetida, pra
+ * quem acabou de pagar, tem cara de golpe.
+ *  - "" → reaproveita a autorização que já existe; o Google só pergunta quando
+ *    realmente precisa.
+ *  - "select_account" → só quando a pessoa disse "entrei com a conta errada".
+ *    Sem isso ela ficaria presa na conta que o Google escolhe sozinho.
+ */
+export function promptDoLogin(trocandoDeConta: boolean): "" | "select_account" {
+  return trocandoDeConta ? "select_account" : "";
+}
+
+// ─── Componente ─────────────────────────────────────────────────────────────
+
 type Stage =
   | "loading"
   | "needs-login"
@@ -100,6 +233,9 @@ export function AuthGate({ children }: PropsWithChildren) {
   const [access, setAccess] = useState<AccessRecord | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Ligado só quando a pessoa disse "entrei com a conta errada" — aí o próximo
+  // login mostra o seletor de contas do Google (ver promptDoLogin).
+  const [trocandoDeConta, setTrocandoDeConta] = useState(false);
   const gisLoaded = useRef(false);
   const idInitialized = useRef(false);
 
@@ -158,40 +294,29 @@ export function AuthGate({ children }: PropsWithChildren) {
   }, [authenticate, clientId]);
 
 
-  const startOAuthPopupFallback = useCallback(() => {
+  const startOAuthPopupFallback = useCallback((trocarDeConta: boolean) => {
     const oauth2 = window.google?.accounts?.oauth2;
     if (!oauth2?.initTokenClient) {
-      setError("Não foi possível abrir o login Google neste navegador. Tente novamente ou abra em outro navegador.");
+      setError(MSG_SEM_GOOGLE);
       setSubmitting(false);
       return;
     }
 
     setSubmitting(true);
-    let finished = false;
-    const popupTimeout = window.setTimeout(() => {
-      if (finished) return;
-      finished = true;
-      setSubmitting(false);
-      setError("O popup do Google foi bloqueado ou não respondeu. Libere popups para este site e tente novamente.");
-    }, 12000);
 
     const tokenClient = oauth2.initTokenClient({
       client_id: clientId,
       scope: "openid email profile",
-      callback: (response) => {
-        if (finished) return;
-        finished = true;
-        window.clearTimeout(popupTimeout);
-        if (response.error || !response.access_token) {
-          setError("Não foi possível abrir o login Google neste navegador. Tente novamente ou abra em outro navegador.");
-          setSubmitting(false);
-          return;
-        }
-        void authenticate({ accessToken: response.access_token });
-      },
+      callback: criarTentativaDeLogin({
+        setSubmitting,
+        setError,
+        onToken: (accessToken) => void authenticate({ accessToken }),
+        agendar: (fn, ms) => window.setTimeout(fn, ms),
+        cancelar: (id) => window.clearTimeout(id),
+      }),
     });
 
-    tokenClient.requestAccessToken({ prompt: "consent" });
+    tokenClient.requestAccessToken({ prompt: promptDoLogin(trocarDeConta) });
   }, [authenticate, clientId]);
 
   // Dev bypass — só aparece em localhost quando não há Client ID configurado
@@ -209,7 +334,17 @@ export function AuthGate({ children }: PropsWithChildren) {
     setStage("ok");
   }
 
-  const isPublic = pathname === "/";
+  const isPublic = isRotaPublica(pathname);
+
+  // O detalhe técnico fica aqui, onde só quem mantém o app olha. Na tela, o
+  // comprador vê um caminho pra resolver — não o nome de uma variável.
+  useEffect(() => {
+    if (!isPublic && !clientId) {
+      console.error(
+        "[AuthGate] NEXT_PUBLIC_GOOGLE_CLIENT_ID não foi definido no build. Sem ele o login do Google não abre.",
+      );
+    }
+  }, [isPublic, clientId]);
 
   // Carrega Google Identity Services + revalida sessão
   useEffect(() => {
@@ -234,10 +369,13 @@ export function AuthGate({ children }: PropsWithChildren) {
       return;
     }
 
-    // Já logado: confia por enquanto, revalida em background
+    // Já logado: o app abre a partir do registro gravado no aparelho. Não há
+    // reconferência com o servidor aqui — é o que permite abrir sem internet, e
+    // é exatamente o que a política de privacidade descreve (item 9). Se um dia
+    // alguém acrescentar a reconferência, a política precisa mudar junto.
     setStage(stored.status === "ativo" ? "ok" : "not-member");
     loadGisScript();
-  }, [pathname, loadGisScript]);
+  }, [pathname, isPublic, loadGisScript]);
 
   if (isPublic) return <>{children}</>;
 
@@ -247,7 +385,12 @@ export function AuthGate({ children }: PropsWithChildren) {
     // caíamos no popup depois de um setTimeout — e popup que não nasce do gesto
     // do usuário é bloqueado pelo Safari e pelo Chrome. Era aí que o comprador
     // via "não consegui abrir a janela do Google" e desistia.
-    startOAuthPopupFallback();
+    //
+    // Este onClick NÃO pode receber parâmetro: o React passa o evento do clique
+    // como primeiro argumento, e um evento é sempre "verdadeiro". Por isso a
+    // troca de conta vem do estado, não de um argumento.
+    startOAuthPopupFallback(trocandoDeConta);
+    setTrocandoDeConta(false);
   }
 
   // ─── UIs ──────────────────────────────────────────────────────────────────
@@ -303,6 +446,7 @@ export function AuthGate({ children }: PropsWithChildren) {
             onSwitch={() => {
               clearAccess();
               setAccess(null);
+              setTrocandoDeConta(true);
               setStage("needs-login");
             }}
           />
@@ -337,10 +481,24 @@ function NeedsLogin({
         Use o mesmo e-mail que você usou na compra. É só apertar e pronto.
       </p>
 
+      {/* Falta configuração do lado do servidor. Quem está na tela pagou e não
+          tem nada a ver com isso: o detalhe técnico vai pro console (ver o
+          useEffect lá em cima) e aqui fica só o caminho pra resolver. */}
       {!clientId && (
-        <p className="mb-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-sm text-amber-700">
-          Login Google não configurado. Defina <code className="rounded bg-ink-100 px-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> no servidor.
-        </p>
+        <div className="mb-4 rounded-xl border border-amber-400/40 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-semibold text-ink-900">Estamos com um problema no login.</p>
+          <p className="mt-1 text-sm text-ink-700">
+            É aqui do nosso lado, não é com a sua compra. Chama a gente no WhatsApp que a gente libera seu acesso.
+          </p>
+          <a
+            href={WHATSAPP_SUPORTE}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex items-center justify-center rounded-xl border border-green-700/40 bg-green-50 px-4 py-2.5 text-sm font-semibold text-green-700 transition hover:bg-green-100"
+          >
+            Falar no WhatsApp
+          </a>
+        </div>
       )}
 
       <button

@@ -109,3 +109,46 @@ function rowToMember(row: MemberRow): Member {
     cancelled_at: row.cancelled_at,
   };
 }
+
+/**
+ * Últimos avisos de venda recebidos (tabela webhook_log).
+ *
+ * Existe porque um webhook recusado hoje responde 200 e some: a venda não vira
+ * acesso e o dono só descobre quando o cliente reclama. O painel lê isto.
+ */
+export interface WebhookLogEntry {
+  id: number;
+  platform: string;
+  event: string | null;
+  email: string | null;
+  ok: boolean;
+  message: string | null;
+  received_at: string;
+}
+
+interface WebhookLogRow {
+  id: number;
+  platform: string;
+  event: string | null;
+  email: string | null;
+  ok: number;
+  message: string | null;
+  received_at: string;
+}
+
+export function listWebhookLog(limit = 100): WebhookLogEntry[] {
+  // Teto no limite: o painel é uma tela de celular, não um dump do banco.
+  const take = Math.min(Math.max(Math.trunc(limit) || 0, 1), 500);
+  const rows = db()
+    .prepare("SELECT * FROM webhook_log ORDER BY id DESC LIMIT ?")
+    .all(take) as WebhookLogRow[];
+  return rows.map((row) => ({
+    id: row.id,
+    platform: row.platform,
+    event: row.event,
+    email: row.email,
+    ok: row.ok === 1,
+    message: row.message,
+    received_at: row.received_at,
+  }));
+}

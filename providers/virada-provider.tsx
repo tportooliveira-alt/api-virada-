@@ -33,6 +33,20 @@ import { debtPaid, findDebtPayment, isEstornado, isOpenDebt } from "@/lib/types"
 import { addMonths, createId, roundMoney, storageKey, toInputDate } from "@/lib/utils";
 import { missions } from "@/lib/constants";
 import { loadData, saveData, clearData } from "@/lib/db/virada-store";
+// O motor da planilha vive fora do React (lib/sheets/sync-runner): o mesmo que o
+// botão da tela Conta usa. Aqui ele é ligado no automático.
+import {
+  AutoSync,
+  META_EVENT,
+  gravarMeta,
+  lerMeta,
+  lerToken,
+  limparToken,
+  sincronizar,
+  tokenValido,
+  type AutoSyncAviso,
+} from "@/lib/sheets/sync-runner";
+import type { SyncInput } from "@/lib/sheets/builder";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -72,6 +86,8 @@ interface ViradaContextValue extends ViradaData {
   // Compatibilidade com GoogleSyncButton e planilha
   user: { id: string; email: string; fullName: string | null } | null;
   sheet: { sheetUrl: string | null; lastSync: string | null };
+  /** Como está a sincronização automática da planilha (pra tela Conta mostrar). */
+  autoSync: AutoSyncAviso;
 }
 
 // ─── Estado inicial ───────────────────────────────────────────────────────────
@@ -85,29 +101,17 @@ const initialData: ViradaData = {
 };
 
 const accountKey = "virada-account-v1";
-const sheetMetaKey = "virada_sheet_meta";
 
 interface LocalAccount {
   name?: string;
   email?: string;
 }
 
-interface LocalSheetMeta {
-  spreadsheetUrl?: string;
-  lastSync?: string;
-}
-
 const noSheet = { sheetUrl: null, lastSync: null };
 
 function readSheetMeta(): { sheetUrl: string | null; lastSync: string | null } {
-  try {
-    const raw = localStorage.getItem(sheetMetaKey);
-    if (!raw) return noSheet;
-    const meta = JSON.parse(raw) as LocalSheetMeta;
-    return { sheetUrl: meta.spreadsheetUrl ?? null, lastSync: meta.lastSync ?? null };
-  } catch {
-    return noSheet;
-  }
+  const meta = lerMeta();
+  return meta ? { sheetUrl: meta.spreadsheetUrl, lastSync: meta.lastSync } : noSheet;
 }
 
 function newId(prefix: string) {
@@ -364,6 +368,75 @@ export function parseLegacy(raw: string | null): ViradaData | null {
 
 const ViradaContext = createContext<ViradaContextValue | null>(null);
 
+// ─── "Pule esta rodada": o carregamento e o "apagar tudo" ─────────────────────
+
+/**
+ * Marca de "não reaja a esta mudança de estado".
+ *
+ * Duas coisas escutam `data`: avisar o motor da planilha e gravar no IndexedDB.
+ * Nas duas vezes em que o estado muda sem a pessoa ter mexido em nada — quando
+ * o app acaba de CARREGAR o que já estava salvo, e quando ela manda APAGAR TUDO
+ * deste aparelho — nenhuma das duas deve acontecer.
+ *
+ * Até 12/09/2026 a marca era um booleano cru que só o efeito de gravar
+ * consultava (e zerava). O efeito que avisa o motor não olhava: o "apagar tudo"
+ * avisava o motor do estado vazio, ele esperava os 4 s de silêncio e limpava a
+ * planilha do cliente — o contrário do que a própria janela de confirmação
+ * promete. Daí os dois verbos: quem roda ANTES só `espiar()`; quem roda DEPOIS
+ * (o último da fila, o que grava) é que `consumir()`.
+ */
+export class PulaUmaRodada {
+  private ligada = false;
+
+  marcar(): void {
+    this.ligada = true;
+  }
+
+  /** Olha sem apagar — pra quem roda antes. */
+  espiar(): boolean {
+    return this.ligada;
+  }
+
+  /** Olha e apaga — a marca vale por UMA rodada só. */
+  consumir(): boolean {
+    const valia = this.ligada;
+    this.ligada = false;
+    return valia;
+  }
+}
+
+/**
+ * O corpo do efeito que avisa o motor da planilha. Função pura de propósito:
+ * é assim que scripts/test-auto-sync.ts prova, sem navegador, que o "apagar
+ * tudo" não chega na planilha. Devolve `true` quando avisou.
+ */
+export function avisarMotorDaPlanilha(
+  marca: PulaUmaRodada,
+  isReady: boolean,
+  motor: { mudou(dados: SyncInput): void } | null,
+  dados: SyncInput,
+): boolean {
+  if (!isReady || marca.espiar()) return false;
+  motor?.mudou(dados);
+  return true;
+}
+
+/** O corpo do efeito que grava no IndexedDB — o último da fila, por isso consome. */
+export function devoGravar(marca: PulaUmaRodada, isReady: boolean): boolean {
+  const pular = marca.consumir();
+  return isReady && !pular;
+}
+
+/**
+ * "Apagar todos os dados deste celular": marca a rodada como "não reaja" e manda
+ * o motor esquecer o que já estava esperando pra ir (senão um envio agendado
+ * dispararia depois do reset, com o estado vazio).
+ */
+export function aoApagarTudo(marca: PulaUmaRodada, motor: { esquecer(): void } | null): void {
+  marca.marcar();
+  motor?.esquecer();
+}
+
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function ViradaProvider({ children }: PropsWithChildren) {
@@ -372,7 +445,13 @@ export function ViradaProvider({ children }: PropsWithChildren) {
   const [sheet, setSheet] = useState<ViradaContextValue["sheet"]>(noSheet);
   const [isReady, setIsReady] = useState(false);
   const [saveError, setSaveError] = useState(false);
-  const skipSave = useRef(false);
+  const [autoSync, setAutoSync] = useState<AutoSyncAviso>({ estado: "desligado", ultimoEnvio: null });
+  const skipSave = useRef(new PulaUmaRodada());
+  const autoRef = useRef<AutoSync | null>(null);
+  // O e-mail só entra no título de uma planilha NOVA, e o automático nunca cria
+  // planilha; fica por referência pra não recriar o motor quando o perfil chega.
+  const emailRef = useRef("");
+  emailRef.current = profile?.email ?? "";
 
   // Carregar na montagem: IndexedDB é a fonte da verdade dos dados financeiros,
   // com migração única do localStorage antigo (que fica intacto como backup).
@@ -434,7 +513,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
       }
 
       if (!cancelled && loaded) {
-        skipSave.current = true; // não regravar logo após carregar
+        skipSave.current.marcar(); // não regravar logo após carregar
         setData(loaded);
       }
       if (!cancelled) setIsReady(true);
@@ -447,24 +526,85 @@ export function ViradaProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     function refreshSheetUrl() {
-      setSheet(readSheetMeta());
+      const meta = lerMeta();
+      setSheet(meta ? { sheetUrl: meta.spreadsheetUrl, lastSync: meta.lastSync } : noSheet);
+      // O botão da Conta também sincroniza: a hora que ele carimbou é a mesma
+      // que o aviso do automático mostra.
+      setAutoSync((prev) => (prev.ultimoEnvio === (meta?.lastSync ?? null) ? prev : { ...prev, ultimoEnvio: meta?.lastSync ?? null }));
     }
 
     function handleStorage(event: StorageEvent) {
-      if (event.key === sheetMetaKey) refreshSheetUrl();
+      if (event.key === "virada_sheet_meta") refreshSheetUrl();
     }
 
     window.addEventListener("storage", handleStorage);
-    window.addEventListener("virada-sheet-meta-changed", refreshSheetUrl);
+    window.addEventListener(META_EVENT, refreshSheetUrl);
     return () => {
       window.removeEventListener("storage", handleStorage);
-      window.removeEventListener("virada-sheet-meta-changed", refreshSheetUrl);
+      window.removeEventListener(META_EVENT, refreshSheetUrl);
     };
   }, []);
 
+  // ── Planilha plugada: a sincronização automática ────────────────────────────
+  // A promessa de venda é "a planilha se atualiza sozinha". Quem cumpre é este
+  // motor: depois de alguns segundos SEM mudança, manda o que mudou. Nunca abre
+  // popup, nunca mostra erro — se o Google recusar, o cartão da Conta é que
+  // avisa e o botão é que religa. Criado UMA vez; os dados chegam pelo efeito
+  // seguinte.
+  useEffect(() => {
+    const auto = new AutoSync({
+      agora: () => Date.now(),
+      agendar: (fn, ms) => window.setTimeout(fn, ms),
+      cancelar: (handle) => window.clearTimeout(handle as number),
+      visivel: () => document.visibilityState === "visible",
+      lerMeta,
+      gravarMeta,
+      lerToken,
+      limparToken,
+      enviar: (token, meta, dados) => sincronizar({ token, meta, dados, email: emailRef.current }),
+      avisar: (aviso) =>
+        setAutoSync((prev) => (prev.estado === aviso.estado && prev.ultimoEnvio === aviso.ultimoEnvio ? prev : aviso)),
+    });
+    autoRef.current = auto;
+
+    // Estado de partida honesto: só diz "em dia" quem tem planilha E autorização
+    // viva. Na primeira mudança o próprio motor corrige.
+    const meta = lerMeta();
+    setAutoSync({
+      estado: meta && tokenValido(lerToken(), Date.now()) ? "em dia" : "desligado",
+      ultimoEnvio: meta?.lastSync ?? null,
+    });
+
+    function aoVoltarPraTela() {
+      if (document.visibilityState === "visible") auto.aoFicarVisivel();
+    }
+    document.addEventListener("visibilitychange", aoVoltarPraTela);
+    return () => {
+      document.removeEventListener("visibilitychange", aoVoltarPraTela);
+      auto.parar();
+      autoRef.current = null;
+    };
+  }, []);
+
+  // Cada mudança avisa o motor — que só manda depois do silêncio, e só se a
+  // assinatura dos dados for diferente da do último envio (baseline). Sem o
+  // `isReady` isto dispararia na carga do IndexedDB, antes de o app ter dados.
+  // ATENÇÃO À ORDEM: este efeito é declarado ANTES do que grava, então o React
+  // o roda primeiro — ele só ESPIA a marca de "pule esta rodada"; quem a apaga é
+  // o efeito de gravar, logo abaixo.
+  useEffect(() => {
+    avisarMotorDaPlanilha(skipSave.current, isReady, autoRef.current, {
+      expenses: data.expenses,
+      incomes: data.incomes,
+      debts: data.debts,
+      goals: data.goals,
+      settings: data.settings,
+    });
+  }, [isReady, data.expenses, data.incomes, data.debts, data.goals, data.settings]);
+
   // Salvar no IndexedDB sempre que os dados mudarem — avisando se falhar
   useEffect(() => {
-    if (!isReady || skipSave.current) { skipSave.current = false; return; }
+    if (!devoGravar(skipSave.current, isReady)) return;
     let active = true;
     void (async () => {
       try {
@@ -495,6 +635,7 @@ export function ViradaProvider({ children }: PropsWithChildren) {
     // ── Usuário fictício (sem login) ──────────────────────────────────────
     user: { id: "local", email: profile?.email ?? "local@virada.app", fullName: profile?.fullName ?? null },
     sheet,
+    autoSync,
 
     // ── Gastos ────────────────────────────────────────────────────────────
     addExpense: (payload) => {
@@ -616,10 +757,14 @@ export function ViradaProvider({ children }: PropsWithChildren) {
     resetLocalData: () => {
       localStorage.removeItem(storageKey);
       void clearData();
-      skipSave.current = true;
-      setData(initialData);
+      aoApagarTudo(skipSave.current, autoRef.current);
+      // A marca vale por UMA rodada, e a rodada só existe se o estado mudar de
+      // verdade: com o app já vazio o React nem re-renderiza, e a marca ficaria
+      // pendurada esperando o próximo lançamento — que seria engolido.
+      if (data !== initialData) setData(initialData);
+      else skipSave.current.consumir();
     },
-  }), [data, isReady, saveError, profile, sheet, update]);
+  }), [data, isReady, saveError, profile, sheet, autoSync, update]);
 
   return <ViradaContext.Provider value={value}>{children}</ViradaContext.Provider>;
 }

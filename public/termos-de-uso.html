@@ -30,15 +30,15 @@
   <header class="topo"><a href="/vendas.html"><img src="/icons/icon-192.png" alt="" /> Código da Virada</a></header>
   <main>
   <h1>Termos de Uso</h1>
-  <p class="updated"><strong>Última atualização:</strong> 2 de setembro de 2026</p>
+  <p class="updated"><strong>Última atualização:</strong> 12 de setembro de 2026</p>
 
   <p>Bem-vindo ao <strong>Código da Virada</strong>. Estes Termos de Uso regulam o acesso e o uso do nosso produto digital. Ao comprar ou usar o produto, você concorda com estes termos. Se não concordar, não use o produto.</p>
 
   <h2>1. Sobre o produto</h2>
-  <p>O Código da Virada é um aplicativo web (PWA) e um conjunto de planilhas para controle financeiro pessoal. O produto inclui:</p>
+  <p>O Código da Virada é um aplicativo web (PWA) de controle financeiro pessoal. O produto inclui:</p>
   <ul>
-    <li>App instalável no celular para registro de gastos, entradas, dívidas e metas;</li>
-    <li>Funcionalidade de exportação para Google Planilhas;</li>
+    <li>App instalável no celular para registro de gastos, entradas, dívidas e metas, que funciona sem internet;</li>
+    <li>Uma planilha do Google Planilhas que o app cria <strong>dentro da sua própria conta Google</strong> e mantém atualizada — as condições e os limites disso estão no item 7;</li>
     <li>eBook em PDF com método de organização financeira;</li>
     <li>Bônus listados na página de vendas.</li>
   </ul>
@@ -48,14 +48,15 @@
   <div class="destaque">
     <strong>Importante:</strong> use o mesmo e-mail que você usou para comprar. Se comprou com um e-mail e tenta entrar com outro, o acesso não será liberado.
   </div>
-  <p>Você é responsável por manter a confidencialidade das credenciais da sua conta Google.</p>
+  <p>Você é responsável por manter a confidencialidade das credenciais da sua conta Google. Nós nunca pedimos sua senha: o login acontece na tela do próprio Google.</p>
+  <p>Se você escolher conectar a planilha, o app pede ao Google uma permissão chamada <code>drive.file</code>, que autoriza mexer <strong>apenas nos arquivos criados pelo próprio app</strong> — ou seja, só a sua planilha do Virada. O app não consegue abrir, listar nem apagar nenhum outro arquivo do seu Drive. Você pode retirar essa permissão quando quiser em <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>. Detalhes na <a href="/politica-privacidade.html">Política de Privacidade</a>.</p>
 
   <h2>3. Licença de uso</h2>
   <p>Ao comprar o Código da Virada, você recebe uma <strong>licença de uso pessoal, intransferível e não exclusiva</strong> do app, planilhas e materiais. Você pode:</p>
   <ul>
     <li>Usar o app no seu celular e em outros dispositivos seus;</li>
     <li>Imprimir e usar o eBook e bônus para uso pessoal;</li>
-    <li>Editar a planilha exportada na sua conta Google da forma que quiser.</li>
+    <li>Editar a planilha na sua conta Google da forma que quiser — ela é sua.</li>
   </ul>
   <p>Você <strong>não pode</strong>:</p>
   <ul>
@@ -92,17 +93,26 @@
     <li>Usar o produto de forma a violar leis brasileiras.</li>
   </ul>
 
-  <h2>7. Funcionamento do app</h2>
+  <h2>7. Funcionamento do app e da planilha</h2>
   <p>O app é um software fornecido "como está". Trabalhamos para mantê-lo funcionando bem, mas:</p>
   <ul>
     <li>Não garantimos que estará disponível 24/7 sem interrupções;</li>
     <li>Eventuais bugs serão corrigidos em atualizações futuras;</li>
     <li>Recomendamos manter o navegador atualizado;</li>
-    <li>O funcionamento offline depende do seu dispositivo;</li>
-    <li>Você é responsável por <strong>fazer backup dos seus dados</strong> exportando a planilha periodicamente.</li>
+    <li>O funcionamento offline depende do seu dispositivo.</li>
   </ul>
+
+  <p><strong>Como a planilha se mantém atualizada — e quando ela não se atualiza.</strong> Depois que você toca uma vez em "Conectar Google Planilhas" e autoriza, o app passa a enviar suas mudanças para a planilha sozinho. Para ser honesto com você, isso tem condições:</p>
+  <ul>
+    <li>Só acontece <strong>depois</strong> que a planilha foi criada por você. O app nunca cria planilha na sua conta sem você pedir;</li>
+    <li>O envio espera alguns segundos de silêncio depois da última mudança, para não mandar a cada tecla;</li>
+    <li>Só vale <strong>enquanto a autorização do Google estiver viva</strong> — ela dura cerca de 1 hora. Quando vence, o envio automático simplesmente para, sem abrir janela nem atrapalhar você. Basta abrir a tela <em>Conta</em> e tocar em "Atualizar agora" para religar;</li>
+    <li>Precisa do app aberto e com internet. Se a rede cair, ele tenta de novo algumas vezes e depois espera a próxima mudança;</li>
+    <li>Se você não conectar a planilha, nada é enviado a lugar nenhum — e o app continua funcionando normalmente, só no seu aparelho.</li>
+  </ul>
+
   <div class="destaque">
-    <strong>Atenção:</strong> os dados financeiros que você lança no app ficam armazenados <strong>apenas no seu celular</strong>. Se você desinstalar o app, limpar os dados do navegador ou perder o celular sem ter exportado, esses dados podem ser perdidos. Recomendamos fortemente exportar a planilha pra Google Planilhas pelo menos 1 vez por mês.
+    <strong>Atenção — isso importa de verdade:</strong> seus lançamentos ficam gravados <strong>apenas no seu celular</strong> (no IndexedDB do navegador). Nós não temos cópia deles. Se você desinstalar o app, limpar os dados do navegador ou perder o celular <strong>sem ter conectado a planilha</strong>, esses dados se perdem e não há como recuperar. Por isso recomendamos conectar a planilha: ela é a sua cópia de segurança, na sua conta Google. Manter essa cópia em dia é responsabilidade sua — de vez em quando, abra a tela <em>Conta</em> e confira se a planilha está atualizada.
   </div>
 
   <h2>8. Limitação de responsabilidade</h2>
@@ -125,7 +135,7 @@
   <p>O tratamento dos seus dados pessoais segue nossa <a href="/politica-privacidade.html">Política de Privacidade</a>, que faz parte destes Termos.</p>
 
   <h2>12. Suporte</h2>
-  <p>Oferecemos suporte por email em <a href="mailto:tportooliveira@gmail.com">tportooliveira@gmail.com</a>. Tempo de resposta: até 48 horas em dias úteis.</p>
+  <p>Oferecemos suporte por email em <a href="mailto:tportooliveira@gmail.com">tportooliveira@gmail.com</a> e por WhatsApp no <a href="https://wa.me/5577999872390" target="_blank" rel="noopener">(77) 99987-2390</a> — o mesmo número que aparece dentro do app. Tempo de resposta: até 48 horas em dias úteis.</p>
 
   <h2>13. Alterações nestes Termos</h2>
   <p>Podemos atualizar estes Termos de Uso a qualquer momento. A data da última atualização aparece no topo. Alterações relevantes serão comunicadas por email. O uso continuado do produto após uma alteração significa que você concorda com a nova versão.</p>

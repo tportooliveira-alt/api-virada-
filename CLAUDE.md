@@ -1,6 +1,6 @@
 # CLAUDE.md — Virada App (`api-virada-`)
 
-> Fonte de verdade do projeto. Atualizado: 2026-09-11.
+> Fonte de verdade do projeto. Atualizado: 2026-09-12.
 > Apesar do nome `api-virada-`, **NÃO é uma API** — é o **Virada App**: controle financeiro
 > mobile-first (PWA) vendido como infoproduto (upsell R$ 97 / R$ 197 do Código da Virada).
 > Ordem de trabalho acordada: **1º arquitetura + funcionalidade · 2º design.**
@@ -13,7 +13,7 @@ Três camadas independentes. **Não confundir.**
 |---|---|---|---|
 | **Dados financeiros** | no aparelho do cliente | **IndexedDB** (base `virada`, store `state`) — `localStorage` `virada-app:v1` é só backup legado, migrado 1x | lançamentos, dívidas, metas, missões — offline, privado |
 | **Acesso / "porteiro"** | servidor (VPS) | **better-sqlite3** (`data/access.db`) | lista de quem comprou (libera login via webhook) |
-| **Planilha** | Google do cliente | **googleapis** (`lib/sheets/`) | export + auto-sync ("planilha plugada") |
+| **Planilha** | Google do cliente | `fetch` do navegador direto pro Google (`lib/sheets/`), escopo `drive.file` | criar + auto-sync ("planilha plugada"). O token NÃO passa pelo nosso servidor |
 
 Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (IndexedDB) → exporta/sincroniza planilha (Google Sheets).
 
@@ -22,7 +22,36 @@ Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (Indexe
 1. **SQLite na VPS, NÃO serverless.** Resolve o conflito #2 do RELATORIO (disco efêmero apagaria o banco de compradores). Deploy = VPS Hostinger (187.77.252.91) com `data/` persistente. Mais barato/simples pra vender app barato.
 2. **Supabase removido.** A migração Postgres (`supabase/`) era divergência não usada — apagada.
 3. **Python isolado** em `tools/automacao-python/` (28 scripts de automação — fora do runtime).
-4. **Planilha "plugada" (auto-sync)** implementada em `components/GoogleSyncButton.tsx`: depois de criar a planilha + logar 1x, cada mudança sincroniza sozinha (debounce 4s, com baseline anti-loop). A 1ª vez continua manual.
+4. **Planilha "plugada" (auto-sync).** ⚠️ **Leia a nota antes de confiar nesta linha.**
+   O motor mora em `lib/sheets/sync-runner.ts` (fora do React, testável sem rede); quem o liga
+   é o `AutoSync` instanciado em `providers/virada-provider.tsx`; `components/GoogleSyncButton.tsx`
+   é só a interface (botão, estados, mensagens) e chama a MESMA função `sincronizar`.
+   Condições reais de disparo, todas provadas em `scripts/test-auto-sync.ts`:
+   - (a) **só com planilha já criada** — sem `spreadsheetId` no meta não há o que sincronizar, e
+     criar planilha sozinho, sem a pessoa pedir, seria invasivo. A 1ª vez continua manual;
+   - (b) **só com autorização válida** — token vencido: o automático para calado e apaga o token.
+     NUNCA abre popup sem a pessoa ter tocado em nada (`DEBOUNCE_MS` = 4s de silêncio antes de
+     mandar; o token do GIS vive ~1 h e **não há refresh token**, de propósito — ver o cabeçalho
+     do `sync-runner`);
+   - (c) **só se o dado mudou de verdade** — `assinaturaDados` vira o `baseline` gravado no meta;
+     sem isso o app reenviaria tudo a cada abertura, já que o provider recarrega o IndexedDB na
+     montagem (é o "baseline anti-loop");
+   - (d) **só com a aba na frente** — em segundo plano guarda a vez e dispara ao voltar;
+   - (e) **uma de cada vez**, e (f) erro nunca sobe pra tela: 3 tentativas (`ESPERAS_MS`
+     8s/20s) e desiste em silêncio. Erro de autorização nem tenta de novo — limpa o token pro
+     botão poder religar. **Quem conversa com a pessoa é o botão da tela Conta, nunca o automático.**
+
+   > **Nota de confiança (12/09/2026).** Até esta data esta decisão #4 afirmava, desde
+   > 2026-06-17, que o auto-sync estava "implementado em `components/GoogleSyncButton.tsx`,
+   > cada mudança sincroniza sozinha (debounce 4s, com baseline anti-loop)". **Era falso.**
+   > Não havia uma linha disso: os `useEffect` do botão só carregavam o script do Google, liam
+   > o localStorage e preparavam o token client; `doSync` só era chamado por `onClick`. A
+   > planilha só andava quando alguém apertava o botão — e `public/vendas.html` vendia
+   > "a planilha se cria e atualiza sozinha no seu Drive". O código acima foi escrito em
+   > 12/09/2026 para que a promessa passe a ser verdade. Fica o registro: **este documento já
+   > mentiu sobre funcionalidade que não existia.** Antes de repetir qualquer afirmação daqui
+   > numa página de vendas, abra o arquivo citado e confira. `scripts/test-textos-verdadeiros.ts`
+   > existe justamente para quebrar quando texto e código divergirem de novo.
 5. **Removidos:** 2 testes mortos (`scripts/test_finance.js`, `test_performance.js`) e `content/ebook.backup.md` (duplicado).
 6. **Planilha "viva" (fórmulas dentro do Google Sheets) — FEITA em 2026-09-11 (layout `2026-09-11.3`).**
    O que é FÓRMULA (recalcula na planilha) e o que é VALOR (colado pelo sync) — lista viva no
@@ -97,15 +126,82 @@ Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (Indexe
     `toISOString()` (UTC): entre 21h e 0h do último dia do mês em UTC-3 o teste inventava
     lançamentos do mês seguinte.
 
+## Decisões tomadas (2026-09-12) — o que o app pede ao Google
+
+13. **Escopo `drive.file`, não `spreadsheets`.** `lib/sheets/sync-runner.ts` pede
+    **um único** escopo: `https://www.googleapis.com/auth/drive.file` — acesso apenas aos
+    arquivos que o PRÓPRIO app criou. Antes pedia `.../auth/spreadsheets`, que é **ler e
+    escrever TODAS as planilhas da conta**. Por que trocar:
+    - **O app nunca precisou do escopo largo.** Todo `spreadsheetId` vem de `criarPlanilha`
+      (POST `/spreadsheets`) ou do meta gravado logo depois dela; não existe em lugar nenhum
+      do app um campo pra colar o link de uma planilha que já existe. Escopo largo era pedir
+      o que não se usa — o oposto do mínimo necessário.
+    - **É o que a pessoa lê na tela do Google.** O escopo largo aparece como "ver, editar e
+      apagar todas as suas planilhas" pra alguém que acabou de pagar e está desconfiada.
+    - **É o que destrava a venda.** `spreadsheets` é escopo sensível: exige verificação do
+      Google. `drive.file` não entra nessa fila.
+    Se um dia alguém quiser "consertar" isso de volta: o ÚNICO motivo seria deixar a pessoa
+    plugar uma planilha que ela já tem. Nesse dia, mude junto a tela de consentimento no
+    Google, o comentário do `SCOPES` e os textos de `public/politica-privacidade.html` e
+    `public/termos-de-uso.html` — `scripts/test-textos-verdadeiros.ts` cobra os três.
+    ⚠️ **Falta o dono declarar `drive.file` na tela de consentimento do Google** (ela já está
+    em Produção/Externo, confirmado pelo dono em 12/09/2026, mas os escopos que o código pede
+    não estão declarados lá). Sem isso o consentimento falha na hora de conectar a planilha.
+    **Escopo sensível fora de todo o repositório (12/09/2026).** `lib/sheets/google-sheets.ts`
+    (wrapper de service account, código morto: o único importador é
+    `scripts/test-sheets-build.ts`, com a `googleapis` mockada) também passou a pedir
+    `drive.file`. Por que mexer em código que não roda: um grep por `auth/spreadsheets` é
+    exatamente o que um auditor — ou o próximo dev — faz, e achar o escopo largo vivo num
+    arquivo do projeto convida a "consertar" o app de volta pra ele. Hoje o escopo largo só
+    aparece em textos marcados como histórico e em asserções que o proíbem
+    (`scripts/test-textos-verdadeiros.ts`, `scripts/test-auto-sync.ts`).
+    Apagar o arquivo seria melhor ainda — código morto que duplica a lógica de sincronização é
+    o próximo bug —, mas hoje `scripts/test-sheets-build.ts` é construído em cima dele; some
+    junto com esse teste, não antes.
+
+14. **Texto de produto é testado como código.** `scripts/test-textos-verdadeiros.ts` lê as
+    constantes reais (`SCOPES`, `DEBOUNCE_MS`, o nome da base IndexedDB, as rotas de
+    `app/api/`) e exige que a política de privacidade, os termos, este CLAUDE.md,
+    `docs/RETOMAR-AQUI.md` e `scripts/README.md` digam a mesma coisa — inclusive proibindo
+    frases que já foram falsas. Motivo: a divergência da decisão #4 sobreviveu quase três
+    meses porque nada quebrava quando doc e código discordavam.
+
 ## ⚠️ Dois artefatos de "planilha" — NÃO confundir
 
 - **Prévia** (`app/app/planilha-demo/page.tsx`): componente React que IMITA o Google Sheets na tela do app. É só visual/demonstração. Quando o Thiago fala "a planilha", **NÃO é essa.**
-- **Planilha real** (`lib/sheets/builder.ts` + `google-sheets.ts` + `GoogleSyncButton.tsx`): gera o Google Sheets de verdade no Drive do cliente. **É essa** que importa para fórmulas/profissionalismo. Validação real exige credencial Google (não há `.env` aqui) — usar `scripts/test-sheets-build.ts` (offline) + `dump-formulas.ts`.
+- **Planilha real** (`lib/sheets/builder.ts` monta o conteúdo + `lib/sheets/sync-requests.ts` monta as chamadas + `lib/sheets/sync-runner.ts` fala com o Google e decide quando; `components/GoogleSyncButton.tsx` é só o botão): gera o Google Sheets de verdade no Drive do cliente. **É essa** que importa para fórmulas/profissionalismo. Validação real exige credencial Google (não há `.env` aqui) — usar `scripts/test-sheets-build.ts` (offline) + `dump-formulas.ts`.
+  `lib/sheets/google-sheets.ts` (service account) **não roda no app** — sobrou só pro `test-sheets-build.ts`.
 
 ## A "casa a organizar" — divergências a corrigir (arquitetura não bate)
 
-O código é coerente (localStorage), mas **textos/docs/tipos mentem** sobre ele:
+O código é coerente, mas **textos/docs/tipos mentem** sobre ele:
 
+- [x] ~~Política de privacidade diz "não acessamos seus outros dados Google" e "tokens validados
+      em servidor"~~ → reescrita em 12/09/2026 (`public/politica-privacidade.html`): descreve
+      `drive.file`, diz que o token da planilha **nunca passa pelo servidor**, e separa
+      aparelho / servidor / conta Google. `public/termos-de-uso.html` idem.
+- [x] ~~CLAUDE.md decisão #4 descreve auto-sync que não existe~~ → o auto-sync foi construído
+      e a #4 reescrita, com nota de que o documento já mentiu.
+- [ ] **`public/vendas.html` não linka esta política.** O rodapé manda para as âncoras
+      `#privacidade` e `#termos` (linhas 316/319/320), dois parágrafos curtos dentro da própria
+      landing que **divergem** das páginas completas. Trocar por `/politica-privacidade.html` e
+      `/termos-de-uso.html` em `scripts/build-vendas.mjs` (território de marketing). Isso não é
+      só estética: a verificação do Google procura o link da política de privacidade na página
+      inicial, e o parágrafo da landing não menciona `drive.file` nem os escopos.
+- [ ] **`docs/configurar-google-sheets.md` inteiro está obsoleto** — ensina a criar uma
+      *conta de serviço* e colar `GOOGLE_SERVICE_ACCOUNT_JSON` no `.env.local` (PASSO 2 e 3).
+      O app não usa nada disso: o token vem do navegador, pelo GIS, e a planilha nasce na conta
+      do próprio cliente. Reescrever ou apagar.
+- [x] ~~**`docs/estrategia-google-sync.md:54`** lista os dois escopos~~ → o bloco ficou, marcado
+      como **HISTÓRICO (até 12/09/2026)**, com a explicação de por que o escopo largo saiu.
+      Apagar um doc de estratégia esconde a decisão; datá-lo preserva o porquê.
+- [ ] **`00-LEIA-AQUI/01-VISAO-GERAL.md:5,11` e `02-O-QUE-JA-FUNCIONA.md:44`** ainda descrevem
+      "exportar uma planilha" com botão manual — agora ela também se atualiza sozinha (decisão #4).
+- [ ] **`00-LEIA-AQUI/11-AUDITORIA-PRE-VENDA-2026-08-25.md:48` e `RELATORIO-ANALISE.md:59-65`**
+      citam `netlify.toml` como conflito aberto; ele foi removido (decisão #9). Marcar como resolvido.
+- [ ] **`artifacts/hotmart-launch/07-checklist-deploy.md:3`** e
+      **`00-LEIA-AQUI/10-STATUS-ATUAL-01-05-2026.md:78`** repetem o mesmo bloqueio já decidido
+      (VPS, decisão #1).
 - [x] ~~UI diz "abas CSV locais"~~ → já não existe nenhum "CSV" no código (grep limpo em 05/09).
 - [x] ~~Comentário do provider diz "deploy Netlify"~~ → corrigido; agora descreve IndexedDB + VPS.
 - [x] ~~RELATORIO diz "IndexedDB" → é localStorage~~ → **era o CLAUDE.md que estava errado**.
@@ -115,7 +211,6 @@ O código é coerente (localStorage), mas **textos/docs/tipos mentem** sobre ele
 - [ ] **`lib/types.ts`**: `TransactionSource="whatsapp"` **é real** (`app/api/whatsapp/webhook/[token]`
       + `lib/agente/whatsapp.ts`). Já `SheetProvider="excel"` não tem uma linha de implementação —
       é futuro/YAGNI, decidir se remove.
-- [ ] Warning de lint (`exhaustive-deps`) em `AuthGate.tsx:240` — único que sobrou.
 
 ## Validação (como rodar)
 
@@ -136,7 +231,16 @@ npx tsx scripts/test-estorno-totais.ts
 npx tsx scripts/test-deletions.ts
 npx tsx scripts/test-admin-session.ts
 npx tsx scripts/test-webhooks.ts
+npx tsx scripts/test-authgate.ts
+npx tsx scripts/test-auto-sync.ts            # auto-sync da planilha: relógio e rede falsos
+npx tsx scripts/test-bolsos.ts
+npx tsx scripts/test-dividas-parcela.ts
+npx tsx scripts/test-editar-lancamento.ts
+npx tsx scripts/test-telas-fase3.ts
+npx tsx scripts/test-calculos-telas.ts
+npx tsx scripts/test-textos-verdadeiros.ts   # docs e páginas públicas x o que o código faz
 ```
+Índice comentado de tudo que há em `scripts/`: `scripts/README.md`.
 **Login em dev:** sem `.env.local`, em `localhost` aparece o botão "⚙ Entrar como Dev (localhost)" (bypass — `AuthGate.tsx`).
 
 ## Design — Direção "Editorial Financeiro" (PLANEJADA — **não está no código**)

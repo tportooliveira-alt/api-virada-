@@ -17,6 +17,7 @@
     main { max-width: 800px; margin: 0 auto; padding: 40px 20px 64px; }
     h1 { font-family: Figtree, Onest, sans-serif; font-weight: 800; font-size: clamp(30px, 5vw, 40px); letter-spacing: -0.02em; line-height: 1.1; margin: 0 0 12px; }
     h2 { font-family: Figtree, Onest, sans-serif; font-weight: 700; font-size: 20px; margin: 40px 0 10px; }
+    h3.onde { font-family: Figtree, Onest, sans-serif; font-weight: 700; font-size: 17px; margin: 24px 0 6px; }
     p, li { color: #334155; font-size: 16px; }
     a { color: #166534; }
     .updated { color: #64748B; font-size: 14px; margin: 0 0 32px; padding-bottom: 20px; border-bottom: 1px solid #E2E8F0; }
@@ -30,28 +31,54 @@
   <header class="topo"><a href="/vendas.html"><img src="/icons/icon-192.png" alt="" /> Código da Virada</a></header>
   <main>
   <h1>Política de Privacidade</h1>
-  <p class="updated"><strong>Última atualização:</strong> 2 de setembro de 2026</p>
+  <p class="updated"><strong>Última atualização:</strong> 12 de setembro de 2026</p>
 
   <p>Esta Política de Privacidade descreve como o <strong>Código da Virada</strong> (também referido como "nós", "nosso" ou "aplicativo") coleta, usa, armazena e protege suas informações quando você usa nosso produto. Este documento foi elaborado em conformidade com a <strong>Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)</strong>.</p>
 
   <h2>1. Quem somos</h2>
   <p>O Código da Virada é um produto digital de propriedade de <strong>Thiago Porto Oliveira</strong>, com contato em <a href="mailto:tportooliveira@gmail.com">tportooliveira@gmail.com</a>. Para questões relacionadas à privacidade, você pode nos contatar diretamente neste email.</p>
 
-  <h2>2. Quais dados coletamos</h2>
-  <p>Coletamos apenas os dados estritamente necessários para o funcionamento do produto:</p>
+  <h2>2. Onde cada informação fica</h2>
+  <p>O app trabalha com três lugares diferentes, e vale a pena entender a diferença — porque a maior parte dos seus dados nunca chega até nós.</p>
+
+  <h3 class="onde">📱 No seu celular (só você tem)</h3>
   <ul>
-    <li><strong>E-mail e nome:</strong> fornecidos quando você compra o produto via Kiwify ou Cakto. São usados para liberar seu acesso ao app.</li>
-    <li><strong>Identificador Google (sub):</strong> ao entrar com sua conta Google, salvamos um identificador imutável da sua conta para validar o acesso. Não acessamos sua senha.</li>
-    <li><strong>Plataforma de compra e ID da transação:</strong> usados apenas para auditoria e suporte (em caso de reembolso, por exemplo).</li>
-    <li><strong>Dados financeiros que você lança no app:</strong> entradas, gastos, dívidas, metas. <strong>Esses dados ficam armazenados apenas no seu celular</strong> (armazenamento local do navegador) e nunca são enviados para nossos servidores.</li>
+    <li><strong>Seus lançamentos financeiros:</strong> entradas, gastos, dívidas, metas e anotações. Ficam gravados dentro do próprio navegador do seu aparelho, num espaço chamado <strong>IndexedDB</strong>. <strong>Não temos cópia disso.</strong> Não conseguimos ver, não conseguimos recuperar se você apagar, e não vai para servidor nenhum nosso.</li>
+    <li><strong>Seu registro de acesso:</strong> seu e-mail, seu nome, o endereço da sua foto de perfil do Google, o identificador da sua conta Google (o "sub", um número que o Google usa no lugar do e-mail), se a sua compra está ativa e a data da última vez que conferimos isso. Ficam no aparelho para o app continuar abrindo quando você estiver sem internet.</li>
+    <li><strong>A autorização da planilha:</strong> se você conectar a planilha, o app guarda no aparelho uma autorização temporária do Google (vale cerca de 1 hora) e o link da sua planilha. Essa autorização <strong>não passa pelo nosso servidor</strong> em nenhum momento.</li>
   </ul>
 
-  <h2>3. O que NÃO coletamos</h2>
+  <h3 class="onde">🖥️ No nosso servidor (a lista de quem comprou)</h3>
+  <p>Nosso servidor guarda só o que é preciso para saber que você comprou e pode entrar:</p>
   <ul>
-    <li>Não coletamos seus dados financeiros lançados no app — eles ficam apenas no seu dispositivo.</li>
-    <li>Não acessamos sua senha do Google.</li>
-    <li>Não vendemos seus dados a terceiros.</li>
-    <li>Não compartilhamos sua planilha exportada com ninguém — ela é gerada na <strong>sua</strong> conta Google.</li>
+    <li><strong>E-mail e nome</strong> informados por você na compra.</li>
+    <li><strong>Plataforma, nome do produto, ID da transação e situação</strong> (ativo, reembolsado, cancelado).</li>
+    <li><strong>Uma cópia do aviso de compra</strong> que a plataforma de pagamento nos envia, guardada para auditoria e para resolver problemas de liberação. O conteúdo desse aviso é definido pela plataforma e pode incluir outros dados que você informou lá no checkout.</li>
+    <li><strong>Um registro de cada aviso recebido</strong> (data, plataforma, e-mail e se deu certo), para conseguirmos descobrir o que houve quando alguém paga e não entra.</li>
+  </ul>
+  <p>Quando você entra com o Google, nosso servidor pergunta ao próprio Google se aquele login é verdadeiro e pega dali seu e-mail, nome e foto. <strong>Esse dado não é gravado</strong>: ele só é usado naquele instante para comparar com a lista de compradores e responder "pode entrar" ou "não pode".</p>
+
+  <h3 class="onde">📊 Na sua conta Google (a planilha)</h3>
+  <p>Se você conectar a planilha, o app cria <strong>um arquivo do Google Planilhas dentro do seu próprio Google Drive</strong> e escreve seus lançamentos ali. A planilha é sua, nasce na sua conta e nós não temos acesso a ela — nem para ler. Os dados vão do seu celular direto para o Google, sem parar no nosso servidor.</p>
+
+  <h2>3. O que o app pode e o que NÃO pode fazer no seu Google</h2>
+  <p>Para criar a planilha, o app pede uma única permissão ao Google, chamada <code>drive.file</code> (<code>https://www.googleapis.com/auth/drive.file</code>). Em português claro, ela significa:</p>
+  <ul>
+    <li>✅ O app <strong>pode</strong> criar arquivos novos no seu Drive e mexer <strong>apenas nos arquivos que ele mesmo criou</strong> — na prática, só a sua planilha do Virada.</li>
+    <li>🚫 O app <strong>não pode</strong> ver a lista dos seus arquivos, nem abrir, nem baixar, nem apagar qualquer outra coisa do seu Drive: nem fotos, nem documentos, nem outras planilhas suas. O Google simplesmente não deixa — a permissão não alcança esses arquivos.</li>
+    <li>🚫 O app <strong>não pede</strong> acesso ao seu Gmail, Agenda, Fotos, Contatos ou qualquer outro serviço do Google.</li>
+    <li>🚫 Não sabemos sua senha do Google e nunca vamos pedi-la. O login acontece na tela do próprio Google.</li>
+  </ul>
+  <p>Você pode cancelar essa permissão a qualquer momento em <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>. A planilha que já existe continua sua; o app só para de atualizá-la.</p>
+  <p>O uso das informações recebidas das APIs do Google segue a <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Política de Dados do Usuário dos Serviços de API do Google</a>, incluindo os requisitos de Uso Limitado. Não usamos esses dados para publicidade e não os vendemos.</p>
+
+  <h3 class="onde">Em resumo, o que NÃO fazemos</h3>
+  <ul>
+    <li>Não coletamos seus lançamentos financeiros — eles ficam no seu aparelho e na sua planilha.</li>
+    <li>Não lemos outros arquivos do seu Google Drive.</li>
+    <li>Não vendemos seus dados a terceiros nem usamos para publicidade.</li>
+    <li>Não compartilhamos sua planilha com ninguém: quem decide com quem ela é compartilhada é você, dentro do Google.</li>
+    <li>Não usamos cookies de rastreamento publicitário.</li>
   </ul>
 
   <h2>4. Por que coletamos esses dados (finalidade)</h2>
@@ -59,7 +86,7 @@
     <li><strong>Liberar seu acesso:</strong> precisamos do seu e-mail para confirmar que você comprou o produto.</li>
     <li><strong>Suporte:</strong> em caso de dúvidas ou problemas, usamos o e-mail para responder.</li>
     <li><strong>Auditoria de vendas:</strong> registramos a plataforma, ID de transação e status para conformidade com a plataforma de venda.</li>
-    <li><strong>Prevenir fraudes:</strong> o identificador Google (sub) impede que alguém edite manualmente o e-mail no banco e libere acesso indevido.</li>
+    <li><strong>Conferir que quem entra comprou:</strong> na hora de entrar, quem diz qual é o seu e-mail é o próprio Google — você não digita nada. Nosso servidor compara esse e-mail com a lista de quem comprou e responde só "pode entrar" ou "não pode".</li>
   </ul>
 
   <h2>5. Base legal para o tratamento</h2>
@@ -67,15 +94,15 @@
   <ul>
     <li><strong>Execução de contrato</strong> (Art. 7º, V da LGPD): você comprou o produto e precisamos dos seus dados para entregá-lo.</li>
     <li><strong>Cumprimento de obrigação legal</strong> (Art. 7º, II): registros fiscais e de comprovação de venda.</li>
-    <li><strong>Legítimo interesse</strong> (Art. 7º, IX): prevenção de fraudes e melhoria do produto.</li>
+    <li><strong>Legítimo interesse</strong> (Art. 7º, IX): impedir que o produto seja acessado por quem não comprou, e melhorar o app.</li>
   </ul>
 
   <h2>6. Com quem compartilhamos seus dados</h2>
   <p>Apenas com:</p>
   <ul>
-    <li><strong>Plataforma de venda</strong> (Kiwify ou Cakto) — eles nos enviam os dados da compra automaticamente via webhook.</li>
-    <li><strong>Google</strong> — apenas o necessário para validar seu login (não acessamos seus outros dados Google).</li>
-    <li><strong>Provedor de hospedagem</strong> — nosso servidor armazena os dados em conformidade com a LGPD.</li>
+    <li><strong>Plataforma de venda</strong> (Kiwify, Cakto ou outra loja onde a compra foi feita) — é ela que nos <em>envia</em> os dados da sua compra, automaticamente, assim que o pagamento é aprovado. Os dados do cartão ou do Pix ficam com a plataforma; nunca chegam até nós.</li>
+    <li><strong>Google</strong> — em dois momentos, e só neles: (1) para conferir se o seu login é verdadeiro, nosso servidor manda o código de login que o Google acabou de gerar de volta para o próprio Google; (2) para criar e atualizar a <strong>sua</strong> planilha, o seu celular fala direto com o Google Planilhas. No segundo caso nem passa por nós.</li>
+    <li><strong>Provedor de hospedagem</strong> — a empresa onde nosso servidor está instalado, que guarda a lista de compradores. O servidor fica em disco próprio (não é um serviço que replica seus dados em outras empresas).</li>
   </ul>
   <p>Não compartilhamos seus dados com nenhuma outra empresa, anunciante ou terceiro.</p>
 
@@ -83,7 +110,8 @@
   <ul>
     <li><strong>Enquanto você for cliente:</strong> mantemos seus dados de acesso para que você continue usando o produto.</li>
     <li><strong>Após cancelamento ou reembolso:</strong> mantemos os dados de auditoria por <strong>5 anos</strong> conforme exigido pelo Código de Defesa do Consumidor e pela legislação fiscal.</li>
-    <li><strong>Dados financeiros do app:</strong> ficam no seu celular. Você pode apagá-los a qualquer momento desinstalando o app ou limpando os dados do navegador.</li>
+    <li><strong>Seus lançamentos:</strong> ficam no seu celular. Você pode apagá-los a qualquer momento desinstalando o app ou limpando os dados do navegador. Como não temos cópia, essa exclusão é definitiva e não depende de pedir nada para nós.</li>
+    <li><strong>Sua planilha:</strong> fica na sua conta Google pelo tempo que você quiser. Para apagá-la, basta jogá-la na lixeira do seu Drive.</li>
   </ul>
 
   <h2>8. Seus direitos como titular dos dados</h2>
@@ -98,24 +126,31 @@
     <li>Solicitar a exclusão de todos os dados pessoais tratados com base em consentimento.</li>
   </ul>
   <p>Para exercer qualquer desses direitos, envie um email para <a href="mailto:tportooliveira@gmail.com">tportooliveira@gmail.com</a>. Vamos responder em até <strong>15 dias</strong>.</p>
+  <div class="destaque">
+    <strong>Duas coisas você resolve sozinho, sem pedir para ninguém:</strong> seus lançamentos são apagados limpando os dados do site no navegador, e a permissão do Google é cancelada em <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>. Se você pedir a exclusão do seu cadastro de comprador, tudo bem — mas aí o app deixa de abrir, porque é esse cadastro que prova que você comprou. Os dados de auditoria da venda seguem guardados pelo prazo legal (item 7).
+  </div>
 
   <h2>9. Segurança</h2>
-  <p>Protegemos seus dados com:</p>
+  <p>O que realmente protege você aqui é a arquitetura do produto: <strong>a informação mais sensível — quanto você ganha, quanto deve, no que gasta — nunca sai do seu aparelho</strong>. Mesmo no pior cenário, não existe do nosso lado um banco com a vida financeira de ninguém, porque esse dado nunca chegou até nós.</p>
+  <p>Além disso:</p>
   <ul>
-    <li>Conexão criptografada (HTTPS) em todo o site.</li>
-    <li>Servidor com acesso restrito.</li>
-    <li>Backup regular dos dados.</li>
-    <li>Tokens de acesso Google validados em servidor (não no celular).</li>
+    <li>Todo o site e o app usam conexão criptografada (HTTPS).</li>
+    <li>O servidor que guarda a lista de compradores tem acesso restrito e fica em máquina própria.</li>
+    <li><strong>O login é conferido no servidor.</strong> Quando você entra com o Google, é o nosso servidor que pergunta ao próprio Google se aquele login é verdadeiro e se o seu e-mail está na lista de quem comprou. Feita essa conferência, o app guarda a resposta no seu aparelho e passa a confiar nela nas próximas aberturas — inclusive sem internet. É isso que deixa o app funcionar offline; em troca, a trava vale de verdade na hora de entrar, e não é um cofre contra quem mexe no próprio celular.</li>
+    <li><strong>A autorização da planilha, essa, fica só no seu aparelho.</strong> Ela não passa pelo nosso servidor: quem conversa com o Google Planilhas é o seu próprio celular. Vale cerca de 1 hora e depois precisa ser renovada.</li>
   </ul>
-  <p>Nenhum sistema é 100% seguro. Em caso de incidente que afete seus dados, vamos te avisar e à ANPD em até 48 horas, conforme exige a LGPD.</p>
+  <p>Nenhum sistema é 100% seguro. Se acontecer um incidente que afete seus dados, vamos avisar você assim que soubermos e comunicar a ANPD no prazo exigido pela legislação.</p>
 
-  <h2>10. Cookies e tecnologias semelhantes</h2>
-  <p>Usamos apenas:</p>
+  <h2>10. Cookies e armazenamento no seu aparelho</h2>
+  <p>Não usamos cookies de rastreamento nem de publicidade. O que existe é o seguinte:</p>
   <ul>
-    <li><strong>localStorage</strong> — guardam seu login e seus dados financeiros no seu celular. Sem isso o app não funciona.</li>
-    <li><strong>Cookies de sessão</strong> — apenas durante o login com Google.</li>
+    <li><strong>IndexedDB</strong> — é onde ficam seus lançamentos financeiros, dentro do navegador do seu aparelho. Sem isso o app não tem o que mostrar.</li>
+    <li><strong>localStorage</strong> — guarda três coisas pequenas: o seu registro de acesso (e-mail, nome, endereço da foto e identificador da conta Google), a autorização temporária da planilha e o link dela. <strong>Seus lançamentos não ficam aqui</strong> — eles moram no IndexedDB, e o app não mantém cópia deles em outro lugar. Se você usa o app desde uma versão antiga, pode ter sobrado aí uma cópia dos lançamentos daquela época: o app lê essa cópia uma única vez, para levar tudo ao IndexedDB, e ela some quando você usa "apagar todos os dados" dentro do app ou limpa os dados do site.</li>
+    <li><strong>Cache do app (service worker)</strong> — guarda as telas do app no aparelho para ele abrir sem internet. São arquivos do programa, não dados seus.</li>
+    <li><strong>Ponto do vídeo na página de vendas</strong> — a página de vendas guarda no navegador onde você parou o vídeo de demonstração, para continuar dali se você voltar. Fica só no seu aparelho e não identifica você.</li>
+    <li><strong>Cookie de administrador</strong> — existe apenas para o dono do produto acessar o painel de vendas. Cliente comum nunca recebe esse cookie.</li>
   </ul>
-  <p>Não usamos cookies de rastreamento publicitário.</p>
+  <p>Você limpa tudo isso a qualquer momento apagando os dados do site no seu navegador. Lembre: fazendo isso, seus lançamentos somem de vez, porque não temos cópia.</p>
 
   <h2>11. Crianças e adolescentes</h2>
   <p>O Código da Virada não é destinado a menores de 18 anos. Não coletamos intencionalmente dados de menores. Se você é responsável e suspeita que seu filho usou o app, entre em contato para que possamos remover os dados.</p>

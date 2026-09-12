@@ -1,9 +1,21 @@
 /**
  * Google Sheets — wrapper de servidor (service account).
- * Para o fluxo padrão "cliente clica e vê na planilha dele", o app usa
- * o componente GoogleSyncButton que faz tudo no navegador com OAuth do
- * próprio usuário. Este wrapper existe para integrações server-side
- * opcionais (admin, jobs) e usa o mesmo builder profissional.
+ *
+ * ⚠️ **Caminho de servidor que o app NÃO usa.** Nenhuma tela, rota de API ou
+ * componente importa este arquivo: o único importador é
+ * `scripts/test-sheets-build.ts`, que o chama com a `googleapis` mockada pra
+ * conferir offline o que o builder monta (abas, fórmulas, formatos). O fluxo
+ * real do comprador é outro — `lib/sheets/sync-runner.ts` roda no navegador,
+ * com o OAuth da conta do próprio cliente, e a planilha nasce no Drive dele.
+ *
+ * Por isso o escopo aqui é o MESMO `drive.file` do app (arquivos que a própria
+ * credencial criou). Antes pedia `.../auth/spreadsheets` — ler e escrever TODAS
+ * as planilhas da conta —, escopo sensível que não tem por que aparecer num
+ * arquivo que ninguém executa: um grep de auditoria acha, e alguém acaba
+ * "consertando" o app de volta pro escopo largo achando que é o padrão da casa.
+ *
+ * Se um dia existir mesmo uma integração de servidor (admin, jobs), ela nasce
+ * daqui; enquanto não existir, isto é dívida — ver CLAUDE.md, decisão #13.
  */
 
 import { google, sheets_v4 } from "googleapis";
@@ -28,7 +40,9 @@ function getAuth() {
   const parsed = JSON.parse(credentials);
   return new google.auth.GoogleAuth({
     credentials: parsed,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    // Mesmo escopo mínimo do app (ver cabeçalho): só os arquivos criados por
+    // esta credencial. Não voltar pro escopo largo sem trocar também o app.
+    scopes: ["https://www.googleapis.com/auth/drive.file"],
   });
 }
 
