@@ -87,7 +87,7 @@ export default function ObrigadoPage() {
           dinheiro de volta, sem justificativa.
         </p>
         <a
-          href="https://wa.me/5577999872390"
+          href="https://wa.me/5577999395511"
           target="_blank"
           rel="noreferrer"
           className="mt-4 inline-flex items-center justify-center rounded-xl border border-green-700/40 bg-green-50 px-5 py-2.5 text-sm font-semibold text-green-700 transition hover:bg-green-100"
