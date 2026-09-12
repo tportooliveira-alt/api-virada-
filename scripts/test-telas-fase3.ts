@@ -417,8 +417,39 @@ function semComentarios(codigo: string) {
     const listRow = semComentarios(/function ListRow\([\s\S]*?\n}/.exec(RELATORIOS)?.[0] ?? "");
     assert(listRow.length > 0, "achei o ListRow no fonte");
     assert(!/truncate/.test(listRow), "linha de lista usa 2 linhas em vez de cortar o valor com '…'");
-    assert((listRow.match(/line-clamp-2/g) ?? []).length === 2, "título e detalhe da linha cabem em até 2 linhas");
+    assert(/line-clamp-2/.test(listRow), "o título da linha cabe em até 2 linhas");
+    assert(!/line-clamp/.test(listRow.split("{title}")[1] ?? ""), "o detalhe da linha NÃO é clampado: '6 lançamentos · gastou 420% a mais do que entrou' passa de 2 linhas em 360 px e o clamp escondia o fim");
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Juiz rodada 3 · nenhum texto NOSSO pode ser cortado com '…' em 360 px.
+// O que deixou isso passar antes foi fixture curta: com nome de dívida/meta
+// banal ("Financiamento do carro", 22 letras) e a categoria tocada na legenda,
+// o `truncate` come o fim. Guarda de fonte — a medição no navegador está no
+// relatório da rodada; aqui o que se impede é o `truncate` voltar.
+// ─────────────────────────────────────────────────────────────────────────────
+section("Juiz rodada 3 · sem `truncate` nos textos que a pessoa precisa ler inteiros");
+{
+  const ler = (f: string) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
+  const RELATORIOS = ler("app/app/relatorios/page.tsx");
+  const INICIO = ler("app/app/inicio/page.tsx");
+  const alvos: Array<[string, RegExp]> = [
+    ["título da lista filtrada por categoria (Resumo)", /className="min-w-0 [^"]*"[^>]*>\s*\{categoriaSel === null/],
+    ["nome da dívida (aba Dívidas)", /className="[^"]*"[^>]*>\{debt\.name\}/],
+    ["nome da meta (aba Metas)", /className="[^"]*"[^>]*>\{goal\.name\}/],
+  ];
+  for (const [nome, re] of alvos) {
+    const achado = re.exec(RELATORIOS)?.[0] ?? "";
+    assert(achado.length > 0, `achei no fonte: ${nome}`);
+    assert(!/\btruncate\b/.test(achado), `${nome} não usa 'truncate' (cortava com '…' em 360 px)`);
+    assert(/line-clamp-2/.test(achado), `${nome} cabe em até 2 linhas`);
+  }
+
+  const descricaoInicio = /<span className="[^"]*"[^>]*>\{item\.label\}<\/span>/.exec(INICIO)?.[0] ?? "";
+  assert(descricaoInicio.length > 0, "achei a descrição do lançamento em Últimos lançamentos");
+  assert(!/\btruncate\b/.test(descricaoInicio), "a descrição no Início não corta com '…' — a mesma lista em Relatórios já usa 2 linhas");
+  assert(/line-clamp-2/.test(descricaoInicio), "a descrição no Início cabe em até 2 linhas");
 }
 
 console.log(`\n${"═".repeat(60)}`);

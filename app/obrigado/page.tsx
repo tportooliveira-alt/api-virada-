@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen, CalendarCheck, CheckCircle2, HandCoins, ListChecks, MessageCircle } from "lucide-react";
+import { WHATSAPP_SUPORTE } from "@/lib/constants";
 
 /**
  * Página de obrigado — para onde a plataforma manda quem acabou de pagar.
@@ -92,7 +93,7 @@ export default function ObrigadoPage() {
           dinheiro de volta, sem justificativa.
         </p>
         <a
-          href="https://wa.me/5577999872390"
+          href={WHATSAPP_SUPORTE}
           target="_blank"
           rel="noreferrer"
           className="mt-4 inline-flex items-center justify-center rounded-xl border border-green-700/40 bg-green-50 px-5 py-2.5 text-sm font-semibold text-green-700 transition hover:bg-green-100"

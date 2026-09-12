@@ -115,7 +115,10 @@ function ListRow({ ini, positive, title, meta, value, valueClass, onPress, selec
             ("12 de set. · resultado +R$ 2.17…") e o detalhe da linha. */}
         <span className="min-w-0 text-left">
           <span className="line-clamp-2 text-sm font-semibold text-ink-900">{title}</span>
-          <span className="mt-0.5 line-clamp-2 text-xs text-ink-500">{meta}</span>
+          {/* Sem clamp: o detalhe é frase NOSSA e pode passar de 2 linhas em 360 px
+              ("6 lançamentos · gastou 420% a mais do que entrou"). Cortar esconde
+              justamente o número. Linha mais alta é melhor que informação sumida. */}
+          <span className="mt-0.5 text-xs text-ink-500">{meta}</span>
         </span>
       </span>
       <span className="flex shrink-0 items-center gap-1">
@@ -539,12 +542,12 @@ function Relatorios() {
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         <div className="min-w-0 rounded-[12px] border border-ink-200 bg-white px-4 py-3.5">
           <p className="text-xs text-ink-500">Entradas</p>
-          <p className="money mt-1 font-display text-xl font-bold text-green-700">{formatCurrency(totInc)}</p>
+          <p className="money mt-1 font-display text-lg font-bold sm:text-xl text-green-700">{formatCurrency(totInc)}</p>
           <p className="mt-0.5 text-xs text-ink-500">{plural(incomes.length, "lançamento", "lançamentos")}</p>
         </div>
         <div className="min-w-0 rounded-[12px] border border-ink-200 bg-white px-4 py-3.5">
           <p className="text-xs text-ink-500">Gastos</p>
-          <p className="money mt-1 font-display text-xl font-bold text-ink-900">{formatCurrency(totExp)}</p>
+          <p className="money mt-1 font-display text-lg font-bold sm:text-xl text-ink-900">{formatCurrency(totExp)}</p>
           <p className="mt-0.5 text-xs text-ink-500">{plural(expenses.length, "lançamento", "lançamentos")}</p>
         </div>
         <div
@@ -553,14 +556,14 @@ function Relatorios() {
           }`}
         >
           <p className="text-xs text-ink-500">Saldo</p>
-          <p className={`money mt-1 font-display text-xl font-bold ${saldo >= 0 ? "text-green-700" : "text-red-700"}`}>
+          <p className={`money mt-1 font-display text-lg font-bold sm:text-xl ${saldo >= 0 ? "text-green-700" : "text-red-700"}`}>
             {formatCurrency(saldo)}
           </p>
           <p className="mt-0.5 text-xs text-ink-500">{saldo >= 0 ? "O caixa está respirando." : "Gasto maior que entrada."}</p>
         </div>
         <div className="min-w-0 rounded-[12px] border border-ink-200 bg-white px-4 py-3.5">
           <p className="text-xs text-ink-500">Sobrou do que entrou</p>
-          <p className="money mt-1 font-display text-xl font-bold text-ink-900">{sobrou === null ? "—" : `${sobrou}%`}</p>
+          <p className="money mt-1 font-display text-lg font-bold sm:text-xl text-ink-900">{sobrou === null ? "—" : `${sobrou}%`}</p>
           <p className="mt-0.5 text-xs text-ink-500">saldo dividido pelas entradas</p>
         </div>
       </div>
@@ -626,7 +629,7 @@ function Relatorios() {
             {/* Lista dos gastos do mês — filtrada pela categoria tocada na legenda */}
             <section className="flex flex-col gap-2 rounded-xl border border-ink-200 bg-white p-[18px]" aria-label="Gastos do período">
               <div className="flex items-center justify-between gap-2">
-                <p className="min-w-0 truncate text-sm font-semibold text-ink-900">
+                <p className="min-w-0 line-clamp-2 text-sm font-semibold text-ink-900">
                   {categoriaSel === null
                     ? `Gastos ${periodoLabel} · ${formatCurrency(somaResumo)}`
                     : `${categoriaSel} · ${formatCurrency(somaResumo)} · ${plural(gastosDoResumo.length, "lançamento", "lançamentos")}`}
@@ -768,7 +771,7 @@ function Relatorios() {
                   <div key={debt.id} data-debt-id={debt.id} className="flex flex-col gap-2.5 rounded-[14px] border border-ink-200 bg-white px-4 py-3.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate text-sm font-semibold text-ink-900">{debt.name}</span>
+                        <span className="line-clamp-2 text-sm font-semibold text-ink-900">{debt.name}</span>
                         <span className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-bold capitalize ${debtPill[debt.status]}`}>
                           {debt.status}
                         </span>
@@ -799,7 +802,9 @@ function Relatorios() {
                     <div className="h-2 overflow-hidden rounded-full bg-ink-100">
                       <div className="h-full rounded-full bg-green-500" style={{ width: `${pct}%` }} />
                     </div>
-                    <p className="money text-xs text-ink-600">
+                    {/* Frase, não número: pode quebrar. Com .money (nowrap) uma dívida
+                        de R$ 32.000 media 304 contra 294 px de caixa em 360 px. */}
+                    <p className="text-xs tabular-nums text-ink-600">
                       {`${formatCurrency(pago)} pagos de ${formatCurrency(debt.totalValue)}`}
                       {aberta && debt.installmentValue > 0 ? ` · faltam ${plural(parcelas, "parcela", "parcelas")}` : ""}
                       {aberta && debt.installmentValue <= 0 ? ` · faltam ${formatCurrency(debtRemaining(debt))}` : ""}
@@ -882,7 +887,7 @@ function Relatorios() {
                 return (
                   <div key={goal.id} className="flex flex-col gap-2 rounded-[14px] border border-ink-200 bg-white px-4 py-3.5">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-semibold text-ink-900">{goal.name}</span>
+                      <span className="min-w-0 line-clamp-2 text-sm font-semibold text-ink-900">{goal.name}</span>
                       <span className="flex shrink-0 items-center gap-1">
                         <b className={`text-sm tabular-nums ${tone}`}>{p}%</b>
                         <button

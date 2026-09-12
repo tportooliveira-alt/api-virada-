@@ -173,7 +173,7 @@ export default function InicioPage() {
                           {item.label.charAt(0).toUpperCase()}
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-semibold text-ink-900">{item.label}</span>
+                          <span className="line-clamp-2 text-sm font-semibold text-ink-900">{item.label}</span>
                           <span className="mt-0.5 block text-xs text-ink-500">
                             {formatDate(item.date)} · {item.category} · {item.scope === "empresa" ? "Empresa" : "Casa"}
                             {item.estornado && (
