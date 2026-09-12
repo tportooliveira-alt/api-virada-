@@ -53,7 +53,7 @@ function conhecimento(): string {
 /** Roda o Claude do plano Max. Prompt vai por stdin (não cabe em argumento). */
 function perguntarAoClaude(prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const proc = spawn("claude", ["-p"], { timeout: TIMEOUT_MS });
+    const proc = spawn("claude", ["-p", "--model", "haiku"], { timeout: TIMEOUT_MS });
     let saida = "";
     let erro = "";
     proc.stdout.on("data", (d) => (saida += d.toString()));

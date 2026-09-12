@@ -325,7 +325,7 @@ window.OM_PLAYBACK = '{"mode":"loop"}';
 
   
   <!-- BOTÃO FLUTUANTE CONSULTORA & DÍVIDAS -->
-  <button type="button" onclick="abrirWidgetIA('dividas')" title="Consultora da Virada" style="position:fixed; right:20px; bottom:20px; z-index:90; display:flex; align-items:center; gap:10px; border-radius:999px; background:#FFFFFF; color:#0F172A; border:1px solid #E5E9F0; padding:12px 18px 12px 14px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 12px 32px rgba(15,23,42,0.18);" class="hv3">
+  <button type="button" onclick="abrirWidgetIA('dividas')" title="Consultora da Virada" style="position:fixed; right:20px; bottom:calc(20px + env(safe-area-inset-bottom, 0px)); z-index:90; display:flex; align-items:center; gap:10px; border-radius:999px; background:#FFFFFF; color:#0F172A; border:1px solid #E5E9F0; padding:12px 18px 12px 14px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 12px 32px rgba(15,23,42,0.18);" class="hv3">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>
     Destravar Dívidas / Dúvidas
     <span style="display:inline-block; width:8px; height:8px; background:#22C55E; border-radius:50%;"></span>
@@ -333,7 +333,7 @@ window.OM_PLAYBACK = '{"mode":"loop"}';
 
 
 <!-- WIDGET CONSULTORA DA VIRADA & DESTRAVAR DÍVIDAS -->
-<div id="modal-virada-ia" style="display:none; position:fixed; right:20px; bottom:84px; width:390px; max-width:calc(100vw - 32px); max-height:580px; background:#FFFFFF; border-radius:20px; box-shadow:0 24px 60px rgba(15,23,42,0.25); border:1px solid #E2E8F0; z-index:100; overflow:hidden; font-family:'Onest', sans-serif; flex-direction:column;">
+<div id="modal-virada-ia" style="display:none; position:fixed; right:12px; left:12px; margin:0 auto; max-width:390px; bottom:84px; width:390px; max-width:calc(100vw - 32px); max-height:min(580px, 85vh); background:#FFFFFF; border-radius:20px; box-shadow:0 24px 60px rgba(15,23,42,0.25); border:1px solid #E2E8F0; z-index:100; overflow:hidden; font-family:'Onest', sans-serif; flex-direction:column;">
   
   <!-- CABEÇALHO -->
   <div style="background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color:#FFFFFF; padding:16px 18px; display:flex; align-items:center; justify-content:space-between;">
@@ -411,6 +411,9 @@ window.OM_PLAYBACK = '{"mode":"loop"}';
         <button type="button" onclick="mostrarRespostaFAQ('celular')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
           ❓ Funciona no meu iPhone e Android?
         </button>
+        <button type="button" onclick="mostrarRespostaFAQ('carta')" style="text-align:left; padding:10px 12px; background:#FEF3C7; border:1px solid #FCD34D; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; color:#92400E;">
+          📄 Como funciona a Carta de Quitação enviada ao Banco?
+        </button>
         <button type="button" onclick="mostrarRespostaFAQ('garantia')" style="text-align:left; padding:10px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; color:#1E293B;">
           ❓ E se eu não gostar? Qual é a garantia?
         </button>
@@ -437,6 +440,8 @@ window.OM_PLAYBACK = '{"mode":"loop"}';
 function abrirWidgetIA(aba) {
   var modal = document.getElementById('modal-virada-ia');
   if (!modal) return;
+  var btnFloat = document.querySelector('button[title="Consultora da Virada"]');
+  if (btnFloat) btnFloat.style.display = 'none';
   modal.style.display = 'flex';
   if (aba) trocarAbaIA(aba);
 }
@@ -444,6 +449,8 @@ function abrirWidgetIA(aba) {
 function fecharWidgetIA() {
   var modal = document.getElementById('modal-virada-ia');
   if (modal) modal.style.display = 'none';
+  var btnFloat = document.querySelector('button[title="Consultora da Virada"]');
+  if (btnFloat) btnFloat.style.display = 'flex';
 }
 
 function trocarAbaIA(aba) {
@@ -515,13 +522,22 @@ function simularPlanoDivida() {
       '<p style="margin:2px 0 0; font-size:15px; font-weight:800; color:#15803D;">De R$ ' + valor.toLocaleString('pt-BR') + ' para R$ ' + valorAcordoMin.toLocaleString('pt-BR') + ' a R$ ' + valorAcordoMax.toLocaleString('pt-BR') + '</p>' +
       '<p style="margin:2px 0 0; font-size:11px; color:#166534;">Economia potencial de até <strong>R$ ' + economia.toLocaleString('pt-BR') + '</strong> no valor quitado.</p>' +
     '</div>' +
-    '<p style="margin:0 0 10px; font-size:12px; color:#374151;">No <strong>Bônus 2 (Roteiro de Negociação)</strong> e no <strong>Capítulo 3 (Método Avalanche)</strong>, você tem os scripts prontos de ligação, cálculo exato de amortização e modelo de notificação para não aceitar refinanciamento furado.</p>' +
+    '<div style="background:#FEF3C7; border:1px solid #FCD34D; border-radius:8px; padding:10px; margin-bottom:10px;">' +
+      '<p style="margin:0 0 4px; font-size:12px; font-weight:800; color:#92400E; display:flex; align-items:center; gap:5px;">' +
+        '📄 <span>Carta Oficial de Notificação ao Banco (Inclusa)</span>' +
+      '</p>' +
+      '<p style="margin:0; font-size:11px; line-height:1.4; color:#78350F;">' +
+        'Você recebe o modelo pronto com embasamento no BACEN e CDC para exigir o <strong>DED (Demonstrativo da Dívida)</strong> e forçar o banco a retirar juros abusivos, liberando a quitação à vista com <strong>desconto de até 85%-90%</strong>.' +
+      '</p>' +
+    '</div>' +
+    '<p style="margin:0 0 10px; font-size:12px; color:#374151;">No <strong>Bônus 2</strong> você tem os 5 scripts prontos de ligação + a Carta ao Banco preenchível + as 4 armadilhas para nunca aceitar refinanciamento furado.</p>' +
     '<a href="https://pay.kiwify.com.br/QUVGK3y" target="_blank" style="display:block; text-align:center; padding:10px; background:#047857; color:#FFF; text-decoration:none; font-weight:800; font-size:13px; border-radius:8px; box-shadow:0 4px 10px rgba(4,120,87,0.3);">' +
       'Destravar Código da Virada por R$ 47 →' +
     '</a>';
 
   conteudo.innerHTML = html;
   box.style.display = 'block';
+  setTimeout(function() { box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 100);
 }
 
 function mostrarRespostaFAQ(chave) {
@@ -531,6 +547,7 @@ function mostrarRespostaFAQ(chave) {
     mensalidade: '<strong>Zero mensalidade!</strong> A maioria dos aplicativos cobra R$ 30 a R$ 40 por mês (mais de R$ 360/ano). O Código da Virada custa R$ 47 <em>uma única vez</em> com acesso vitalício e atualizações incluídas.',
     drive: '<strong>Com 1 clique automático!</strong> Na tela Conta do aplicativo, você clica em "Conectar Google Planilhas" e permite o acesso. O sistema gera a planilha executiva com 9 abas completas direto no seu Google Drive pessoal. Seus lançamentos sincronizam em segundo plano.',
     celular: '<strong>Funciona em ambos!</strong> No Android (Chrome) ou no iPhone (Safari), você toca em "Adicionar à tela de início" e ele se comporta como um aplicativo nativo rápido, sem ocupar espaço da memória e funcionando até offline.',
+    carta: '<strong>A arma mais poderosa do Bônus 2:</strong> É um documento formal pronto com embasamento jurídico e resoluções do Banco Central (BACEN). Você só preenche seus dados e protocola no banco ou envia por e-mail. Ela obriga a instituição a abrir a evolução da dívida (DED) e parar com ligações abusivas, transferindo seu caso para a mesa de acordos com desconto de até 70% a 95% do saldo devedor.',
     garantia: '<strong>Garantia incondicional de 7 dias pela Kiwify!</strong> Você testa o app, lê os livros, usa a planilha e os roteiros. Se achar que não valeu a pena, basta um toque para receber 100% do seu dinheiro de volta na hora, sem burocracia.'
   };
 
