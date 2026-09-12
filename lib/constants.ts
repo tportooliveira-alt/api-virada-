@@ -322,5 +322,13 @@ export const lessons: Lesson[] = [
   { id: "lesson-7", title: "Direção financeira", text: "Você não precisa de promessa mágica. Precisa de um plano que caiba na sua vida.", action: "Atualize uma meta e defina o próximo passo do seu mês." },
 ];
 
+/**
+ * Suporte no WhatsApp — o MESMO número em toda parte (AuthGate quando o login
+ * não abre, cartão da Planilha Google, página /obrigado). Estava escrito na mão
+ * em cada componente: quem trocasse o número tinha de lembrar de todos. Aqui é
+ * um lugar só.
+ */
+export const WHATSAPP_SUPORTE = "https://wa.me/5577999872390";
+
 /** Toast quando a pessoa tenta editar/excluir/estornar um gasto de parcela (ver lib/types.ts). */
 export const MSG_GASTO_DE_PARCELA = "Esse gasto veio de uma parcela — desfaça em Dívidas";

@@ -53,7 +53,7 @@ Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (Indexe
    > numa página de vendas, abra o arquivo citado e confira. `scripts/test-textos-verdadeiros.ts`
    > existe justamente para quebrar quando texto e código divergirem de novo.
 5. **Removidos:** 2 testes mortos (`scripts/test_finance.js`, `test_performance.js`) e `content/ebook.backup.md` (duplicado).
-6. **Planilha "viva" (fórmulas dentro do Google Sheets) — FEITA em 2026-09-11 (layout `2026-09-11.3`).**
+6. **Planilha "viva" (fórmulas dentro do Google Sheets) — FEITA em 2026-09-11; menus endurecidos em 2026-09-12 (layout `2026-09-12.1`).**
    O que é FÓRMULA (recalcula na planilha) e o que é VALOR (colado pelo sync) — lista viva no
    cabeçalho de `lib/sheets/builder.ts`, conferível com `npx tsx scripts/dump-formulas.ts` e
    provada offline por `scripts/test-planilha-formulas.ts` (mini-avaliador
@@ -63,8 +63,19 @@ Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (Indexe
      `CONT.SE` sobre a aba Lançamentos, sempre com `Estornado = "Não"`; `B12:B21` (gasto por
      categoria): `SOMASES`; `C12:C21`/`K12:K21`: `SPARKLINE`. `G12:J21` (comparativo dos 10 últimos
      meses do calendário): VALOR (o mês ali é data pro gráfico).
-   - Filtros `B10:B14` (Entradas/Gastos/Saldo/Nº/Por impulso, menus com "Todos" → `*`) e Bolsos
-     `B6`, `C9:F11` (alvo/gasto/sobra/situação): fórmulas; menus, listas `H:L`, renda e fase: VALOR.
+   - Filtros `B10:B14` (Entradas/Gastos/Saldo/Nº/Por impulso) e Bolsos `B6`, `C9:F11`
+     (alvo/gasto/sobra/situação): fórmulas; menus, listas `H:L`, renda e fase: VALOR.
+     Os 5 menus (`B4:B8`) são **`strict: true`** (12/09/2026): antes eram `strict: false`, e aí o
+     Sheets ACEITAVA o que a pessoa digitasse — "Mercadinho" no lugar de "Mercado", "setembro" no
+     lugar da chave do mês — marcava a célula com um triangulinho e **zerava os cinco totais sem
+     nenhuma explicação**; ela conclui que a planilha quebrou. Agora o valor fora da lista é
+     recusado na hora e o menu explica isso antes (`inputMessage`). Duas consequências que o
+     código carrega junto: a lista de cada menu **nasce com "Todos"** (`Filtros!H4:L4`, valor
+     estático gravado ANTES de `B4:B8` — menu strict apontando pra faixa vazia não teria opção
+     válida na planilha recém-criada), e `D4:D8` traduz **célula vazia e "Todos" → `*`**, porque o
+     strict impede digitar errado mas não impede apagar a célula com Delete (critério vazio casaria
+     só célula vazia = zero de novo). Caixa alta/baixa nunca foi o problema: o `SOMASES` ignora
+     maiúscula — o que mata é o valor que não existe na coluna.
    - Dívidas "Em aberto" (`SE(quitada;0;MÁXIMO(0;Total−Pago))`), Metas "Faltando"/"Progresso"
      (protegido contra alvo 0), Fluxo e Resumo "Resultado"/"Saldo acumulado": fórmula por linha.
      Resumo Entradas/Saídas/Economia/Lançamentos e painéis laterais `O4:O7`: VALOR.
@@ -75,8 +86,26 @@ Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (Indexe
    Sem credencial ninguém viu renderizar, então a chave é `mesChave()` = `"2026-09 (set)"`
    (AAAA-MM + nome do mês entre parênteses): nenhum parser de data engole, ordena
    cronologicamente, e é a MESMA função em Lançamentos!J, Dashboard!B3, lista Filtros!H e
-   Bolsos!B6. **Continua pendente validar UMA vez com credencial Google antes de vender** —
-   começa por B3/A6 e pela `SPARKLINE`.
+   Bolsos!B6.
+
+   > ⚠️ **NENHUMA fórmula desta planilha jamais foi renderizada no Google de verdade.** Não há
+   > credencial neste repositório: toda a prova é offline (o mini-avaliador roda as fórmulas em
+   > JS). **Este é o maior risco antes de vender** — fórmula que o Sheets recusa não dá erro
+   > nenhum no app: aparece como `#NOME?`, `#ERRO!` ou `#VALOR!` na tela de quem pagou.
+   > **Roteiro da PRIMEIRA criação real** (5 minutos, nesta ordem):
+   > 1. `Dashboard!B3` mostra `2026-09 (set)` como TEXTO (alinhado à esquerda), não como data.
+   > 2. `Dashboard!A6`, `D6` e `J6` (Entradas, Gastos e Nº de lançamentos do mês) batem com a
+   >    tela Início do app, no centavo.
+   > 3. `Dashboard!C12` e `K21`: as barrinhas da `SPARKLINE` aparecem — é a fórmula mais frágil
+   >    (matriz com `\` e opções em texto).
+   > 4. `Filtros`: troque UM menu (ex.: Escopo = Empresa) e veja `B10:B14` mudarem; depois tente
+   >    DIGITAR "Empresaa" na célula do menu — o Sheets tem de RECUSAR (é o `strict`).
+   > 5. `Bolsos!D9:F11` (gasto, sobra e situação dos 3 bolsos) batem com o card "Seus 3 bolsos".
+   >
+   > Como ler o erro: `#NOME?` = função em inglês ou nome que o pt-BR não conhece; `#ERRO!` =
+   > sintaxe (vírgula onde devia ser `;`); `#VALOR!` = tipo errado (o mês virou data). Achou
+   > algum? Anote a célula e rode `npx tsx scripts/dump-formulas.ts` pra ver a fórmula inteira
+   > antes de mexer.
    Regra que continua valendo: sintaxe **pt-BR** (`SOMA` não `SUM`, `;` separador, `\` em matriz,
    nenhum decimal com ponto) porque a planilha é `locale: pt_BR` + `USER_ENTERED`.
    **Grade:** cada aba de dados nasce com `GRADE_INICIAL` (1.010) linhas, toda formatada. Acima
@@ -147,17 +176,21 @@ Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (Indexe
     ⚠️ **Falta o dono declarar `drive.file` na tela de consentimento do Google** (ela já está
     em Produção/Externo, confirmado pelo dono em 12/09/2026, mas os escopos que o código pede
     não estão declarados lá). Sem isso o consentimento falha na hora de conectar a planilha.
-    **Escopo sensível fora de todo o repositório (12/09/2026).** `lib/sheets/google-sheets.ts`
-    (wrapper de service account, código morto: o único importador é
-    `scripts/test-sheets-build.ts`, com a `googleapis` mockada) também passou a pedir
-    `drive.file`. Por que mexer em código que não roda: um grep por `auth/spreadsheets` é
-    exatamente o que um auditor — ou o próximo dev — faz, e achar o escopo largo vivo num
-    arquivo do projeto convida a "consertar" o app de volta pra ele. Hoje o escopo largo só
-    aparece em textos marcados como histórico e em asserções que o proíbem
-    (`scripts/test-textos-verdadeiros.ts`, `scripts/test-auto-sync.ts`).
-    Apagar o arquivo seria melhor ainda — código morto que duplica a lógica de sincronização é
-    o próximo bug —, mas hoje `scripts/test-sheets-build.ts` é construído em cima dele; some
-    junto com esse teste, não antes.
+    **Escopo sensível fora de todo o repositório (12/09/2026).** Sobrava um wrapper de
+    servidor (service account) que ninguém executava — nenhuma tela, rota ou componente o
+    importava; só o `scripts/test-sheets-build.ts`, com a `googleapis` mockada. Primeiro ele
+    foi obrigado a pedir `drive.file` (um grep por `auth/spreadsheets` é exatamente o que um
+    auditor — ou o próximo dev — faz, e achar o escopo largo vivo num arquivo do projeto
+    convida a "consertar" o app de volta pra ele) e depois **foi apagado de vez**, porque
+    duplicava a sequência de chamadas do `sync-runner.ts`: duas cópias da mesma lógica
+    divergem e a próxima pessoa conserta a errada. No lugar, `scripts/test-sheets-build.ts`
+    foi reescrito sobre o caminho VIVO (`sync-requests.ts`: `createWorkbookBody` →
+    `layoutCall` → `staticValuesCall` → `chartsCall`, e `pushDataCalls` pros dados), ou seja,
+    passou a cobrir exatamente o que o comprador recebe. Hoje o escopo largo só aparece em
+    textos marcados como histórico e em asserções que o proíbem
+    (`scripts/test-textos-verdadeiros.ts` varre `lib/`, `app/`, `components/` e `scripts/`
+    inteiros; `scripts/test-auto-sync.ts` fixa o `SCOPES`). Sobrou: `googleapis` continua no `package.json` sem nenhum importador — dá pra
+    remover.
 
 14. **Texto de produto é testado como código.** `scripts/test-textos-verdadeiros.ts` lê as
     constantes reais (`SCOPES`, `DEBOUNCE_MS`, o nome da base IndexedDB, as rotas de
@@ -170,7 +203,6 @@ Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (Indexe
 
 - **Prévia** (`app/app/planilha-demo/page.tsx`): componente React que IMITA o Google Sheets na tela do app. É só visual/demonstração. Quando o Thiago fala "a planilha", **NÃO é essa.**
 - **Planilha real** (`lib/sheets/builder.ts` monta o conteúdo + `lib/sheets/sync-requests.ts` monta as chamadas + `lib/sheets/sync-runner.ts` fala com o Google e decide quando; `components/GoogleSyncButton.tsx` é só o botão): gera o Google Sheets de verdade no Drive do cliente. **É essa** que importa para fórmulas/profissionalismo. Validação real exige credencial Google (não há `.env` aqui) — usar `scripts/test-sheets-build.ts` (offline) + `dump-formulas.ts`.
-  `lib/sheets/google-sheets.ts` (service account) **não roda no app** — sobrou só pro `test-sheets-build.ts`.
 
 ## A "casa a organizar" — divergências a corrigir (arquitetura não bate)
 

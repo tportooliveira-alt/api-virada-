@@ -16,6 +16,7 @@
 
 import { PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { WHATSAPP_SUPORTE } from "@/lib/constants";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -52,9 +53,6 @@ declare global {
 }
 
 const STORAGE_KEY = "virada_access_v2";
-
-/** Mesmo número que aparece em /obrigado — o comprador já viu esse contato. */
-const WHATSAPP_SUPORTE = "https://wa.me/5577999872390";
 
 interface AccessRecord {
   email: string;

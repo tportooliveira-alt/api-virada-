@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, MoreHorizontal, Plus, Table, X } from "lucide-react";
 import { ExpenseChart, type ChartNature } from "@/components/ExpenseChart";
+import { PocketsCard } from "@/components/PocketsCard";
 import { Chip } from "@/components/ui/Chip";
 import { Sheet, SheetAction } from "@/components/ui/Sheet";
 import type { Debt, DebtPriority, DebtStatus, Expense, Goal, Income } from "@/lib/types";
@@ -27,6 +28,8 @@ import {
 } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
 
+import { mensagemDaParcela, mesDaUrl } from "./mes-e-toast";
+
 // ── Mês e abas ────────────────────────────────────────────────────────────────
 
 type Tab = "resumo" | "lancamentos" | "receitas" | "despesas" | "dividas" | "metas" | "fluxo" | "mensal";
@@ -42,8 +45,6 @@ const TABS: { value: Tab; label: string }[] = [
   { value: "mensal", label: "Por mês" },
 ];
 
-// Só 01–12: ?mes=2026-13 caía em "Janeiro 2026" com tudo zerado; agora cai no mês corrente.
-const MONTH_KEY = /^\d{4}-(0[1-9]|1[0-2])$/;
 const TOAST_MS = 6000;
 
 // "+R$ 2.900,00" para o que entrou, "−R$ 950,00" (U+2212) para o que saiu
@@ -110,9 +111,11 @@ function ListRow({ ini, positive, title, meta, value, valueClass, onPress, selec
         >
           {ini}
         </span>
+        {/* 2 linhas em vez de "…": em 360 px o corte comia justamente o valor
+            ("12 de set. · resultado +R$ 2.17…") e o detalhe da linha. */}
         <span className="min-w-0 text-left">
-          <span className="block truncate text-sm font-semibold text-ink-900">{title}</span>
-          <span className="mt-0.5 block truncate text-xs text-ink-500">{meta}</span>
+          <span className="line-clamp-2 text-sm font-semibold text-ink-900">{title}</span>
+          <span className="mt-0.5 line-clamp-2 text-xs text-ink-500">{meta}</span>
         </span>
       </span>
       <span className="flex shrink-0 items-center gap-1">
@@ -242,9 +245,7 @@ function Relatorios() {
   // Mês vem da URL (?mes=AAAA-MM ou ?mes=tudo) — recarregar reabre o mesmo mês.
   const hoje = toInputDate();
   const mesAtual = hoje.slice(0, 7);
-  const mesParam = searchParams.get("mes");
-  const tudo = mesParam === "tudo";
-  const mes = !tudo && mesParam && MONTH_KEY.test(mesParam) ? mesParam : mesAtual;
+  const { mes, tudo, invalido: mesInvalido } = mesDaUrl(searchParams.get("mes"), mesAtual);
   const periodoLabel = tudo ? "neste período" : "neste mês";
 
   // folhas de ação
@@ -407,7 +408,7 @@ function Relatorios() {
     setAjustando(null);
     if (!ids) return;
     showToast({
-      message: `Parcela de ${formatCurrency(value)} registrada em ${debt.name}`,
+      message: mensagemDaParcela(value, debt.name, formatCurrency),
       undo: () => data.undoDebtPayment(ids.paymentId),
     });
   }
@@ -503,7 +504,9 @@ function Relatorios() {
           </a>
         ) : (
           <Link href="/app/conta" className="shrink-0 text-[13px] font-bold text-amber-800 hover:underline">
-            Conectar em Conta
+            {/* Em 360 px o rótulo comprido empurrava o aviso e virava "Planilha não conecta…" */}
+            <span className="sm:hidden">Conectar</span>
+            <span className="hidden sm:inline">Conectar em Conta</span>
           </Link>
         )}
       </div>
@@ -523,6 +526,14 @@ function Relatorios() {
           Tudo
         </Chip>
       </div>
+
+      {/* Link com mês que não existe: abre o mês de hoje e diz por quê, em vez de
+          mostrar "Janeiro 2026" zerado como se fosse a verdade. */}
+      {mesInvalido && (
+        <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[13px] leading-5 text-amber-900">
+          {`Esse link tinha um mês que não existe. Abri ${monthLabel(mesAtual)}.`}
+        </p>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
@@ -581,19 +592,25 @@ function Relatorios() {
         // min-w-0 nos filhos: sem isso a lista (texto nowrap) alargava a coluna e a tela
         // estourava na horizontal em 360px.
         <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-          <section className="flex min-w-0 flex-col gap-4 rounded-xl border border-ink-200 bg-white p-[18px]">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Gastos por categoria · toque pra filtrar</p>
-            <ExpenseChart
-              expenses={data.expenses}
-              incomes={data.incomes}
-              period={tudo ? "all" : mes}
-              nature={natureza}
-              onNatureChange={setNatureza}
-              selectedCategory={categoriaSel}
-              onSelectCategory={setCategoriaSel}
-              showTotals={false}
-            />
-          </section>
+          <div className="flex min-w-0 flex-col gap-4">
+            <section className="flex min-w-0 flex-col gap-4 rounded-xl border border-ink-200 bg-white p-[18px]">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Gastos por categoria · toque pra filtrar</p>
+              <ExpenseChart
+                expenses={data.expenses}
+                incomes={data.incomes}
+                period={tudo ? "all" : mes}
+                nature={natureza}
+                onNatureChange={setNatureza}
+                selectedCategory={categoriaSel}
+                onSelectCategory={setCategoriaSel}
+                showTotals={false}
+              />
+            </section>
+            {/* Os 3 bolsos DO MÊS NAVEGADO: até aqui só o Início mostrava, sempre no mês
+                corrente, então ao andar ‹ › ninguém via o orçamento daquele mês.
+                Em "Tudo" não faz sentido — o alvo do bolso é mensal. */}
+            {!tudo && <PocketsCard data={data} mes={mes} />}
+          </div>
           <div className="flex min-w-0 flex-col gap-4">
             <section className="flex flex-col gap-3 rounded-xl border border-ink-200 bg-white p-[18px]">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Por impulso {periodoLabel}</p>
@@ -1023,7 +1040,8 @@ function Relatorios() {
           role="status"
           className="fixed inset-x-3.5 bottom-[calc(88px+env(safe-area-inset-bottom))] z-[45] mx-auto flex max-w-[560px] items-center justify-between gap-3 rounded-[14px] bg-ink-900 px-4 py-3 text-white shadow-float lg:bottom-6"
         >
-          <p className="min-w-0 truncate text-sm font-semibold">{toast.message}</p>
+          {/* 2 linhas em vez de "…": nome de dívida comprido não pode esconder o que foi feito */}
+          <p className="min-w-0 line-clamp-2 text-sm font-semibold">{toast.message}</p>
           <button
             type="button"
             onClick={desfazerToast}

@@ -10,9 +10,16 @@
  * explicitamente. Roda com: npx tsx scripts/test-bolsos.ts  (e com TZ=UTC).
  */
 
-import { BUDGET_PHASES, BUDGET_PRESETS, POCKETS, POCKET_BY_CATEGORY, expenseCategories } from "../lib/constants";
+import { readFileSync } from "node:fs";
+
+import React, { createElement } from "react";
+import { renderToString } from "react-dom/server";
+
+(globalThis as unknown as { React: typeof React }).React = React;
+import { PocketsCard } from "../components/PocketsCard";
+import { BUDGET_PHASES, BUDGET_PRESETS, POCKETS, POCKET_BY_CATEGORY, WHATSAPP_SUPORTE, expenseCategories } from "../lib/constants";
 import type { Debt, Expense, Income, ViradaData } from "../lib/types";
-import { avisosDeDivida, diasAte, getPockets, pocketOf, shiftMonth, sugerirFaseVirada } from "../lib/utils";
+import { avisosDeDivida, diasAte, formatCurrency, getPockets, pocketOf, shiftMonth, sugerirFaseVirada } from "../lib/utils";
 import { parseLegacy } from "../providers/virada-provider";
 
 let passed = 0;
@@ -341,6 +348,43 @@ section("Juiz #2 · migração do localStorage antigo mantém settings (renda e 
   assertEq(parseLegacy(JSON.stringify(parcial)), { ...vazio, expenses: parcial.expenses }, "JSON parcial: listas ausentes viram vazias");
   assertEq(parseLegacy(null), null, "sem nada gravado → null");
   assertEq(parseLegacy("{isso não é json"), null, "JSON quebrado → null (não derruba o app)");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+section("Juiz rodada 2 · linhas de dívida não podem estourar a tela de 360 px");
+{
+  // O juiz mediu scrollWidth 372/393 contra clientWidth 360: o <span class="money">
+  // é white-space: nowrap dentro de um flex justify-between, então o texto saía da
+  // pílula e empurrava a seta pra fora. O R$ já vem colado ao número por NBSP
+  // (formatCurrency), logo a linha pode quebrar no espaço comum sem ficar feia.
+  const debts = [
+    debt({ name: "Velha", totalValue: 20000, installmentValue: 12345.67, dueDate: "2026-08-10" }), // vencida
+    debt({ name: "Cara", totalValue: 20000, installmentValue: 12345.67, dueDate: `${MES}-28` }),   // vencendo
+  ];
+  const html = renderToString(createElement(PocketsCard, { data: { ...vazio, debts }, mes: MES, hoje: HOJE }));
+  const linhas = html.match(/<a [^>]*aba=dividas[\s\S]*?<\/a>/g) ?? [];
+  assertEq(linhas.length, 2, "as duas linhas (vencidas e vencendo) aparecem");
+  assert(html.includes(formatCurrency(12345.67)), `valor grande formatado (${formatCurrency(12345.67)})`);
+  for (const linha of linhas) {
+    const qual = /vencidas/.test(linha) ? "vencidas" : "vencendo";
+    assert(!/class="[^"]*\bmoney\b[^"]*"/.test(linha), `${qual}: sem a classe .money (nowrap) no texto — ele precisa poder quebrar em duas linhas`);
+    assert(/min-w-0/.test(linha), `${qual}: texto com min-w-0 (encolhe em vez de empurrar a seta pra fora da pílula)`);
+    assert(/shrink-0/.test(linha), `${qual}: a seta não encolhe nem sai (shrink-0)`);
+    assert(!/whitespace-nowrap/.test(linha), `${qual}: nada de whitespace-nowrap na linha`);
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+section("Juiz rodada 2 · número do WhatsApp de suporte num lugar só");
+{
+  // Estava escrito na mão em dois componentes: trocar o número exigia lembrar dos
+  // dois. Agora vive em lib/constants.ts e os componentes importam.
+  assert(/^https:\/\/wa\.me\/\d{10,}$/.test(WHATSAPP_SUPORTE), `WHATSAPP_SUPORTE é um link wa.me válido (${WHATSAPP_SUPORTE})`);
+  for (const arquivo of ["components/AuthGate.tsx", "components/GoogleSyncButton.tsx"]) {
+    const fonte = readFileSync(new URL(`../${arquivo}`, import.meta.url), "utf8");
+    assert(!/wa\.me/.test(fonte), `${arquivo}: nenhum número escrito na mão`);
+    assert(/WHATSAPP_SUPORTE/.test(fonte) && /from "@\/lib\/constants"/.test(fonte), `${arquivo}: usa WHATSAPP_SUPORTE de lib/constants`);
+  }
 }
 
 // ─── Resultado ───────────────────────────────────────────────────────────────

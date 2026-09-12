@@ -469,6 +469,59 @@ section("(e) Layout — menus, congelamento, filtro, versão e grade que cresce"
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+section("(f) Menus da aba Filtros — lixo digitado não passa calado");
+// ─────────────────────────────────────────────────────────────────────────────
+{
+  // O ESTRAGO que a validação frouxa deixava passar: "mercado" em minúsculo não
+  // é a categoria "Mercado" gravada em Lançamentos. O SOMASES não reclama — ele
+  // simplesmente não acha nada. A pessoa vê R$ 0,00 em tudo, sem uma linha de
+  // explicação, e conclui que a planilha quebrou.
+  pasta.definir("Filtros!B5", "Mercadinho");
+  assertEq(centavos(num("Filtros!B11")), 0, "categoria digitada errada ('Mercadinho') zera os Gastos — este é o estrago");
+  assertEq(num("Filtros!B13"), 0, "…e zera também o Nº de lançamentos");
+  pasta.definir("Filtros!B5", "Todos");
+  // Mês escrito como a pessoa fala ("setembro") em vez da chave da lista: idem.
+  pasta.definir("Filtros!B4", "setembro");
+  assertEq(centavos(num("Filtros!B10")), 0, "mês fora da lista ('setembro') zera as Entradas");
+  pasta.definir("Filtros!B4", "Todos");
+  // Maiúscula/minúscula NÃO é o problema: SOMASES do Sheets ignora caixa, e o
+  // avaliador copia isso — "mercado" acha "Mercado". O que mata é o valor que
+  // não existe na coluna.
+  pasta.definir("Filtros!B5", "mercado");
+  assert(centavos(num("Filtros!B11")) > 0, "'mercado' em minúsculo ainda acha 'Mercado' (SOMASES ignora caixa)");
+  pasta.definir("Filtros!B5", "Todos");
+  assert(centavos(num("Filtros!B11")) > 0, "voltando pra \"Todos\", os Gastos voltam");
+
+  // Apagar o menu (tecla Delete na célula) é o outro jeito de zerar tudo: a
+  // validação permite célula vazia. Vazio tem que valer "Todos".
+  pasta.definir("Filtros!B5", "");
+  assert(centavos(num("Filtros!B11")) > 0, "menu apagado vale \"Todos\" (não zera os Gastos)");
+  assertEq(ler("Filtros!D5"), "*", "menu apagado vira critério \"*\"");
+  pasta.definir("Filtros!B5", "Todos");
+
+  // A CORREÇÃO: a regra é strict, então o Sheets RECUSA o valor digitado fora da
+  // lista e a célula continua com uma opção válida.
+  const ids = Object.fromEntries(Object.values(TAB).map((t, i) => [t, 100 + i]));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const reqs = buildLayoutRequests(ids) as any[];
+  const menus = reqs.filter((r) => r.setDataValidation && r.setDataValidation.range.sheetId === ids[TAB.filtros]);
+  assertEq(menus.length, 5, "os 5 menus continuam lá");
+  assert(menus.every((m) => m.setDataValidation.rule.strict === true),
+    "menus são strict: valor fora da lista é recusado, não aceito com um triangulinho",
+    JSON.stringify(menus.map((m) => m.setDataValidation.rule.strict)));
+  assert(menus.every((m) => typeof m.setDataValidation.rule.inputMessage === "string" && m.setDataValidation.rule.inputMessage.length > 10),
+    "cada menu explica em pt-BR o que fazer antes de a pessoa digitar (inputMessage)");
+
+  // Menu strict com lista vazia travaria a planilha recém-criada: a lista nasce
+  // com "Todos" (valor estático), antes de qualquer sync — e antes do B4:B8.
+  const iSeed = estatico.findIndex((v) => v.range === `${TAB.filtros}!H4:L4`);
+  const iMenus = estatico.findIndex((v) => v.range === `${TAB.filtros}!A4:D8`);
+  assert(iSeed >= 0, "a lista dos menus nasce preenchida (Filtros!H4:L4)");
+  assert(iSeed >= 0 && iSeed < iMenus, "a lista vem ANTES do \"Todos\" gravado nos menus", `H4:L4=${iSeed}, A4:D8=${iMenus}`);
+  assertEq(JSON.stringify(estatico[iSeed]?.values), JSON.stringify([["Todos", "Todos", "Todos", "Todos", "Todos"]]), "as 5 listas nascem com \"Todos\"");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 console.log("\n" + "═".repeat(60));
 console.log(`RESULTADO: ${passed} passaram, ${failed} falharam`);
 if (failures.length > 0) {

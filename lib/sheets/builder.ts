@@ -113,7 +113,7 @@ export const HEADERS: Partial<Record<TabKey, string[]>> = {
  * atrasada, reaplica o visual sozinho no próximo "Atualizar agora".
  * Só valores mudam sem bump.
  */
-export const LAYOUT_VERSION = "2026-09-11.3";
+export const LAYOUT_VERSION = "2026-09-12.1";
 
 // Cores das barras de participação do Dashboard — mesma sequência da legenda
 // da pizza no design (Planilha Virada - Redesign).
@@ -381,6 +381,33 @@ function addDashboardSummaryBlock(requests: unknown[], sheetId: number, row: num
   requests.push(repeatCell(sheetId, range(row + 1, row + 2, startCol, endCol), STYLE.sectionHint));
 }
 
+/** Dica que aparece ao clicar no menu, ANTES de a pessoa digitar. */
+const MENU_AVISO = "Use a setinha e escolha uma opção da lista. Valor digitado fora da lista não é aceito.";
+
+/**
+ * Menu da aba Filtros. O `dataValidationFromRange` do styles.ts monta a regra
+ * genérica (frouxa); aqui ela vira **strict** de propósito.
+ *
+ * POR QUÊ: com `strict: false` o Google ACEITA qualquer coisa digitada e só marca
+ * a célula com um triangulinho. Quem escreve "Mercadinho" no lugar de "Mercado",
+ * ou "setembro" no lugar da chave do mês, passa a ver R$ 0,00 em TODOS os totais
+ * — porque o SOMASES não erra, ele só não acha nada — e conclui que a planilha
+ * quebrou. Com strict o Sheets recusa na hora e a célula continua com uma opção
+ * válida, então os totais nunca zeram sem explicação.
+ *
+ * (Caixa alta/baixa não é o problema: o SOMASES ignora maiúscula. O que mata é o
+ * valor que não existe na coluna.)
+ */
+function menuDeFiltro(sheetId: number, row: number, rangeFormula: string) {
+  const base = dataValidationFromRange(sheetId, row, 1, rangeFormula);
+  return {
+    setDataValidation: {
+      ...base.setDataValidation,
+      rule: { ...base.setDataValidation.rule, strict: true, inputMessage: MENU_AVISO },
+    },
+  };
+}
+
 // Filtros: banner (1–2), menus (4–8: rótulo em A, menu em B, critério em D
 // escondida), totais (10–14) e listas dos menus em H:L (escondidas).
 function buildFiltrosLayout(requests: unknown[], sheetId: number) {
@@ -404,7 +431,8 @@ function buildFiltrosLayout(requests: unknown[], sheetId: number) {
   requests.push(repeatCell(sheetId, range(3, 8, 1, 2), STYLE.menuCell));
   requests.push(repeatCell(sheetId, range(3, 8, 2, 3), STYLE.sparkHeader));
   for (let r = 3; r < 8; r++) {
-    requests.push(dataValidationFromRange(sheetId, r, 1, `=${TAB.filtros}!$${colLetter(FILTRO_LISTA_COL + r - 3)}$4:$${colLetter(FILTRO_LISTA_COL + r - 3)}$${FILTRO_LISTA_FIM}`));
+    const col = colLetter(FILTRO_LISTA_COL + r - 3);
+    requests.push(menuDeFiltro(sheetId, r, `=${TAB.filtros}!$${col}$4:$${col}$${FILTRO_LISTA_FIM}`));
   }
 
   requests.push(setRowHeight(sheetId, 9, 14, 30));
@@ -728,6 +756,9 @@ function categoriaFormula(row: number) {
 
 // Filtros: D4:D8 traduz o menu ("Todos" → "*", que casa qualquer texto — por
 // isso toda coluna de critério é gravada com valor, nunca vazia).
+// Célula APAGADA (tecla Delete) também vira "*": a validação strict impede
+// digitar fora da lista, mas não impede esvaziar a célula, e critério vazio
+// casaria só célula vazia — ou seja, zeraria os cinco totais sem explicação.
 function filtroCriterios() {
   return `;${lanc(LC.mes)};$D$4;${lanc(LC.categoria)};$D$5;${lanc(LC.escopo)};$D$6;${lanc(LC.natureza)};$D$7;${lanc(LC.pagamento)};$D$8`;
 }
@@ -735,11 +766,11 @@ function filtroCriterios() {
 function filtrosFormulas() {
   const crit = filtroCriterios();
   return {
-    D4: '=SE(B4="Todos";"*";B4)',
-    D5: '=SE(B5="Todos";"*";B5)',
-    D6: '=SE(B6="Todos";"*";B6)',
-    D7: '=SE(B7="Todos";"*";B7)',
-    D8: '=SE(B8="Todos";"*";B8)',
+    D4: '=SE(OU(B4="";B4="Todos");"*";B4)',
+    D5: '=SE(OU(B5="";B5="Todos");"*";B5)',
+    D6: '=SE(OU(B6="";B6="Todos");"*";B6)',
+    D7: '=SE(OU(B7="";B7="Todos");"*";B7)',
+    D8: '=SE(OU(B8="";B8="Todos");"*";B8)',
     B10: `=${somaLancamentos("Entrada", crit)}`,
     B11: `=${somaLancamentos("Saída", crit)}`,
     B12: "=B10-B11",
@@ -807,6 +838,10 @@ export function buildStaticValues() {
   data.push(
     { range: `${TAB.filtros}!A1`, values: [["FILTROS • VEJA SÓ O QUE QUISER"]] },
     { range: `${TAB.filtros}!A2`, values: [["Escolha nos menus. Os totais mudam na hora. Deixe \"Todos\" para não filtrar."]] },
+    // A lista de cada menu nasce só com "Todos" e o sync preenche o resto. Isto
+    // vem ANTES do A4:D8 de propósito: o menu é strict, então a opção que o app
+    // grava em B4:B8 precisa já existir na lista da planilha recém-criada.
+    { range: `${TAB.filtros}!${colLetter(FILTRO_LISTA_COL)}4:${colLetter(FILTRO_LISTA_COL + 4)}4`, values: [Array.from({ length: 5 }, () => "Todos")] },
     { range: `${TAB.filtros}!A4:D8`, values: [
       ["Mês", "Todos", "Todos = qualquer mês", f.D4],
       ["Categoria", "Todos", "", f.D5],

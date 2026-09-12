@@ -23,6 +23,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, RefreshCcw } from "lucide-react";
+import { WHATSAPP_SUPORTE } from "@/lib/constants";
 import { timeAgo } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
 import { type SyncInput } from "@/lib/sheets/builder";
@@ -43,13 +44,6 @@ import {
   type SheetMeta,
   type Token,
 } from "@/lib/sheets/sync-runner";
-
-/**
- * Suporte no WhatsApp — o mesmo número que o AuthGate mostra quando o login não
- * abre. Está repetido aqui de propósito: são dois componentes independentes, e
- * quem trocar o número tem de trocar nos dois (um grep por "wa.me" acha os dois).
- */
-const WHATSAPP_SUPORTE = "https://wa.me/5577999872390";
 
 /** Margem de segurança: não tentar usar um token que vence no meio do envio. */
 const FOLGA_TOKEN_MS = 60 * 1000;

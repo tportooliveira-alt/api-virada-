@@ -13,6 +13,10 @@
  *     Lançar tem ?tipo/?editar em Suspense, "Mais detalhes" e "Salvar alteração";
  *     manifest com id + shortcuts.
  *
+ * Rodada 3 (acabamento em tela estreita) acrescentou T1..T6 no fim do arquivo:
+ *   T1 chip de categoria inteiro · T2 toast curto com Desfazer · T3 bolsos do mês
+ *   navegado · T4 ?mes= inválido · T5 voz/abas prometidas · T6 nada cortado com "…".
+ *
  * O resto (toques, toasts, URL) é o e2e Playwright da fase 3.
  * Roda com: npx tsx scripts/test-telas-fase3.ts   (e de novo com TZ=UTC).
  */
@@ -23,8 +27,10 @@ import React, { createElement } from "react";
 import { renderToString } from "react-dom/server";
 
 (globalThis as unknown as { React: typeof React }).React = React;
+import { mensagemDaParcela, mesDaUrl } from "../app/app/relatorios/mes-e-toast";
 import { ExpenseChart } from "../components/ExpenseChart";
 import { PocketsCard } from "../components/PocketsCard";
+import { TAB } from "../lib/sheets/builder";
 import type { Debt, Expense, Income, ViradaData } from "../lib/types";
 import { formatCurrency } from "../lib/utils";
 
@@ -282,8 +288,11 @@ section("Fonte das telas");
   // Correções pedidas pelo juiz (rodada 2)
   const shell = src("components/AppShell.tsx");
   const demo = src("app/app/planilha-demo/page.tsx");
+  // A regra do mês saiu do page.tsx pra mes-e-toast.ts: o Next só deixa uma página
+  // exportar `default`, e sem export não dá pra testar a função sem abrir o navegador.
   const MONTH_RE = "/^\\d{4}-(0[1-9]|1[0-2])$/";
-  assert(relatorios.includes(MONTH_RE), "#2 Relatórios: ?mes só aceita 01–12 (2026-13 cai no mês corrente)", MONTH_RE);
+  assert(src("app/app/relatorios/mes-e-toast.ts").includes(MONTH_RE), "#2 Relatórios: ?mes só aceita 01–12 (2026-13 cai no mês corrente)", MONTH_RE);
+  assert(/mesDaUrl\(searchParams\.get\("mes"\), mesAtual\)/.test(relatorios), "#2 Relatórios: a tela usa mesDaUrl (uma regra só)");
   assert(/setTab\(tipoParam === "entrada" \? "entrada" : "gasto"\)/.test(lancar) && /setDetalhes\(usaEmpresa\)/.test(lancar), "#3 Lançar: sair da edição volta a aba e o 'Mais detalhes' ao padrão");
   assert(/PenLine/.test(inicio) && /SpeechRecognition/.test(inicio) && !/<Mic className="h-\[18px\] w-\[18px\] shrink-0" \/>\s*<span className="text-center">\s*Lançar agora <span/.test(inicio), "#5 Início: CTA só promete voz quando o navegador tem SpeechRecognition");
   assert(!/pontos e logs/.test(inicio) && /Dashboard/.test(inicio), "#6 Início: card da planilha fala das abas que existem");
@@ -291,6 +300,125 @@ section("Fonte das telas");
   assert(/sticky bottom-\[calc\(76px\+env\(safe-area-inset-bottom\)\)\]/.test(lancar), "#1 Lançar: Confirmar sticky acima do menu");
   assert(/\/app\/lancar/.test(shell) && /lg:hidden|hidden lg:/.test(shell), "#1 AppShell: cabeçalho compacto em /app/lancar no celular");
   assert(/period=\{/.test(demo) && /shiftMonth/.test(demo), "#8 Prévia da planilha: ExpenseChart com período + navegação ‹ mês ›");
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RODADA 3 — acabamento em tela estreita (o que o juiz da rodada 2 mediu e reprovou).
+// A medição de pixel (scrollWidth ≤ clientWidth em 360 px) está no e2e do time de
+// telas; aqui ficam os contratos que dá pra provar fora do navegador.
+// ══════════════════════════════════════════════════════════════════════════════
+
+function assertEq(actual: unknown, expected: unknown, label: string) {
+  const ok = JSON.stringify(actual) === JSON.stringify(expected);
+  assert(ok, label, ok ? undefined : `esperado=${JSON.stringify(expected)}, obtido=${JSON.stringify(actual)}`);
+}
+
+// Comentário explicando a decisão não é promessa nem classe de CSS: sai antes de medir.
+function semComentarios(codigo: string) {
+  return codigo.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/^\s*\/\/.*$/gm, "");
+}
+
+{
+  const ler = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
+  const LANCAR = ler("app/app/lancar/page.tsx");
+  const RELATORIOS = ler("app/app/relatorios/page.tsx");
+  const INICIO = ler("app/app/inicio/page.tsx");
+
+  section("T1 — chip de categoria inteiro em 360 px");
+  {
+    // Em 360 px o chip "Transporte" virava "Transpo…" (scrollWidth 69 > clientWidth 64).
+    // `truncate` é o que põe as reticências: sem ela, nome que não coubesse viraria
+    // estouro medido no e2e, em vez de um "…" que ninguém percebe ser um bug.
+    const grade = semComentarios(/Categoria<\/SectionLabel>[\s\S]*?<\/div>\s*<\/div>/.exec(LANCAR)?.[0] ?? "");
+    assert(grade.length > 0, "achei a grade de categorias no fonte");
+    assert(!/truncate/.test(grade), "rótulo do chip não usa `truncate` (nada de reticências)");
+    assert(/min-\[360px\]:grid-cols-4/.test(grade), "continuam 4 chips por linha a partir de 360 px");
+    assert(/grid-cols-3 /.test(grade), "abaixo de 360 px (celular de 320) são 3 por linha, pra o nome não vazar");
+    assert(/text-\[10px\][^"]*sm:text-xs/.test(grade), "rótulo é 10px no celular e 12px a partir de sm");
+
+    // Categoria nova não pode ser mais larga que a maior que já cabe ("Recebimento").
+    const cats = [...LANCAR.matchAll(/\{ key: "([^"]+)", icon:/g)].map((m) => m[1]);
+    assert(cats.length === 19, `12 chips de gasto + 7 de entrada (achei ${cats.length})`);
+    const maior = cats.reduce((a, b) => (b.length > a.length ? b : a), "");
+    assert(maior.length <= 11, `o rótulo mais longo tem no máximo 11 caracteres (é "${maior}")`);
+  }
+
+  section("T2 — toast de Relatórios cabe em 360 px");
+  {
+    assertEq(mensagemDaParcela(450, "Cartão", brl), "Parcela R$ 450,00 · Cartão", 'parcela vira "Parcela R$ 450,00 · Cartão"');
+    assert(!/registrada em/.test(mensagemDaParcela(450, "Cartão", brl)), 'sumiu o "registrada em" que estourava a linha');
+    // Nome de dívida comprido não pode empurrar o Desfazer pra fora: o toast quebra em
+    // 2 linhas (line-clamp-2) e o botão é `shrink-0`.
+    const toast = semComentarios(/\{\/\* Toast com Desfazer[\s\S]*?\n      \)\}/.exec(RELATORIOS)?.[0] ?? "");
+    assert(toast.length > 0, "achei o toast no fonte");
+    assert(!/truncate/.test(toast), "a mensagem do toast não usa `truncate`");
+    assert(/line-clamp-2/.test(toast), "a mensagem do toast cabe em até 2 linhas");
+    assert(/shrink-0/.test(toast), "o botão Desfazer não encolhe");
+    // Todos os toasts desta tela — não só o da parcela.
+    const mensagens = [...RELATORIOS.matchAll(/showToast\(\{\s*\n?\s*message: ([^\n]+),/g)].map((m) => m[1].trim());
+    assert(mensagens.length >= 2, `achei ${mensagens.length} toasts na tela`);
+    assert(
+      mensagens.every((m) => /^"Apagado"$/.test(m) || /mensagemDaParcela\(/.test(m)),
+      "todo toast é curto: 'Apagado' ou mensagemDaParcela()",
+      mensagens.join(" | "),
+    );
+  }
+
+  section("T3 — bolsos no mês navegado (aba Resumo)");
+  {
+    assert(/import \{ PocketsCard \} from "@\/components\/PocketsCard"/.test(RELATORIOS), "Relatórios importa PocketsCard");
+    assert(/!tudo && <PocketsCard data=\{data\} mes=\{mes\} \/>/.test(RELATORIOS), "Resumo mostra os bolsos do mês escolhido, e só quando não é 'Tudo'");
+    assert(/<PocketsCard data=\{data\} \/>/.test(INICIO), "Início continua com os bolsos do mês corrente");
+  }
+
+  section("T4 — ?mes= inválido cai no mês corrente");
+  {
+    const atual = "2026-09";
+    assertEq(mesDaUrl(null, atual), { mes: atual, tudo: false, invalido: false }, "sem ?mes= → mês corrente");
+    assertEq(mesDaUrl("2026-08", atual), { mes: "2026-08", tudo: false, invalido: false }, "?mes=2026-08 → agosto");
+    assertEq(mesDaUrl("tudo", atual), { mes: atual, tudo: true, invalido: false }, "?mes=tudo → todos os meses");
+    for (const ruim of ["2026-13", "abc", "0000-00", "2026-00", "2026-1", "0000-01", "9999-12", "2026-08-01", " 2026-08", ""]) {
+      assertEq(mesDaUrl(ruim, atual), { mes: atual, tudo: false, invalido: true }, `?mes=${JSON.stringify(ruim)} → mês corrente, marcado como inválido`);
+    }
+    assert(/mesInvalido && \(/.test(RELATORIOS), "a tela avisa quando o link tinha mês inválido");
+    assert(/Esse link tinha um mês que não existe/.test(RELATORIOS), "o aviso diz o que aconteceu, sem jargão");
+  }
+
+  section("T5 — voz e abas da planilha");
+  {
+    // (a) só promete "por voz" quando o navegador tem reconhecimento de fala — mesma
+    // regra que já esconde o botão de voz em /app/lancar.
+    assert(/SpeechRecognition/.test(INICIO), "Início checa reconhecimento de fala antes de prometer voz");
+    assert(/temVoz && <span[^>]*> — por voz ou texto<\/span>/.test(INICIO), 'o "por voz" do Início é condicional');
+    const inicioSemVozCondicional = semComentarios(INICIO).replace(/temVoz && <span[\s\S]*?<\/span>/g, "");
+    // `temVoz`/`setTemVoz` são código; o que não pode sobrar é a PROMESSA escrita pra pessoa.
+    assert(!/por voz|\bfalar\b|\bditar\b|microfone/i.test(inicioSemVozCondicional), "não sobrou nenhuma outra promessa de voz no Início");
+
+    // (b) o cartão da planilha só pode citar aba que existe em lib/sheets/builder.ts.
+    const cartao = /\{\/\* Planilha Google \*\/\}[\s\S]*?<\/section>/.exec(INICIO)?.[0] ?? "";
+    assert(cartao.length > 0, "achei o cartão da planilha no fonte");
+    assert(!/pontos|logs/i.test(cartao), 'o cartão não fala mais em "pontos" nem "logs" (abas que não existem)');
+    const reais = Object.values(TAB).map((t) => t.toLowerCase());
+    ["Dashboard", "filtros", "bolsos", "lançamentos", "dívidas", "metas"].forEach((nome) => {
+      assert(new RegExp(nome, "i").test(cartao), `o cartão cita "${nome}"`);
+      assert(reais.some((t) => t.startsWith(nome.toLowerCase())), `"${nome}" é uma aba real da planilha`);
+    });
+  }
+
+  section("T6 — texto da tela nunca é cortado com reticências");
+  {
+    // Regra da rodada: rótulo/dica/aviso escrito por nós tem que caber inteiro. Só o
+    // texto que a PESSOA digita (descrição, nome da dívida) pode ser clampado, em 2 linhas.
+    assert(/<span className="text-xs text-ink-400">\{listening/.test(LANCAR), "a dica do campo Valor não usa `truncate` (cabia só até 'entra soz…')");
+    assert(/"a vírgula entra sozinha"/.test(LANCAR), "a dica ficou curta: 'a vírgula entra sozinha'");
+    assert(!/— opcional/.test(LANCAR), "o placeholder encurtou: '(opcional)' no fim, sem estourar a caixa");
+
+    const listRow = semComentarios(/function ListRow\([\s\S]*?\n}/.exec(RELATORIOS)?.[0] ?? "");
+    assert(listRow.length > 0, "achei o ListRow no fonte");
+    assert(!/truncate/.test(listRow), "linha de lista usa 2 linhas em vez de cortar o valor com '…'");
+    assert((listRow.match(/line-clamp-2/g) ?? []).length === 2, "título e detalhe da linha cabem em até 2 linhas");
+  }
 }
 
 console.log(`\n${"═".repeat(60)}`);

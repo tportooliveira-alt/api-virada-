@@ -162,9 +162,9 @@ contem(claude, "drive.file", "a troca de escopo é decisão registrada");
 
 // Todo caminho de arquivo citado no CLAUDE.md tem que existir — doc que aponta
 // pra arquivo inexistente é a forma mais barata de mentira. Duas exceções, ambas
-// de propósito: o CLAUDE.md fala dos arquivos que APAGOU (decisão #5), pra ninguém
+// de propósito: o CLAUDE.md fala dos arquivos que APAGOU (decisões #5 e #13), pra ninguém
 // ressuscitá-los, e cita endereços públicos (começam com "/"), que são URL e não caminho.
-const APAGADOS_DE_PROPOSITO = ["scripts/test_finance.js", "content/ebook.backup.md"];
+const APAGADOS_DE_PROPOSITO = ["scripts/test_finance.js", "content/ebook.backup.md", "lib/sheets/google-sheets.ts"];
 for (const m of claude.matchAll(/`([A-Za-z0-9_./-]+\.(?:ts|tsx|mjs|js|md|html|json))`/g)) {
   const alvo = m[1];
   if (!alvo.includes("/")) continue; // nome solto (ex.: `builder.ts`) não é caminho
@@ -332,12 +332,23 @@ naoContem(
 // ─────────────────────────────────────────────────────────────────────────────
 titulo("11. Escopo sensível fora do caminho");
 
-const googleSheetsServidor = ler("lib/sheets/google-sheets.ts");
-naoContem(
-  googleSheetsServidor,
-  "https://www.googleapis.com/auth/spreadsheets\"",
-  "nem o wrapper de servidor (código morto) pode pedir o escopo largo — grep de auditoria acha e reprova",
+// O wrapper de servidor `lib/sheets/google-sheets.ts` era código morto (só o
+// teste o importava) e repetia a sequência do sync-runner: foi apagado em
+// 12/09/2026. Em vez de conferir um arquivo só, varre TUDO — é o mesmo grep que
+// um auditor do Google faria.
+ok(
+  !existsSync(path.join(RAIZ, "lib/sheets/google-sheets.ts")),
+  "o wrapper de servidor da planilha (código morto, caminho duplicado) não voltou",
 );
+{
+  const comEscopoLargo = ["lib", "app", "components", "scripts"]
+    .flatMap((dir) => varrer(dir, [".ts", ".tsx"]))
+    .filter((f) => ler(f).includes("https://www.googleapis.com/auth/spreadsheets\""));
+  ok(
+    comEscopoLargo.length === 0,
+    `nenhum arquivo do produto pede o escopo largo de planilhas${comEscopoLargo.length ? ` (achei em ${comEscopoLargo.join(", ")})` : ""}`,
+  );
+}
 contem(
   ler("docs/estrategia-google-sync.md"),
   "HISTÓRICO",

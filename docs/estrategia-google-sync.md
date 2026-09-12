@@ -201,6 +201,13 @@ Authorization: Bearer {access_token}
 Isso remove a dependência do `googleapis` npm package (pesado).
 O frontend chama a API REST do Google direto com `fetch`.
 
+> **FEITO (12/09/2026).** É exatamente assim que o app funciona hoje: `lib/sheets/sync-runner.ts`
+> chama `https://sheets.googleapis.com/v4/...` com `fetch` e o token do próprio cliente. O último
+> resto do caminho de servidor (`lib/sheets/google-sheets.ts`, wrapper de service account que
+> ninguém executava) foi apagado nesta data, junto com a duplicação da sequência de chamadas.
+> Nenhum arquivo do produto importa mais o pacote `googleapis` — só falta tirá-lo do
+> `package.json`.
+
 ---
 
 ## Resumo executivo

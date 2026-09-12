@@ -407,7 +407,9 @@ function Lancar() {
           >
             <span className="flex items-baseline justify-between gap-2">
               <span className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-500">Valor</span>
-              <span className="truncate text-xs text-ink-400">{listening ? 'Ouvindo… diga "Mercado 35 e 90"' : "só os números — a vírgula entra sozinha"}</span>
+              {/* Dica curta de propósito: em 360 px a frase inteira era cortada bem no fim,
+                  onde estava a informação ("a vírgula entra sozinha"). */}
+              <span className="text-xs text-ink-400">{listening ? 'Ouvindo… diga "Mercado 35 e 90"' : "a vírgula entra sozinha"}</span>
             </span>
             <span className="mt-0.5 flex items-center gap-2">
               <input
@@ -445,14 +447,19 @@ function Lancar() {
             value={descricao}
             onChange={(event) => setDescricao(event.target.value)}
             aria-label={isGasto ? "Onde foi" : "De onde veio"}
-            placeholder={isGasto ? "Onde foi? (ex.: Supermercado, Uber) — opcional" : "De onde veio? (ex.: Salário, Freela) — opcional"}
+            placeholder={isGasto ? "Onde foi? Ex.: Mercado (opcional)" : "De onde veio? Ex.: Salário (opcional)"}
             className="input-base rounded-xl px-3.5 py-3 text-[15px] placeholder:text-ink-400"
           />
 
           {/* 3. Categoria */}
           <div className="flex flex-col gap-2">
             <SectionLabel>Categoria</SectionLabel>
-            <div className="grid grid-cols-4 gap-2">
+            {/* 4 por linha a partir de 360 px: o rótulo mais largo ("Recebimento", 11
+                letras) só cabe encolhendo pra 10px no celular e tirando a folga lateral
+                do chip — a partir de sm volta aos 12px. Abaixo de 360 px (celular antigo
+                de 320) nem isso cabe, e aí são 3 por linha. Nada de `truncate` aqui:
+                "Transpo…" era o nome errado com cara de nome certo. */}
+            <div className="grid grid-cols-3 gap-1 min-[360px]:grid-cols-4 sm:gap-2">
               {cats.map(({ key, icon: Icon }) => {
                 const active = categoria === key;
                 return (
@@ -461,12 +468,12 @@ function Lancar() {
                     type="button"
                     aria-pressed={active}
                     onClick={() => setCategoria(key)}
-                    className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 rounded-xl border px-0.5 py-1 text-xs font-semibold transition-colors duration-150 sm:min-h-[56px] sm:gap-1 ${
+                    className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 rounded-xl border px-0 py-1 font-semibold transition-colors duration-150 sm:min-h-[56px] sm:gap-1 sm:px-0.5 ${
                       active ? "border-ink-900 bg-ink-900 text-white" : "border-ink-200 bg-white text-ink-700 hover:bg-ink-50"
                     }`}
                   >
                     <Icon className="h-5 w-5" />
-                    <span className="max-w-full truncate">{key}</span>
+                    <span className="max-w-full whitespace-nowrap text-[10px] tracking-[-0.02em] sm:text-xs sm:tracking-normal">{key}</span>
                   </button>
                 );
               })}

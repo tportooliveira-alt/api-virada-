@@ -98,23 +98,34 @@ export function PocketsCard({ data, mes, hoje = toInputDate() }: Props) {
         })}
       </div>
 
+      {/* Aviso de dívida: em 360 px o texto tem de CABER, não vazar.
+          A classe .money é white-space: nowrap — num flex justify-between ela
+          empurrava o texto (e a seta) pra fora da pílula (o juiz mediu
+          scrollWidth 393 contra clientWidth 360 com R$ 12.345,67). Aqui o texto
+          ganha min-w-0 + flex-1 e pode quebrar em duas linhas; o "R$" continua
+          colado ao número porque formatCurrency usa espaço fixo (NBSP), e a
+          seta fica no topo (items-start) e não encolhe. */}
       {vencidas.quantidade > 0 && (
         <Link
           href="/app/relatorios?aba=dividas"
-          className="flex items-center justify-between gap-3 rounded-xl bg-red-50 px-3.5 py-3 text-sm text-red-800 transition-colors duration-150 hover:bg-red-100"
+          className="flex items-start justify-between gap-2.5 rounded-xl bg-red-50 px-3.5 py-3 text-sm leading-[1.4] text-red-800 transition-colors duration-150 hover:bg-red-100"
         >
-          <span className="money">{`Dívidas vencidas: ${formatCurrency(vencidas.total)} (${vencidas.quantidade})`}</span>
-          <ArrowRight className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 flex-1 break-words tabular-nums">
+            {`Dívidas vencidas: ${formatCurrency(vencidas.total)} (${vencidas.quantidade})`}
+          </span>
+          <ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />
         </Link>
       )}
 
       {vencendo.quantidade > 0 && (
         <Link
           href={`/app/relatorios?aba=dividas&mes=${key}`}
-          className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 px-3.5 py-3 text-sm text-amber-800 transition-colors duration-150 hover:bg-amber-100"
+          className="flex items-start justify-between gap-2.5 rounded-xl bg-amber-50 px-3.5 py-3 text-sm leading-[1.4] text-amber-800 transition-colors duration-150 hover:bg-amber-100"
         >
-          <span className="money">{`Dívidas vencendo neste mês: ${formatCurrency(vencendo.total)} (${vencendo.quantidade})`}</span>
-          <ArrowRight className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 flex-1 break-words tabular-nums">
+            {`Dívidas vencendo neste mês: ${formatCurrency(vencendo.total)} (${vencendo.quantidade})`}
+          </span>
+          <ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />
         </Link>
       )}
 

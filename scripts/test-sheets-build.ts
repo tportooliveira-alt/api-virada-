@@ -1,110 +1,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * Teste estrutural offline da planilha:
- * mocka a API do Google Sheets, captura todos os requests gerados pelo
- * google-sheets.ts e valida o conteúdo (banner, KPIs, gráficos, formatos,
- * proteção, abas, formatos BRL/data/percent, etc.).
+ * Teste estrutural offline da planilha — pelo CAMINHO VIVO.
+ *
+ * Até 12/09/2026 este teste importava `lib/sheets/google-sheets.ts` (wrapper de
+ * servidor com a `googleapis` mockada). Aquele arquivo era a ÚNICA coisa que
+ * sobrava dele: nenhuma tela, rota ou componente o usava, e ele repetia, em
+ * outra ordem, a mesma sequência de chamadas do `lib/sheets/sync-runner.ts`.
+ * Duas cópias da mesma lógica divergem, e a próxima pessoa conserta a errada —
+ * então o wrapper foi apagado e o teste passou a montar EXATAMENTE os corpos que
+ * o navegador do comprador manda ao Google, via `lib/sheets/sync-requests.ts`:
+ *
+ *   criarPlanilha : createWorkbookBody → layoutCall → staticValuesCall → chartsCall
+ *   mandarDados   : pushDataCalls (batchClear + batchUpdate)
+ *
+ * Continua sem rede e sem credencial: só corpos de request e os valores gerados.
  *
  * Roda com: npx tsx scripts/test-sheets-build.ts
  */
 
-import Module from "node:module";
-import { buildStaticValues } from "../lib/sheets/builder";
+import { buildStaticValues, dataClearRange, type SyncInput } from "../lib/sheets/builder";
+import { chartsCall, createWorkbookBody, layoutCall, pushDataCalls, readSheetIds, staticValuesCall, type SpreadsheetInfo } from "../lib/sheets/sync-requests";
 // Dashboard, "Em aberto", Faltando/Progresso e Resultado são FÓRMULAS (v3):
 // o número vem do mini-avaliador rodando a fórmula sobre o que o sync gravou.
 import { montarPasta } from "./planilha-avaliador";
-
-const captured: { method: string; arg: any }[] = [];
-let nextSheetId = 100;
-
-function fakeSheetsApi() {
-  return {
-    spreadsheets: {
-      create: async (arg: any) => {
-        captured.push({ method: "spreadsheets.create", arg });
-        const tabs = arg.requestBody?.sheets ?? [];
-        return {
-          data: {
-            spreadsheetId: "fake-id",
-            sheets: tabs.map((t: any) => ({ properties: { ...t.properties, sheetId: nextSheetId++ } })),
-          },
-        };
-      },
-      get: async (arg: any) => {
-        captured.push({ method: "spreadsheets.get", arg });
-        return {
-          data: {
-            sheets: [
-              { properties: { title: "Dashboard", sheetId: 100 } },
-              { properties: { title: "Lançamentos", sheetId: 101 } },
-              { properties: { title: "Receitas", sheetId: 102 } },
-              { properties: { title: "Despesas", sheetId: 103 } },
-              { properties: { title: "Dívidas", sheetId: 104 } },
-              { properties: { title: "Metas", sheetId: 105 } },
-              { properties: { title: "Fluxo de Caixa", sheetId: 106 } },
-              { properties: { title: "Resumo Mensal", sheetId: 107 } },
-              { properties: { title: "Como usar", sheetId: 108 } },
-              { properties: { title: "Bolsos", sheetId: 109 } },
-              { properties: { title: "Filtros", sheetId: 110 } },
-            ],
-          },
-        };
-      },
-      batchUpdate: async (arg: any) => {
-        captured.push({ method: "spreadsheets.batchUpdate", arg });
-        return { data: {} };
-      },
-      values: {
-        batchUpdate: async (arg: any) => {
-          captured.push({ method: "values.batchUpdate", arg });
-          return { data: {} };
-        },
-        batchClear: async (arg: any) => {
-          captured.push({ method: "values.batchClear", arg });
-          return { data: {} };
-        },
-        update: async (arg: any) => {
-          captured.push({ method: "values.update", arg });
-          return { data: {} };
-        },
-        clear: async (arg: any) => {
-          captured.push({ method: "values.clear", arg });
-          return { data: {} };
-        },
-        append: async (arg: any) => {
-          captured.push({ method: "values.append", arg });
-          return { data: {} };
-        },
-      },
-    },
-  };
-}
-
-// Monkey-patch googleapis ANTES do import do módulo testado
-const origResolve = (Module as any)._resolveFilename;
-(Module as any)._resolveFilename = function (request: string, ...rest: any[]) {
-  if (request === "googleapis") return require.resolve("./fake-googleapis.cjs");
-  return origResolve.call(this, request, ...rest);
-};
-
-// Cria fake module em memória
-require.cache[require.resolve("./fake-googleapis.cjs")] = {
-  id: require.resolve("./fake-googleapis.cjs"),
-  filename: require.resolve("./fake-googleapis.cjs"),
-  loaded: true,
-  exports: {
-    google: {
-      auth: { GoogleAuth: class { constructor(_: any) {} } },
-      sheets: () => fakeSheetsApi(),
-    },
-  },
-} as any;
-
-process.env.GOOGLE_SERVICE_ACCOUNT_JSON = JSON.stringify({
-  type: "service_account",
-  client_email: "fake@fake.iam.gserviceaccount.com",
-  private_key: "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----\n",
-});
 
 // ─── Asserts ─────────────────────────────────────────────────────────────────
 let passed = 0;
@@ -119,29 +37,32 @@ function check(label: string, cond: boolean, hint?: string) {
   }
 }
 
-async function main() {
-  const mod = await import("../lib/sheets/google-sheets");
+/** O que o Google devolve no POST /spreadsheets: as mesmas abas, já com id. */
+function respostaDoGoogle(body: ReturnType<typeof createWorkbookBody>): SpreadsheetInfo {
+  return { spreadsheetId: "fake-id", sheets: body.sheets.map((s: any, i: number) => ({ properties: { ...s.properties, sheetId: 100 + i } })) };
+}
 
-  console.log("\n[1] createSpreadsheet — monta a estrutura inicial");
-  await mod.createSpreadsheet("Teste Virada");
+function main() {
+  console.log("\n[1] criar planilha — a estrutura inicial (createWorkbookBody + layout + estático + gráficos)");
 
-  // Captura
-  const create = captured.find((c) => c.method === "spreadsheets.create");
-  const batches = captured.filter((c) => c.method === "spreadsheets.batchUpdate");
-  const values = captured.filter((c) => c.method === "values.batchUpdate");
+  const create = createWorkbookBody("comprador@exemplo.com");
+  const ids = readSheetIds(respostaDoGoogle(create));
+  // As duas chamadas :batchUpdate do criarPlanilha, na ordem em que o app manda.
+  const layoutReqs: any[] = [...(layoutCall(ids).requests as any[]), ...(chartsCall(ids).requests as any[])];
+  const valData: any[] = staticValuesCall().data as any[];
 
-  // 9 abas criadas
-  const tabs = create?.arg?.requestBody?.sheets ?? [];
+  const tabs = create.sheets ?? [];
   check("11 abas criadas", tabs.length === 11, `recebeu ${tabs.length}`);
   const expectedTabs = ["Dashboard", "Bolsos", "Filtros", "Lançamentos", "Receitas", "Despesas", "Dívidas", "Metas", "Fluxo de Caixa", "Resumo Mensal", "Como usar"];
   for (const name of expectedTabs) {
     check(`aba "${name}" existe`, tabs.some((t: any) => t.properties.title === name));
   }
-  check("locale pt_BR", create?.arg?.requestBody?.properties?.locale === "pt_BR");
-  check("timezone São Paulo", create?.arg?.requestBody?.properties?.timeZone === "America/Sao_Paulo");
+  check("locale pt_BR", create.properties?.locale === "pt_BR");
+  check("timezone São Paulo", create.properties?.timeZone === "America/Sao_Paulo");
+  check("título leva o e-mail do comprador", String(create.properties?.title).includes("comprador@exemplo.com"));
+  check("valueInputOption USER_ENTERED (fórmula vira fórmula)", staticValuesCall().valueInputOption === "USER_ENTERED");
+  check("todas as abas ganharam id (readSheetIds)", expectedTabs.every((t) => typeof ids[t] === "number"));
 
-  // Layout requests
-  const layoutReqs = batches.flatMap((b) => b.arg.requestBody.requests ?? []);
   check("requests de layout > 50", layoutReqs.length > 50, `recebeu ${layoutReqs.length}`);
 
   // Banner (v2) — repeatCell com fontSize 18 bold, texto branco sobre ink (#0F172A)
@@ -205,9 +126,11 @@ async function main() {
   const bandings = layoutReqs.filter((r: any) => r.addBanding);
   check("banding (zebra) nas áreas esperadas", bandings.length === 11, `recebeu ${bandings.length}`);
 
-  // Menus da aba Filtros: 5 validações de dados apontando pras listas
+  // Menus da aba Filtros: 5 validações de dados apontando pras listas — e
+  // strict, senão o que a pessoa digitar errado zera os totais sem avisar.
   const validations = layoutReqs.filter((r: any) => r.setDataValidation);
   check("5 menus (validação de dados) na aba Filtros", validations.length === 5, `recebeu ${validations.length}`);
+  check("menus recusam valor fora da lista (strict)", validations.every((v: any) => v.setDataValidation.rule.strict === true));
 
   // Auto-filter em 7 abas
   const filters = layoutReqs.filter((r: any) => r.setBasicFilter);
@@ -220,7 +143,6 @@ async function main() {
   check("gridlines escondidas em Dashboard + Bolsos + Filtros + Como usar", hideGrid.length === 4, `recebeu ${hideGrid.length}`);
 
   // Cabeçalhos das tabelas
-  const valData = values.flatMap((v) => v.arg.requestBody.data ?? []);
   const headerLanc = valData.find((v: any) => v.range === "Lançamentos!A1");
   check("cabeçalho Lançamentos", headerLanc?.values[0]?.[0] === "Data");
   const headerReceitas = valData.find((v: any) => v.range === "Receitas!A1");
@@ -231,6 +153,11 @@ async function main() {
   const kpiA6 = valData.find((v: any) => v.range === "Dashboard!A6");
   check("Dashboard A6 é fórmula SOMASES sobre Lançamentos", String(kpiA6?.values[0]?.[0]).startsWith("=SOMASES('Lançamentos'!"));
   check("Filtros!B10 (Entradas) é fórmula", String(valData.find((v: any) => v.range === "Filtros!A10:B14")?.values[0]?.[1]).startsWith("=SOMASES("));
+  // A lista dos menus nasce com "Todos": menu strict apontando pra faixa vazia
+  // deixaria a planilha recém-criada sem nenhuma opção válida.
+  const seed = valData.find((v: any) => v.range === "Filtros!H4:L4");
+  check("listas dos menus nascem com \"Todos\"", JSON.stringify(seed?.values) === JSON.stringify([["Todos", "Todos", "Todos", "Todos", "Todos"]]));
+  check("a lista vem antes do \"Todos\" gravado nos menus", valData.indexOf(seed) < valData.findIndex((v: any) => v.range === "Filtros!A4:D8"));
 
   // Banner do Dashboard
   const dashBanner = valData.find((v: any) => v.range === "Dashboard!A1");
@@ -245,24 +172,42 @@ async function main() {
   check("Como usar fala de Filtros, Bolsos e Anotações", helpTexto.includes("Filtros") && helpTexto.includes("Bolsos") && helpTexto.includes("Anotações"));
 
   // ─── Sync de dados ─────────────────────────────────────────────────────────
-  console.log("\n[2] syncTransactions — limpa e popula dados");
-  captured.length = 0;
+  // Um envio só, como no app: pushDataCalls manda tudo (lançamentos, dívidas e
+  // metas) no mesmo batch. Não existe mais "sincronizar só as dívidas".
+  console.log("\n[2] mandar dados — limpa e popula tudo num batch (pushDataCalls)");
 
-  const transactions = [
-    { id: "t1", type: "income",  description: "Salário",     amount: 3000, category: "Salário", date: "2026-04-15", paymentMethod: null, nature: null, scope: "casa", source: "app" },
-    { id: "t2", type: "income",  description: "Venda extra", amount: 500,  category: "Renda extra", date: "2026-04-20", paymentMethod: null, nature: null, scope: "casa", source: "app" },
-    { id: "t3", type: "expense", description: "Mercado",     amount: 800,  category: "Mercado", date: "2026-04-05", paymentMethod: "Pix", nature: "essencial", scope: "casa", source: "app" },
-    { id: "t4", type: "expense", description: "Lazer",       amount: 250,  category: "Lazer", date: "2026-04-10", paymentMethod: "Crédito", nature: "impulso", scope: "casa", source: "app" },
-    { id: "t5", type: "expense", description: "Cartão",      amount: 1200, category: "Cartão", date: "2026-04-22", paymentMethod: "Boleto", nature: "essencial", scope: "casa", source: "app" },
-  ];
-  await mod.syncTransactions("fake-id", transactions);
+  const entrada: SyncInput = {
+    incomes: [
+      { id: "t1", description: "Salário", value: 3000, category: "Salário", date: "2026-04-15", scope: "casa", source: "app" },
+      { id: "t2", description: "Venda extra", value: 500, category: "Renda extra", date: "2026-04-20", scope: "casa", source: "app" },
+    ],
+    expenses: [
+      { id: "t3", description: "Mercado", value: 800, category: "Mercado", date: "2026-04-05", paymentMethod: "Pix", nature: "essencial", scope: "casa", source: "app" },
+      { id: "t4", description: "Lazer", value: 250, category: "Lazer", date: "2026-04-10", paymentMethod: "Crédito", nature: "impulso", scope: "casa", source: "app" },
+      { id: "t5", description: "Cartão", value: 1200, category: "Cartão", date: "2026-04-22", paymentMethod: "Boleto", nature: "essencial", scope: "casa", source: "app" },
+    ],
+    debts: [
+      { id: "d1", name: "Boleto luz", totalValue: 200, installmentValue: 200, dueDate: "2026-05-10", priority: "baixa", status: "aberta" },
+      { id: "d2", name: "Cartão Nubank", totalValue: 1800, installmentValue: 600, dueDate: "2026-05-05", priority: "alta", status: "aberta" },
+      { id: "d3", name: "Empréstimo BB", totalValue: 5000, installmentValue: 500, dueDate: "2026-05-15", priority: "média", status: "negociando" },
+      { id: "d4", name: "Antiga", totalValue: 300, installmentValue: 300, dueDate: "2026-01-01", priority: "alta", status: "quitada", paidValue: 300 },
+    ],
+    goals: [
+      { id: "g1", name: "Reserva 6 meses", targetValue: 12000, currentValue: 3000, type: "reserva" },
+      { id: "g2", name: "Quitar cartão", targetValue: 1800, currentValue: 1800, type: "dívida" },
+    ],
+  };
+  const { clear, update } = pushDataCalls(entrada);
 
-  const batchClears = captured.filter((c) => c.method === "values.batchClear");
-  const batchUpds = captured.filter((c) => c.method === "values.batchUpdate");
-  check("limpou abas, blocos do dashboard e listas dos menus", batchClears.length === 1 && batchClears[0].arg.requestBody.ranges.length === 10, `recebeu ${batchClears[0]?.arg.requestBody.ranges.length}`);
-  check("populou tudo num batch", batchUpds.length === 1);
+  check("limpou abas, blocos do dashboard e listas dos menus", clear?.ranges.length === 10, `recebeu ${clear?.ranges.length}`);
+  // B10: a limpeza ia até a coluna Z e apagava os rótulos/notas escritos só na
+  // criação. Vai só até a última coluna de dados, e aberta (sem linha final) pra
+  // não deixar linha fantasma depois da última.
+  check("Dívidas limpa A2:H (não A2:Z1000)", !!clear?.ranges.includes(dataClearRange("dividas")) && dataClearRange("dividas") === "Dívidas!A2:H");
+  check("Metas limpa A2:F (não A2:Z1000)", !!clear?.ranges.includes(dataClearRange("metas")) && dataClearRange("metas") === "Metas!A2:F");
+  check("dados vão num batch só, USER_ENTERED", update?.valueInputOption === "USER_ENTERED");
 
-  const valueRanges: any[] = batchUpds[0]?.arg.requestBody.data ?? [];
+  const valueRanges: any[] = update?.data ?? [];
   const find = (prefix: string) => valueRanges.find((v) => v.range?.startsWith(prefix));
   const pasta = montarPasta(buildStaticValues(), valueRanges);
 
@@ -292,49 +237,24 @@ async function main() {
   check("Bolsos: renda e fase atualizadas", ranges.includes("Bolsos!B4:C4") && ranges.includes("Bolsos!B5:C5"));
 
   // ─── Dívidas ───────────────────────────────────────────────────────────────
-  console.log("\n[3] syncDebts — ordena e calcula valor em aberto");
-  captured.length = 0;
-  await mod.syncDebts("fake-id", [
-    { id: "d1", name: "Boleto luz",     totalValue: 200,  installmentValue: 200,  dueDate: "2026-05-10", priority: "baixa",  status: "aberta" },
-    { id: "d2", name: "Cartão Nubank",  totalValue: 1800, installmentValue: 600,  dueDate: "2026-05-05", priority: "alta",   status: "aberta" },
-    { id: "d3", name: "Empréstimo BB",  totalValue: 5000, installmentValue: 500,  dueDate: "2026-05-15", priority: "média",  status: "negociando" },
-    { id: "d4", name: "Antiga",         totalValue: 300,  installmentValue: 300,  dueDate: "2026-01-01", priority: "alta",   status: "quitada" },
-  ]);
-  // B10: a limpeza parcial ia até a coluna Z e apagava os rótulos/notas da
-  // coluna J (escritos só na criação). Só até a última coluna de dados, e aberta
-  // (sem linha final) pra não deixar linha fantasma depois da 1000.
-  const divClear = captured.find((c) => c.method === "values.batchClear");
-  check("syncDebts limpa só Dívidas!A2:H (não A2:Z1000)", JSON.stringify(divClear?.arg.requestBody.ranges) === JSON.stringify(["Dívidas!A2:H"]), JSON.stringify(divClear?.arg.requestBody.ranges));
-  const divBatch = captured.find((c) => c.method === "values.batchUpdate");
-  const divRange = (divBatch?.arg.requestBody.data ?? []).find((d: any) => d.range?.startsWith("Dívidas"));
-  const divRows = divRange?.values;
+  console.log("\n[3] Dívidas — ordena e calcula valor em aberto");
+  const divRows = find("Dívidas")?.values;
   check("Dívidas: 4 linhas", divRows?.length === 4);
   check("ordenado por prioridade (alta primeiro)", divRows?.[0][2] === "alta");
-  const pastaDiv = montarPasta(buildStaticValues(), divBatch?.arg.requestBody.data ?? []);
   const linhaDiv = (nome: string) => divRows.findIndex((r: any) => r[0] === nome) + 2;
   check("'em aberto' é fórmula SE(quitada;0;MÁXIMO(0;total−pago))", String(divRows?.[0][7]).startsWith("=SE(D2=\"quitada\";0;MÁXIMO(0;F2-G2))"));
-  check("quitada com 'em aberto' = 0", pastaDiv.ler(`Dívidas!H${linhaDiv("Antiga")}`) === 0);
-  check("aberta sem pagamento: 'em aberto' = totalValue", pastaDiv.ler(`Dívidas!H${linhaDiv("Cartão Nubank")}`) === 1800);
+  check("quitada com 'em aberto' = 0", pasta.ler(`Dívidas!H${linhaDiv("Antiga")}`) === 0);
+  check("aberta sem pagamento: 'em aberto' = totalValue", pasta.ler(`Dívidas!H${linhaDiv("Cartão Nubank")}`) === 1800);
   check("'pago' = 0 quando não há paidValue", divRows?.find((r: any) => r[0] === "Cartão Nubank")?.[6] === 0);
 
   // ─── Metas ─────────────────────────────────────────────────────────────────
-  console.log("\n[4] syncGoals — calcula faltando e progresso");
-  captured.length = 0;
-  await mod.syncGoals("fake-id", [
-    { id: "g1", name: "Reserva 6 meses", targetValue: 12000, currentValue: 3000, type: "reserva" },
-    { id: "g2", name: "Quitar cartão",   targetValue: 1800,  currentValue: 1800, type: "dívida" },
-  ]);
-  const metasClear = captured.find((c) => c.method === "values.batchClear");
-  check("syncGoals limpa só Metas!A2:F (não A2:Z1000)", JSON.stringify(metasClear?.arg.requestBody.ranges) === JSON.stringify(["Metas!A2:F"]), JSON.stringify(metasClear?.arg.requestBody.ranges));
-  const metasBatch = captured.find((c) => c.method === "values.batchUpdate");
-  const metasRange = (metasBatch?.arg.requestBody.data ?? []).find((d: any) => d.range?.startsWith("Metas"));
-  const metasRows = metasRange?.values;
+  console.log("\n[4] Metas — calcula faltando e progresso");
+  const metasRows = find("Metas")?.values;
   check("Metas: 2 linhas", metasRows?.length === 2);
-  const pastaMetas = montarPasta(buildStaticValues(), metasBatch?.arg.requestBody.data ?? []);
   check("faltando é fórmula MÁXIMO(0;C−D)", metasRows?.[0][4] === "=MÁXIMO(0;C2-D2)");
-  check("faltando calculado = 9000", pastaMetas.ler("Metas!E2") === 9000);
-  check("progresso em decimal (0-1)", Math.abs(Number(pastaMetas.ler("Metas!F2")) - 0.25) < 0.001);
-  check("meta cumprida = 1.0", pastaMetas.ler("Metas!F3") === 1);
+  check("faltando calculado = 9000", pasta.ler("Metas!E2") === 9000);
+  check("progresso em decimal (0-1)", Math.abs(Number(pasta.ler("Metas!F2")) - 0.25) < 0.001);
+  check("meta cumprida = 1.0", pasta.ler("Metas!F3") === 1);
 
   // ─── Locale pt_BR: nada de ponto decimal em valor digitado ─────────────────
   // A planilha nasce com locale pt_BR, então userEnteredValue é lido como o
@@ -342,7 +262,7 @@ async function main() {
   // inteiro (400 INVALID_ARGUMENT) e a planilha fica sem layout nenhum.
   {
     const comPonto: string[] = [];
-    JSON.stringify(captured, (key, value) => {
+    JSON.stringify([layoutReqs, valData, valueRanges], (key, value) => {
       if (key === "userEnteredValue" && typeof value === "string" && /^-?\d+\.\d+$/.test(value)) {
         comPonto.push(value);
       }
@@ -376,7 +296,4 @@ async function main() {
   if (failed > 0) process.exit(1);
 }
 
-main().catch((err) => {
-  console.error("Erro inesperado:", err);
-  process.exit(1);
-});
+main();
