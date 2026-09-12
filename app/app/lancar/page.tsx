@@ -67,6 +67,7 @@ const INCOME_CATS: CategoryOption[] = [
 
 const PAYMENTS: Expense["paymentMethod"][] = ["Pix", "Dinheiro", "Débito", "Crédito", "Boleto"];
 
+const VOICE_TIMEOUT_MS = 12000;
 const TOAST_MS = 7000;
 
 // Reconhecimento de voz do navegador (Chrome/Edge/Safari). Sem ele, o botão nem aparece.
@@ -74,9 +75,11 @@ type SpeechRecognitionInstance = {
   lang: string;
   interimResults: boolean;
   start: () => void;
+  stop: () => void;
+  abort: () => void;
   onstart: (() => void) | null;
   onend: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event?: { error?: string }) => void) | null;
   onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
 };
 
@@ -117,10 +120,18 @@ export default function LancarPage() {
   const [listening, setListening] = useState(false);
   const valorRef = useRef<HTMLInputElement>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const voiceTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     setVoiceSupported(Boolean(getSpeechRecognition()));
-    return () => clearTimeout(toastTimer.current);
+    return () => {
+      clearTimeout(toastTimer.current);
+      // Sair da tela com o microfone ligado deixava o reconhecimento rodando.
+      clearTimeout(voiceTimer.current);
+      recognitionRef.current?.abort();
+      recognitionRef.current = null;
+    };
   }, []);
 
   const isGasto = tab === "gasto";
@@ -146,20 +157,71 @@ export default function LancarPage() {
     setToast(null);
   }
 
+  /** Encerra a escuta de qualquer jeito: toque no botao, erro, resultado ou tempo. */
+  function pararDeOuvir() {
+    clearTimeout(voiceTimer.current);
+    recognitionRef.current?.abort();
+    recognitionRef.current = null;
+    setListening(false);
+  }
+
   function ouvir() {
+    // Tocar de novo enquanto ouve DESLIGA. Antes nao desligava, e quem ficava
+    // preso no "Ouvindo..." tinha que fechar o app.
+    if (listening) {
+      pararDeOuvir();
+      return;
+    }
+
     const SpeechRecognition = getSpeechRecognition();
-    if (!SpeechRecognition || listening) return;
+    if (!SpeechRecognition) return;
+
     const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
     recognition.lang = "pt-BR";
     recognition.interimResults = false;
-    recognition.onstart = () => setListening(true);
-    recognition.onend = () => setListening(false);
-    recognition.onerror = () => {
-      setListening(false);
-      setErro("Não consegui ouvir com clareza. Tente de novo ou digite o valor.");
+
+    recognition.onstart = () => {
+      setListening(true);
+      // Rede de seguranca: no celular o onend as vezes nao dispara e a tela
+      // ficava ouvindo para sempre.
+      clearTimeout(voiceTimer.current);
+      voiceTimer.current = setTimeout(() => {
+        pararDeOuvir();
+        setErro("Não ouvi nada. Toque em falar de novo ou digite o valor.");
+      }, VOICE_TIMEOUT_MS);
     };
-    recognition.onresult = (event) => aplicarFala(event.results[0]?.[0]?.transcript ?? "");
-    recognition.start();
+
+    recognition.onend = () => {
+      clearTimeout(voiceTimer.current);
+      recognitionRef.current = null;
+      setListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      const motivo = event?.error;
+      pararDeOuvir();
+      if (motivo === "not-allowed" || motivo === "service-not-allowed") {
+        setErro("O microfone está bloqueado. Libere o microfone para este site nas permissões do navegador.");
+      } else if (motivo === "no-speech") {
+        setErro("Não ouvi nada. Toque em falar de novo ou digite o valor.");
+      } else {
+        setErro("Não consegui ouvir com clareza. Tente de novo ou digite o valor.");
+      }
+    };
+
+    recognition.onresult = (event) => {
+      clearTimeout(voiceTimer.current);
+      aplicarFala(event.results[0]?.[0]?.transcript ?? "");
+    };
+
+    try {
+      recognition.start();
+    } catch {
+      // start() joga erro se ja houver um reconhecimento ativo no aparelho.
+      pararDeOuvir();
+      setErro("O microfone já está em uso. Feche outros apps que estejam ouvindo e tente de novo.");
+    }
   }
 
   function aplicarFala(text: string) {
@@ -268,7 +330,7 @@ export default function LancarPage() {
               }`}
             >
               <Mic className="h-[18px] w-[18px] shrink-0" />
-              {listening ? 'Ouvindo… diga "Mercado 35 e 90"' : "Falar em vez de digitar"}
+              {listening ? "Ouvindo… toque para parar" : "Falar em vez de digitar"}
             </button>
           )}
 
