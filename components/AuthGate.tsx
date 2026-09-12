@@ -237,7 +237,7 @@ export function AuthGate({ children }: PropsWithChildren) {
     // Já logado: confia por enquanto, revalida em background
     setStage(stored.status === "ativo" ? "ok" : "not-member");
     loadGisScript();
-  }, [pathname, loadGisScript]);
+  }, [pathname, loadGisScript, isPublic]);
 
   if (isPublic) return <>{children}</>;
 

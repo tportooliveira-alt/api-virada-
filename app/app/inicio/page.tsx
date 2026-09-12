@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { 
-  ArrowDown, ArrowRight, ArrowUp, ExternalLink, Mic, 
-  Table, Sparkles, ShieldAlert, Award, Clock, FileSpreadsheet 
+  ArrowDown, ArrowRight, ArrowUp, Mic, Sparkles, Award 
 } from "lucide-react";
-import { ExpenseChart } from "@/components/ExpenseChart";
 import { formatCurrency, formatDate, getDashboardMetrics } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
 import { computeFinancialIntelligence } from "@/lib/financial-intelligence";
