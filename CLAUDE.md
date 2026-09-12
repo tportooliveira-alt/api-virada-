@@ -37,6 +37,12 @@ pelo App Router nem pelo AuthGate. O HTML é **gerado** por `scripts/build-venda
 partir do export do Claude Design em `_design/claude-design/`. Editar o gerador, não o
 HTML solto — a não ser em ajuste pontual, que aí precisa voltar pro gerador depois.
 
+⚠️ **Hoje o `vendas.html` no ar já divergiu do gerador**: o widget da consultora
+(botão flutuante + simulador de dívida + FAQ) e o rodapé com telefone e e-mail foram
+feitos direto no HTML e não existem no export do Claude Design. **Rodar
+`node scripts/build-vendas.mjs` agora apaga os dois.** Reconciliar antes de gerar
+de novo.
+
 ## Pegadinhas que já morderam (leia antes de mexer)
 
 1. **`LAYOUT_VERSION` (`lib/sheets/builder.ts`).** Mudou qualquer coisa no layout da
@@ -102,14 +108,20 @@ Webhook cadastrado na Kiwify (Apps → Webhooks), eventos compra aprovada / reem
 chargeback, apontando para `/api/webhooks/kiwify?token=$KIWIFY_TOKEN`. **Sem ele o
 cliente paga e não recebe acesso, sem erro visível.**
 
-## Resíduos conhecidos (limpar quando passar perto)
+## Limpeza de 12/09 — o que saiu (não recriar)
 
-- `netlify.toml` e `supabase/migrations/` — mortos, o deploy é VPS e não há Supabase.
-- `/seed-test` acessível em produção (popula dados fictícios por cima dos reais).
-- Rotas órfãs: `/app/missoes`, `/app/renda-extra` (saiu da oferta em 04/09).
-- `public/downloads/bonus-50-ideias.pdf` existe mas não é entregue — e o `content/ebook.md`
-  ainda cita esse bônus duas vezes. Decidir: voltar a entregar ou tirar as menções.
-- `lib/ai/advisor.ts` é mock; a tela `/app/aprender/ia` avisa que não foi lançada.
+- `netlify.toml` e `supabase/migrations/` — deploy é VPS, não há Supabase.
+- `/app/renda-extra` + `ExtraIncomeIdeaCard` + `extraIncomeIdeas`: as 50 ideias saíram da
+  oferta em 04/09 e a rota seguia acessível por URL. O `content/ebook.md` também parou de
+  prometer esse bônus, e os PDFs foram regerados (`python scripts/build_pdfs.py`).
+- `/app/missoes` + `MissaoDoDia`: sem link em tela nenhuma e alimentado por um `addPoints`
+  vazio. Se a gamificação voltar, tem que religar a pontuação junto.
+- `/seed-test` continua existindo para dev, mas **não renderiza em produção** — ele grava
+  dados fictícios por cima dos lançamentos reais do comprador.
+
+Ainda de pé, por decisão: `lib/ai/advisor.ts` é mock e a tela `/app/aprender/ia` avisa
+que não foi lançada. `public/downloads/bonus-50-ideias.pdf` segue no repositório mas não
+é entregue nem citado.
 
 ## Disciplina
 

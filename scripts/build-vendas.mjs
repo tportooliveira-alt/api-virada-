@@ -6,6 +6,16 @@
 //
 // Uso: node scripts/build-vendas.mjs
 // Depois de re-exportar o projeto no Claude Design, basta rodar de novo.
+//
+// ⚠️ ATENCAO — LEIA ANTES DE RODAR (12/09/2026)
+// O public/vendas.html que esta no ar JA DIVERGIU deste gerador. Foram feitos
+// direto no HTML, e NAO existem no design exportado:
+//   1. o widget da consultora (botao flutuante, simulador de quitacao de divida,
+//      FAQ e atalho de WhatsApp) — ~216 linhas;
+//   2. o rodape com WhatsApp (77) 99939-5511 e o e-mail de contato visiveis.
+// Rodar este script AGORA sobrescreve o vendas.html e APAGA as duas coisas.
+// Antes de rodar: leve essas mudancas para o export do Claude Design (ou para
+// este gerador), ou faca uma copia do vendas.html e reaplique depois.
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { execFileSync } from "node:child_process";
