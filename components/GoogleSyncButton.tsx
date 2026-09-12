@@ -29,23 +29,14 @@ import {
   buildSyncBatch,
   type SyncInput,
 } from "@/lib/sheets/builder";
+import { SHEETS_SCOPE, SHEET_KEY, TOKEN_KEY, type SheetMeta } from "@/lib/sheets/oauth";
 
 // Só drive.file. O Google marca este escopo como "não sensível (recomendado)" e ele
 // já autoriza criar e atualizar a planilha que o PRÓPRIO app cria (é o caso aqui).
 // O escopo "spreadsheets" é sensível: exigia verificação e fazia o comprador ver a
 // tela de "app não verificado" bem na hora de conectar a planilha.
-const SCOPES = "https://www.googleapis.com/auth/drive.file";
-
-const STORAGE_KEY = "virada_google_token";
-const SHEET_KEY = "virada_sheet_meta";
-
-interface SheetMeta {
-  spreadsheetId: string;
-  spreadsheetUrl: string;
-  lastSync: string;
-  /** Layout aplicado nessa planilha. Ausente = planilha anterior ao versionamento. */
-  layoutVersion?: string;
-}
+// Escopo, chaves e tipo moram em lib/sheets/oauth.ts porque o AuthGate tambem
+// os usa: a permissao da planilha agora e pedida junto com a do login.
 
 interface Token {
   access_token: string;
@@ -168,7 +159,7 @@ async function etapa<T>(nome: string, fn: () => Promise<T>): Promise<T> {
   }
 }
 
-async function createWorkbook(token: string, email: string): Promise<{ spreadsheetId: string; spreadsheetUrl: string; ids: Record<string, number> }> {
+export async function createWorkbook(token: string, email: string): Promise<{ spreadsheetId: string; spreadsheetUrl: string; ids: Record<string, number> }> {
   const created = (await googleFetch("POST", "/spreadsheets", token, {
     properties: { title: `Virada Financeira — ${email}`, locale: "pt_BR", timeZone: "America/Sao_Paulo" },
     sheets: buildSheetSpecs(),
@@ -210,7 +201,7 @@ async function createWorkbook(token: string, email: string): Promise<{ spreadshe
   };
 }
 
-async function pushData(token: string, spreadsheetId: string, input: SyncInput): Promise<void> {
+export async function pushData(token: string, spreadsheetId: string, input: SyncInput): Promise<void> {
   const batch = buildSyncBatch(input);
   if (batch.clearRanges.length) {
     await googleFetch("POST", `/spreadsheets/${spreadsheetId}/values:batchClear`, token, {
@@ -264,7 +255,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   useEffect(() => {
     try {
       const savedMeta = localStorage.getItem(SHEET_KEY);
-      const savedToken = localStorage.getItem(STORAGE_KEY);
+      const savedToken = localStorage.getItem(TOKEN_KEY);
       if (savedMeta) setMeta(JSON.parse(savedMeta) as SheetMeta);
       if (savedToken) {
         const t = JSON.parse(savedToken) as Token;
@@ -317,7 +308,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     if (!gisLoaded || !init || !clientId) return;
     tokenClientRef.current = init({
       client_id: clientId,
-      scope: SCOPES,
+      scope: SHEETS_SCOPE,
       callback: async (resp) => {
         if (oauthPopupTimeoutRef.current !== null) {
           window.clearTimeout(oauthPopupTimeoutRef.current);
@@ -334,7 +325,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
           access_token: resp.access_token,
           expires_at: Date.now() + 55 * 60 * 1000,
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newToken));
+        localStorage.setItem(TOKEN_KEY, JSON.stringify(newToken));
         setToken(newToken);
         await doSync(newToken.access_token);
       },
@@ -382,7 +373,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   }
 
   function handleDisconnect() {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(SHEET_KEY);
     window.dispatchEvent(new Event("virada-sheet-meta-changed"));
     setToken(null);
