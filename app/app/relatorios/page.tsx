@@ -52,10 +52,12 @@ function signed(value: number) {
   return `${value >= 0 ? "+" : "−"}${formatCurrency(Math.abs(value))}`;
 }
 
+const mesAno = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" });
+
 // "2026-09" → "Setembro de 2026"
 function monthLabel(ym: string) {
   const [year, month] = ym.split("-").map(Number);
-  const label = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(year, month - 1, 1));
+  const label = mesAno.format(new Date(year, month - 1, 1));
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 

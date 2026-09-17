@@ -10,19 +10,25 @@ export function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+// Construir Intl e uma das coisas mais caras do motor JS. Criar um por celula
+// travava a lista de lancamentos no celular — agora e um so, para o app inteiro.
+const brl = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
 export function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
+  return brl.format(value);
 }
+
+const umaCasa = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 
 /** Numero com 1 casa em pt-BR: 23.4 -> "23,4". Usar em percentuais e meses. */
 export function formatDecimal(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(Number.isFinite(value) ? value : 0);
+  return umaCasa.format(Number.isFinite(value) ? value : 0);
 }
 
 export function parseCurrencyInput(value: string) {
@@ -57,15 +63,19 @@ export function parseCurrencyInput(value: string) {
 
 // Vencimento de dívida: o design mostra o ano (10/07/2026), diferente do
 // formato curto usado em lançamentos ("10 de jul.").
+const dataCheia = new Intl.DateTimeFormat("pt-BR");
+
 export function formatDateFull(date: string) {
-  return new Intl.DateTimeFormat("pt-BR").format(new Date(`${date}T00:00:00`));
+  return dataCheia.format(new Date(`${date}T00:00:00`));
 }
 
+const diaMes = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "short",
+});
+
 export function formatDate(date: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "short",
-  }).format(new Date(`${date}T00:00:00`));
+  return diaMes.format(new Date(`${date}T00:00:00`));
 }
 
 export function toInputDate(date = new Date()) {

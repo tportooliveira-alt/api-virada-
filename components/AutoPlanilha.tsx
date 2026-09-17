@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { getLocalUser } from "@/components/AuthGate";
 import { createWorkbook, pushData } from "@/components/GoogleSyncButton";
 import { LAYOUT_VERSION } from "@/lib/sheets/builder";
@@ -25,6 +26,7 @@ import { useVirada } from "@/providers/virada-provider";
 export function AutoPlanilha() {
   const { expenses, incomes, debts, goals } = useVirada();
   const jaTentou = useRef(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (jaTentou.current) return;
@@ -55,7 +57,11 @@ export function AutoPlanilha() {
         jaTentou.current = false; // deixa tentar de novo na próxima tela
       }
     })();
-  }, [expenses, incomes, debts, goals]);
+    // Dependia dos dados: cada lancamento remontava o efeito e, se a criacao
+    // tivesse falhado, refazia a chamada ao Google A CADA gasto digitado —
+    // travando a tela em rede. Agora tenta de novo so na troca de tela, que e
+    // o que o "plano B" acima queria dizer.
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
 }

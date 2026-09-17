@@ -4,7 +4,7 @@ import Link from "next/link";
 import { 
   ArrowDown, ArrowRight, ArrowUp, Mic, Sparkles, Award 
 } from "lucide-react";
-import { formatCurrency, formatDate, getDashboardMetrics, formatDecimal } from "@/lib/utils";
+import { formatCurrency, formatDate, getDashboardMetrics, formatDecimal, isFromCurrentMonth } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
 import { computeFinancialIntelligence } from "@/lib/financial-intelligence";
 import { useMemo } from "react";
@@ -32,7 +32,23 @@ function Skeleton() {
 
 export default function InicioPage() {
   const data = useVirada();
-  const metrics = getDashboardMetrics(data);
+  // Sem o useMemo, getDashboardMetrics devolvia um objeto novo a cada render e
+  // furava a memoria do useMemo abaixo — o diagnostico inteiro era recalculado
+  // a cada toque, varrendo a lista de lancamentos de novo. Travava o celular.
+  // Depender de `data` inteiro nao adiantaria: o provider devolve um objeto novo
+  // a cada render, que e exatamente o que furava a memoria aqui.
+  const metrics = useMemo(
+    () => getDashboardMetrics(data),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data.expenses, data.incomes, data.debts, data.goals, data.missionStatus],
+  );
+
+  // So os gastos do mes: a renda comparada e a do mes (metrics.incomeMonth).
+  // Mandando o historico inteiro, "Essenciais (meta: ate 50%)" chegava a 250%.
+  const expensesMonth = useMemo(
+    () => data.expenses.filter((item) => isFromCurrentMonth(item.date)),
+    [data.expenses],
+  );
 
   const intel = useMemo(() => {
     if (!data.isReady) return null;
@@ -41,11 +57,11 @@ export default function InicioPage() {
       expenseMonth: metrics.expenseMonth,
       balanceMonth: metrics.balanceMonth,
       totalCash: metrics.balanceMonth,
-      expenses: data.expenses,
+      expenses: expensesMonth,
       debts: data.debts,
       goals: data.goals.map((g) => ({ current: g.currentValue, target: g.targetValue })),
     });
-  }, [data.isReady, metrics, data.expenses, data.debts, data.goals]);
+  }, [data.isReady, metrics, expensesMonth, data.debts, data.goals]);
 
   if (!data.isReady || !intel) return <Skeleton />;
 
