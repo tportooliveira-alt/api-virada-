@@ -143,6 +143,9 @@
   .script-btn.primary { background: var(--green); border-color: var(--green); color: white; }
   .script-btn.primary:hover { background: var(--green-dark); }
   .script-btn.copied { background: var(--gold); border-color: var(--gold); color: var(--bg); }
+  .script-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .script-btn:disabled:hover { background: var(--surface); }
+  .script-btn.primary:disabled:hover { background: var(--green); }
 
   /* === FRASES === */
   .frase-card {
@@ -313,7 +316,7 @@
           <option value="veiculo">Financiamento de veículo</option>
         </select>
       </div>
-      <div class="field" id="banco-field"><label>Banco (pra análise de abusividade)</label>
+      <div class="field" id="banco-field"><label>Banco (pra comparar com a média de mercado)</label>
         <select id="d-banco">
           <option value="">— Não sei / outro —</option>
           <option value="itau">Itaú</option>
@@ -327,10 +330,10 @@
           <option value="next">Next</option>
           <option value="picpay">PicPay</option>
         </select>
-        <div id="banco-hint" style="display:none;font-size:12px;color:var(--text-mute);margin-top:6px;line-height:1.4;">Análise de abusividade ativa apenas para <strong style="color:var(--gold);">cartão de crédito</strong> e <strong style="color:var(--gold);">cheque especial</strong> (tipos com juros mais altos).</div>
+        <div id="banco-hint" style="display:none;font-size:12px;color:var(--text-mute);margin-top:6px;line-height:1.4;">As taxas por banco listadas aqui são do <strong style="color:var(--gold);">rotativo do cartão de crédito</strong> — só valem para esse tipo de dívida. Cheque especial tem norma e teto próprios (mostrados abaixo).</div>
       </div>
     </div>
-    <div id="abusividade-result" style="display:none;"></div>
+    <div id="taxas-result" style="display:none;"></div>
   </div>
 
   <div class="card">
@@ -344,6 +347,7 @@
           <option value="medio">6 meses a 1 ano</option>
           <option value="antigo">Mais de 1 ano</option>
           <option value="muito">Mais de 2 anos</option>
+          <option value="prescrito">Mais de 5 anos</option>
         </select>
       </div>
     </div>
@@ -356,7 +360,7 @@
     <div id="proj-futuro" style="display:none;margin-top:18px;padding:14px 16px;background:var(--red-soft);border:1px solid var(--red);border-radius:11px;">
       <div style="font-size:12px;color:var(--red);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">⏰ E se você não negociar?</div>
       <div id="proj-conteudo" style="font-size:14px;color:var(--text);line-height:1.6;"></div>
-      <div style="font-size:11px;color:var(--text-mute);margin-top:8px;font-style:italic;">Projeção com juros compostos sobre a taxa do banco escolhido. Estimativa, não previsão exata.</div>
+      <div id="proj-nota" style="font-size:11px;color:var(--text-mute);margin-top:8px;font-style:italic;">Estimativa com juros compostos sobre a taxa de referência da modalidade. Não é previsão exata.</div>
     </div>
   </div>
 </section>
@@ -402,7 +406,21 @@
 <section id="sec-carta">
   <div class="alert green">
     <span class="icon">⚖️</span>
-    <div class="alert-text"><strong>Carta jurídica de proposta de quitação</strong> com base na legislação brasileira atualizada (CDC, Lei do Superendividamento, MP do Novo Desenrola/2026 e Súmula 548/STJ). Preenche os dados na aba <strong>"Sua dívida"</strong> e o texto monta automaticamente.</div>
+    <div class="alert-text"><strong>Carta jurídica de proposta de quitação</strong> com base na legislação brasileira (CDC, Lei do Superendividamento, Código Civil e Súmula 548/STJ). Preenche os dados na aba <strong>"Sua dívida"</strong> e o texto monta automaticamente.</div>
+  </div>
+
+  <div class="alert" id="aviso-prescricao">
+    <span class="icon">⏳</span>
+    <div class="alert-text">
+      <strong>Leia antes de gerar: esta carta reconhece a dívida.</strong><br>
+      Reconhecer uma dívida por escrito <strong>interrompe a prescrição</strong> (Código Civil, art. 202, VI): o prazo volta a correr do zero, como se a dívida tivesse nascido hoje. Dívida de consumo prescreve em <strong>5 anos</strong> (CC, art. 206, §5º, I) e o nome sai do Serasa/SPC em 5 anos (CDC, art. 43, §1º). O STJ decidiu em 30/08/2024 (REsp 2.103.726) que dívida prescrita <strong>não pode ser cobrada nem fora da Justiça</strong>.<br>
+      Antes de assinar, confira há quanto tempo você não paga nem faz acordo dessa dívida.
+      <div id="aviso-prescricao-extra"></div>
+      <label style="display:flex;gap:10px;align-items:flex-start;margin-top:12px;cursor:pointer;">
+        <input type="checkbox" id="ack-prescricao" style="width:22px;height:22px;flex-shrink:0;margin-top:1px;accent-color:var(--green);cursor:pointer;">
+        <span id="ack-prescricao-texto">Li e entendi: ao assinar e enviar esta carta eu reconheço a dívida, e o prazo de prescrição pode reiniciar do zero.</span>
+      </label>
+    </div>
   </div>
 
   <div class="card">
@@ -411,7 +429,7 @@
     <div id="carta-preview" style="background: #fff; color: #1a1a1a; padding: 28px 32px; border-radius: 10px; font-family: 'Times New Roman', Georgia, serif; font-size: 14px; line-height: 1.7; max-height: 420px; overflow-y: auto; border: 1px solid var(--line);"></div>
 
     <div style="margin-top:14px;padding:12px 14px;background:var(--gold-soft);border:1px solid var(--gold);border-radius:10px;font-size:12px;color:var(--text-soft);line-height:1.5;">
-      <strong style="color:var(--gold);">⚖️ Modelo jurídico, não substitui advogado.</strong> Em casos complexos (penhora, ação judicial em curso, dívida já protestada, valores acima de R$ 50.000), procure um advogado ou Defensoria Pública. Esta carta é eficaz para a maioria das negociações administrativas com credores.
+      <strong style="color:var(--gold);">⚖️ Modelo jurídico, não substitui advogado.</strong> Procure um advogado ou a Defensoria Pública (gratuita) antes de enviar quando: <strong style="color:var(--text);">a dívida tem 5 anos ou mais, ou você não sabe de quando ela é</strong> (pode estar prescrita — e a carta reconhece o débito, reiniciando o prazo); há penhora ou ação judicial em curso; a dívida já foi protestada; o valor passa de R$ 50.000. Fora esses casos, esta carta é eficaz para a maioria das negociações administrativas com credores.
     </div>
 
     <div class="card" style="border-color: var(--green); margin-top:18px;">
@@ -432,13 +450,14 @@
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
-      <button class="script-btn primary" id="btn-baixar-word" style="padding:14px;">📥 Baixar pra Word (.doc)</button>
-      <button class="script-btn" id="btn-copiar-carta" style="padding:14px;">📋 Copiar texto</button>
+      <button class="script-btn primary" id="btn-baixar-word" style="padding:14px;" disabled>📥 Baixar pra Word (.doc)</button>
+      <button class="script-btn" id="btn-copiar-carta" style="padding:14px;" disabled>📋 Copiar texto</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
-      <button class="script-btn" id="btn-enviar-email" style="padding:14px;">✉️ E-mail</button>
-      <button class="script-btn" id="btn-enviar-whatsapp" style="padding:14px;background:#25D366;color:#fff;border-color:#25D366;">💬 WhatsApp</button>
+      <button class="script-btn" id="btn-enviar-email" style="padding:14px;" disabled>✉️ E-mail</button>
+      <button class="script-btn" id="btn-enviar-whatsapp" style="padding:14px;background:#25D366;color:#fff;border-color:#25D366;" disabled>💬 WhatsApp</button>
     </div>
+    <div id="gate-aviso" style="margin-top:10px;font-size:12px;color:var(--text-mute);text-align:center;line-height:1.5;">Marque o aviso acima para liberar o download e o envio.</div>
   </div>
 
   <div class="card" style="border-color: var(--gold);">
@@ -447,11 +466,19 @@
       <strong style="color:var(--text);">Lei 8.078/90 (CDC) Art. 43 §1º</strong> — Direito à correção e exclusão de dados negativos<br><em style="color:var(--text-mute);font-size:13px;">Na prática: o que estiver errado sobre você no cadastro tem que ser corrigido, e você tem direito de saber o que consta.</em><br><br>
       <strong style="color:var(--text);">Súmula 548/STJ</strong> — Credor tem 5 dias úteis após o pagamento pra retirar negativação<br><em style="color:var(--text-mute);font-size:13px;">Na prática: pagou, seu nome tem que sair do Serasa/SPC em 5 dias úteis. Se não sair, é descumprimento.</em><br><br>
       <strong style="color:var(--text);">Lei 14.181/2021 (Superendividamento)</strong> — Direito à renegociação com preservação do mínimo existencial<br><em style="color:var(--text-mute);font-size:13px;">Na prática: a lei diz que ninguém pode ser cobrado a ponto de ficar sem o dinheiro do básico — comida, moradia, remédio.</em><br><br>
-      <strong style="color:var(--text);">MP do Novo Desenrola Brasil (04/05/2026)</strong> — Programa governamental ativo com descontos de 30% a 90% por 90 dias<br><br>
+      <strong style="color:var(--text);">Código Civil, arts. 421 e 422</strong> — Função social do contrato e boa-fé objetiva<br><em style="color:var(--text-mute);font-size:13px;">Na prática: as duas partes têm que agir com lealdade e aceitar conversar sobre uma saída razoável.</em><br><br>
       <strong style="color:var(--text);">Lei 13.709/2018 (LGPD)</strong> — Direito de acesso e correção dos próprios dados cadastrais<br><em style="color:var(--text-mute);font-size:13px;">Na prática: os seus dados são seus. Você pode pedir para ver e corrigir.</em><br><br>
-      <strong style="color:var(--text);">Resolução BCB 4.806/2020</strong> — Bancos devem informar claramente custos do crédito<br><br>
-      <strong style="color:var(--text);">Súmula 530 / STJ</strong> — Juros abusivos quando taxa > 2× média BACEN (atualmente 857,2% a.a. pra cartão rotativo)<br><em style="color:var(--text-mute);font-size:13px;">Na prática: se o banco cobra mais que o dobro da média do mercado, dá pra questionar o juro na Justiça — e é por isso que ele costuma preferir negociar.</em>
+      <strong style="color:var(--text);">Resolução BCB 4.806/2020</strong> — Bancos devem informar claramente custos do crédito<br><em style="color:var(--text-mute);font-size:13px;">Na prática: você pode exigir o contrato e a conta de como chegaram naquele saldo.</em><br><br>
+      <strong style="color:var(--text);">Resolução CMN 4.765/2019</strong> — Teto de 8% ao mês nos juros do cheque especial<br><em style="color:var(--text-mute);font-size:13px;">Na prática: só vale para cheque especial. Passou de 8% ao mês, é descumprimento da norma do CMN — reclame no banco e no Banco Central.</em><br><br>
+      <strong style="color:var(--text);">Lei 14.690/2023, art. 28</strong> — Juros e encargos do rotativo e do parcelamento da fatura do cartão não podem passar de 100% do valor original (desde 03/01/2024)<br><em style="color:var(--text-mute);font-size:13px;">Na prática: a dívida do cartão, no máximo, dobra. Se te cobram mais que o dobro do que você gastou, conteste.</em><br><br>
+      <strong style="color:var(--text);">Código Civil, art. 206, §5º, I e art. 202, VI</strong> — Dívida de consumo prescreve em 5 anos; reconhecer a dívida interrompe o prazo<br><em style="color:var(--text-mute);font-size:13px;">Na prática: se faz mais de 5 anos que você não paga nem faz acordo, pode ser que não deva mais nada — e assinar qualquer papel reconhecendo a dívida faz a contagem recomeçar do zero.</em>
     </p>
+    <div style="margin-top:16px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:1.6;color:var(--text-soft);">
+      <strong style="color:var(--text);">Sobre "juros abusivos" — o que o STJ realmente diz.</strong><br>
+      A <strong>Súmula 530/STJ</strong> é muito citada errado por aí. O texto dela é: <em>"Nos contratos bancários, na impossibilidade de comprovar a taxa de juros efetivamente contratada — por ausência de pactuação ou pela falta de juntada do instrumento aos autos —, aplica-se a taxa média de mercado, divulgada pelo Bacen, praticada nas operações da mesma espécie, salvo se a taxa cobrada for mais vantajosa para o devedor."</em> Ou seja: ela diz <strong>qual taxa aplicar quando ninguém prova a que foi contratada</strong> — não cria limite de juros.<br><br>
+      E o entendimento do STJ é o contrário do mito: pela <strong>Súmula 382</strong>, juros acima de 12% ao ano <strong>não indicam abusividade por si sós</strong>; e pelo <strong>Tema 27 (REsp 1.061.530/RS)</strong>, superar a taxa média do mercado — em 1,5×, 2× ou 3× — também <strong>não configura abuso automaticamente</strong>. Abusividade depende de análise do contrato caso a caso, com advogado.<br><br>
+      Por isso a comparação com a média do BACEN aqui é <strong>informação de mercado para você barganhar</strong> (e para pedir o contrato), nunca uma acusação jurídica pronta.
+    </div>
     <p style="margin-top:14px;font-size:12px;color:var(--text-mute);line-height:1.5;">
       <strong>Fontes oficiais consultadas:</strong><br>
       • BACEN — Estatísticas Monetárias e de Crédito (atualização mensal)<br>
@@ -522,8 +549,8 @@
   <div class="card">
     <h2><span class="icon">📋</span> Depois do pagamento</h2>
     <div class="check-item"><input type="checkbox" id="p1"><label for="p1">Guardei o comprovante (por pelo menos 5 anos)</label></div>
-    <div class="check-item"><input type="checkbox" id="p2"><label for="p2">Em 7 dias, vou consultar CPF no Serasa, SPC e Cadin</label></div>
-    <div class="check-item"><input type="checkbox" id="p3"><label for="p3">Se não houver baixa em 30 dias, registro no consumidor.gov.br</label></div>
+    <div class="check-item"><input type="checkbox" id="p2"><label for="p2">Em 7 dias, vou consultar meu CPF no Serasa, no SPC e no Registrato do Banco Central (mostra de graça todo empréstimo e financiamento no meu nome)</label></div>
+    <div class="check-item"><input type="checkbox" id="p3"><label for="p3">Se não houver baixa em 5 dias úteis (Súmula 548/STJ), registro no consumidor.gov.br</label></div>
     <div class="check-item"><input type="checkbox" id="p4"><label for="p4">Se recusarem dar quitação, vou no Procon</label></div>
   </div>
 
@@ -535,14 +562,19 @@
       <a href="https://www.serasa.com.br/limpa-nome-online/" target="_blank">Abrir →</a>
     </div>
     <div class="plat-card">
-      <h3>Desenrola Brasil</h3>
-      <p>Programa do governo federal. Quem ganha até 2 salários mínimos tem condições especiais.</p>
-      <a href="https://www.gov.br/fazenda/desenrola" target="_blank">Abrir →</a>
+      <h3>Registrato (Banco Central)</h3>
+      <p>Gratuito, com login gov.br. Mostra todo empréstimo, financiamento e conta no seu CPF — inclusive dívida que você esqueceu.</p>
+      <a href="https://www.bcb.gov.br/cidadaniafinanceira/registrato" target="_blank">Abrir →</a>
     </div>
     <div class="plat-card">
       <h3>Consumidor.gov.br</h3>
       <p>Registra reclamações oficialmente. Empresas têm prazo pra responder.</p>
       <a href="https://www.consumidor.gov.br" target="_blank">Abrir →</a>
+    </div>
+    <div class="plat-card">
+      <h3>Defensoria Pública</h3>
+      <p>Advogado gratuito para quem não pode pagar. Procure antes de assinar qualquer coisa se a dívida tem 5 anos ou mais.</p>
+      <a href="https://www.gov.br/pt-br/servicos/consultar-enderecos-e-contatos-das-defensorias-publicas" target="_blank">Abrir →</a>
     </div>
   </div>
 </section>
@@ -609,7 +641,8 @@ function save() {
     disponivel: document.getElementById('d-disponivel').value,
   };
   state.checks = {};
-  document.querySelectorAll('input[type="checkbox"]').forEach(c => state.checks[c.id] = c.checked);
+  // O aceite do aviso de prescrição NÃO é salvo de propósito: tem que ser lido de novo a cada visita.
+  document.querySelectorAll('input[type="checkbox"]:not(#ack-prescricao)').forEach(c => state.checks[c.id] = c.checked);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   showSave();
 }
@@ -661,6 +694,7 @@ const atrasoLegalLabel = {
   medio: 'entre 6 (seis) meses e 1 (um) ano',
   antigo: 'superior a 1 (um) ano',
   muito: 'superior a 2 (dois) anos',
+  prescrito: 'superior a 5 (cinco) anos',
 };
 
 function buildCartaTexto() {
@@ -683,25 +717,26 @@ function buildCartaTexto() {
   const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const dataFmt = `${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`;
 
-  const desenrolaTrecho = (tipo === 'cartao' || tipo === 'cheque' || tipo === 'emprestimo')
-    ? `Cumpre destacar, ademais, que o presente débito enquadra-se nas modalidades abrangidas pelo Novo Desenrola Brasil, programa governamental instituído por Medida Provisória assinada em 4 de maio de 2026, com duração de 90 (noventa) dias, o qual prevê descontos de até 90% (noventa por cento) sobre o saldo devedor de dívidas de ${tipoTxt} contraídas até 31 de janeiro de 2026.`
-    : `Embora o presente débito não se enquadre diretamente no programa Novo Desenrola Brasil (instituído por Medida Provisória de 4 de maio de 2026), aplicam-se à presente negociação os princípios gerais de boa-fé objetiva e função social do contrato (CC, art. 421 e 422), bem como o direito à renegociação com preservação do mínimo existencial.`;
-
-  /* Bloco de abusividade (só pra cartão de crédito) */
+  /* Bloco de contexto de taxas: rotativo do cartão (comparação com a média BACEN,
+     como INFORMAÇÃO de mercado) ou cheque especial (teto da Res. CMN 4.765/2019).
+     Nunca afirma abusividade — ver Súmula 382/STJ e Tema 27 (REsp 1.061.530/RS). */
   const bancoKey = (d.banco || '').toLowerCase();
   const banco = bancos[bancoKey];
-  let abusividadeBody = null;
-  const tipoElegivelAbus = (tipo === 'cartao' || tipo === 'cheque');
-  const modalidadeTxt = tipo === 'cheque' ? 'cheque especial' : 'crédito rotativo';
-  if (banco && tipoElegivelAbus && banco.taxaAno > LIMITE_ABUSIVIDADE) {
-    abusividadeBody = {
-      h: 'VI — DA ABUSIVIDADE DOS JUROS (Súmula 530/STJ)',
-      p: `Cumpre registrar, para fins de fundamentação da presente proposta, que a taxa de juros do ${modalidadeTxt} praticada pelo ${banco.nome} atualmente é de ${banco.taxaMes}% ao mês, equivalente a ${banco.taxaAno}% ao ano, conforme dados públicos do Banco Central do Brasil (BACEN — Estatísticas Monetárias e de Crédito, ${TAXA_MES_REF}).\n\nA média de mercado para a mesma modalidade, segundo o BACEN, registrou a seguinte evolução nos meses recentes: ${TAXA_HISTORICO}, mantendo-se em ${TAXA_MEDIA_BACEN}% ao ano em ${TAXA_MES_REF}.\n\nA taxa praticada pelo ${banco.nome} supera em mais de 2 (duas) vezes essa média de mercado, circunstância que, à luz da Súmula nº 530 do Superior Tribunal de Justiça, configura INDÍCIO DE ABUSIVIDADE, ensejando eventual revisão judicial do contrato com fundamento no art. 51, IV e §1º, da Lei nº 8.078/90 (CDC).\n\nA presente proposta busca, portanto, evitar o necessário ajuizamento de ação revisional, oferecendo solução consensual e amigável, em linha com os princípios da economia processual e da pacificação social.`
+  const pedidoDocs = `Solicito, ainda, nos termos do art. 6º, III, da Lei nº 8.078/90 (CDC) e da Resolução BCB nº 4.806/2020, o envio de cópia do contrato e de demonstrativo do saldo devedor, com discriminação de principal, juros, multa e demais encargos.`;
+  let contextoTaxasBody = null;
+  if (tipo === 'cartao' && banco) {
+    const difPct = Math.round(((banco.taxaAno / TAXA_MEDIA_BACEN) - 1) * 1000) / 10;
+    const comparacao = difPct >= 0
+      ? `aproximadamente ${fmtTaxa(difPct)}% acima dessa média`
+      : `aproximadamente ${fmtTaxa(Math.abs(difPct))}% abaixo dessa média`;
+    contextoTaxasBody = {
+      h: 'V — DO CONTEXTO DAS TAXAS PRATICADAS',
+      p: `A título de informação de mercado, e não como alegação de abusividade, registre-se que a taxa do crédito rotativo praticada pelo ${banco.nome} é de ${fmtTaxa(banco.taxaMes)}% ao mês (${fmtTaxa(banco.taxaAno)}% ao ano), ao passo que a taxa média do crédito rotativo divulgada pelo Banco Central do Brasil é de ${fmtTaxa(TAXA_MEDIA_BACEN)}% ao ano em ${TAXA_MES_REF} (evolução recente: ${TAXA_HISTORICO}). A taxa praticada situa-se, portanto, ${comparacao}.\n\nRegistre-se expressamente que tal comparação não constitui, por si só, afirmação de abusividade: o Superior Tribunal de Justiça consolidou que juros superiores a 12% ao ano não indicam abusividade por si sós (Súmula 382/STJ) e que a mera superação da taxa média de mercado não a caracteriza (Tema 27 — REsp 1.061.530/RS). O dado é trazido apenas para demonstrar a razoabilidade econômica da proposta ora formulada.\n\nObservo, no mais, que os juros e encargos do crédito rotativo e do parcelamento de fatura de cartão não podem exceder 100% (cem por cento) do valor original da dívida, nos termos do art. 28 da Lei nº 14.690/2023, vigente desde 3 de janeiro de 2024.\n\n${pedidoDocs}`
     };
-  } else if (banco && tipoElegivelAbus && banco.taxaAno > TAXA_MEDIA_BACEN) {
-    abusividadeBody = {
-      h: 'VI — DO CONTEXTO DAS TAXAS PRATICADAS',
-      p: `Registre-se, ainda, que a taxa de juros do ${modalidadeTxt} praticada pelo ${banco.nome} (${banco.taxaMes}% ao mês / ${banco.taxaAno}% ao ano, conforme BACEN ${TAXA_MES_REF}) supera a média de mercado para a mesma modalidade (${TAXA_MEDIA_BACEN}% ao ano em ${TAXA_MES_REF}), o que reforça a razoabilidade da presente proposta de desconto para quitação amigável.`
+  } else if (tipo === 'cheque') {
+    contextoTaxasBody = {
+      h: 'V — DO LIMITE REGULAMENTAR DO CHEQUE ESPECIAL',
+      p: `Registre-se que a modalidade de cheque especial submete-se a limite específico de encargos: a Resolução CMN nº 4.765/2019 fixa em 8% (oito por cento) ao mês o teto dos juros remuneratórios incidentes sobre o limite de cheque especial.\n\n${pedidoDocs} Requeiro, em especial, a confirmação de observância do referido teto no período de apuração do débito.`
     };
   }
 
@@ -712,21 +747,72 @@ function buildCartaTexto() {
     body: [
       {h: 'I — DA QUALIFICAÇÃO E DO OBJETO', p: `Eu, ${nome}, inscrito(a) no CPF sob o nº ${cpf}, titular do contrato/operação de ${tipoTxt} de final ${final} junto a essa instituição, venho, respeitosamente, apresentar PROPOSTA FORMAL DE QUITAÇÃO do débito atualmente existente, no valor aproximado de ${valorFmt}, atualmente com tempo de inadimplência ${atrasoTxt}.`},
 
-      {h: 'II — DO FUNDAMENTO LEGAL', p: `A presente proposta encontra amparo nos seguintes diplomas legais:\n\n(a) Código de Defesa do Consumidor — Lei nº 8.078/90, especialmente o art. 43, §1º, que reconhece o direito do consumidor à atualização e correção de dados cadastrais negativos;\n\n(b) Lei nº 14.181/2021 (Lei do Superendividamento), que assegura ao consumidor o direito à renegociação de dívidas com preservação do mínimo existencial e a celebração de plano de pagamento compatível com sua capacidade financeira;\n\n(c) Súmula nº 548 do Superior Tribunal de Justiça, segundo a qual "incumbe ao credor a exclusão do registro da dívida em nome do devedor no cadastro de inadimplentes no prazo de 5 (cinco) dias úteis, a partir do integral e efetivo pagamento do débito";\n\n(d) Lei nº 13.709/2018 (LGPD), que garante o direito de acesso, correção e exclusão de dados cadastrais incorretos ou desatualizados;\n\n(e) ${desenrolaTrecho}`},
+      {h: 'II — DO FUNDAMENTO LEGAL', p: `A presente proposta encontra amparo nos seguintes diplomas legais:\n\n(a) Código de Defesa do Consumidor — Lei nº 8.078/90, especialmente o art. 43, §1º, que reconhece o direito do consumidor à atualização e correção de dados cadastrais negativos;\n\n(b) Lei nº 14.181/2021 (Lei do Superendividamento), que assegura ao consumidor o direito à renegociação de dívidas com preservação do mínimo existencial e a celebração de plano de pagamento compatível com sua capacidade financeira;\n\n(c) Súmula nº 548 do Superior Tribunal de Justiça, segundo a qual "incumbe ao credor a exclusão do registro da dívida em nome do devedor no cadastro de inadimplentes no prazo de 5 (cinco) dias úteis, a partir do integral e efetivo pagamento do débito";\n\n(d) Lei nº 13.709/2018 (LGPD), que garante o direito de acesso, correção e exclusão de dados cadastrais incorretos ou desatualizados;\n\n(e) Código Civil, arts. 421 e 422, que consagram a função social do contrato e a boa-fé objetiva, deveres que orientam ambas as partes na busca de solução consensual.`},
 
       {h: 'III — DA PROPOSTA', p: `Diante do exposto, e considerando que esta instituição preferirá receber valor parcial à vista a manter débito potencialmente prescritível e de cobrança incerta, formalizo a seguinte PROPOSTA DE QUITAÇÃO À VISTA:\n\n• Valor proposto: ${dispFmt}${pctDesc !== null ? ` (correspondente a desconto de aproximadamente ${pctDesc}% sobre o saldo total)` : ''};\n• Forma de pagamento: pagamento integral à vista, via boleto bancário ou PIX, mediante boleto ou chave PIX emitidos em nome e CNPJ desta instituição, cujos dados solicito sejam informados na resposta;\n• Prazo para pagamento: até 5 (cinco) dias úteis após o recebimento da contraproposta formal por escrito.`},
 
       {h: 'IV — DAS GARANTIAS SOLICITADAS', p: `Para que se viabilize o pagamento, solicito, em conformidade com a legislação acima:\n\n1. Envio prévio, por escrito (e-mail ou WhatsApp), de TERMO DE ACORDO contendo o valor exato, dados bancários oficiais da instituição (CNPJ) e cláusula expressa de quitação integral;\n\n2. Compromisso expresso de emissão de CARTA DE QUITAÇÃO em até 5 (cinco) dias úteis após a confirmação do pagamento;\n\n3. Compromisso expresso de COMUNICAÇÃO AOS ÓRGÃOS DE PROTEÇÃO AO CRÉDITO (Serasa, SPC e demais) solicitando a exclusão de meu CPF dos cadastros restritivos no prazo legal de 5 (cinco) dias úteis após o pagamento, conforme Súmula 548/STJ;\n\n4. Confirmação de que NENHUMA cobrança residual subsistirá após a quitação proposta, vedada qualquer cobrança vexatória nos termos do art. 71 do CDC.`},
 
-      ...(abusividadeBody ? [abusividadeBody] : []),
+      ...(contextoTaxasBody ? [contextoTaxasBody] : []),
 
-      {h: (abusividadeBody ? 'VII' : 'V') + ' — DO ENCERRAMENTO', p: `Permaneço no aguardo de manifestação formal desta instituição no prazo de 10 (dez) dias úteis a contar do recebimento, sob pena de buscar as plataformas oficiais de mediação (consumidor.gov.br, Procon e demais órgãos competentes) e, se necessário, judicialmente a renegociação compulsória nos termos da Lei do Superendividamento.\n\nReafirmo minha intenção de regularizar o presente débito de forma amigável e definitiva, dentro dos parâmetros legais e da minha capacidade financeira atual.`},
+      {h: (contextoTaxasBody ? 'VI' : 'V') + ' — DO ENCERRAMENTO', p: `Permaneço no aguardo de manifestação formal desta instituição no prazo de 10 (dez) dias úteis a contar do recebimento, sob pena de buscar as plataformas oficiais de mediação (consumidor.gov.br, Procon e demais órgãos competentes) e, se necessário, judicialmente a renegociação compulsória nos termos da Lei do Superendividamento.\n\nReafirmo minha intenção de regularizar o presente débito de forma amigável e definitiva, dentro dos parâmetros legais e da minha capacidade financeira atual.`},
     ],
     encerramento: `Atenciosamente,\n\n\n_______________________________________\n${nome}\nCPF: ${cpf}`
   };
 }
 
+/* Libera os botões de baixar/copiar/enviar só depois do aviso de prescrição lido,
+   e bloqueia de vez quando a dívida já passou dos 5 anos. */
+function atualizarGateCarta() {
+  const prescrito = ((state.dados || {}).atraso || '') === 'prescrito';
+  const ack = document.getElementById('ack-prescricao');
+  const liberado = !prescrito && !!(ack && ack.checked);
+  ['btn-baixar-word', 'btn-copiar-carta', 'btn-enviar-email', 'btn-enviar-whatsapp'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.disabled = !liberado;
+  });
+  const aviso = document.getElementById('gate-aviso');
+  if (aviso) {
+    aviso.textContent = prescrito
+      ? 'Geração bloqueada: dívida com mais de 5 anos. Confirme com a Defensoria Pública ou um advogado antes de assinar, pagar ou confirmar essa dívida.'
+      : (liberado ? 'Liberado. Confira o texto acima antes de enviar.' : 'Marque o aviso acima para liberar o download e o envio.');
+  }
+}
+
 function renderCarta() {
+  const atraso = (state.dados || {}).atraso || 'medio';
+  const prescrito = atraso === 'prescrito';
+
+  const extra = document.getElementById('aviso-prescricao-extra');
+  if (extra) {
+    extra.innerHTML = prescrito
+      ? `<div style="margin-top:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--red);border-radius:9px;"><strong style="color:var(--red);">Você marcou "mais de 5 anos": a geração da carta está bloqueada abaixo.</strong> Pode ser que você não deva mais nada. Não assine nada antes de falar com a Defensoria Pública ou um advogado.</div>`
+      : '';
+  }
+  const ackTxt = document.getElementById('ack-prescricao-texto');
+  if (ackTxt) {
+    ackTxt.textContent = prescrito
+      ? 'Entendi que preciso confirmar com a Defensoria Pública ou um advogado antes de assinar, pagar ou confirmar essa dívida.'
+      : 'Li e entendi: ao assinar e enviar esta carta eu reconheço a dívida, e o prazo de prescrição pode reiniciar do zero.';
+  }
+
+  if (prescrito) {
+    document.getElementById('carta-preview').innerHTML = `
+      <h2 style="text-align:center;font-size:15px;margin:0 0 18px;font-weight:700;color:#b91c1c;">⏳ NÃO VAMOS GERAR ESTA CARTA</h2>
+      <p style="margin-bottom:12px;">Você marcou que essa dívida tem <strong>mais de 5 anos</strong>. Dívida de consumo prescreve em 5 anos (Código Civil, art. 206, §5º, I). Ou seja: <strong>pode ser que você não deva mais nada</strong>. O STJ decidiu em 30/08/2024 (REsp 2.103.726) que dívida prescrita não pode ser cobrada nem fora da Justiça — nem por telefone, carta ou WhatsApp.</p>
+      <p style="margin-bottom:12px;">Se você assinar esta carta, <strong>reconhece a dívida por escrito e o prazo reinicia do zero</strong> (Código Civil, art. 202, VI). Você transformaria uma dívida que talvez já não valesse numa dívida nova e cobrável. É o contrário do que você quer.</p>
+      <p style="margin-bottom:8px;"><strong>Antes de qualquer coisa:</strong></p>
+      <ol style="margin:0 0 12px 20px;">
+        <li style="margin-bottom:6px;">Confirme a data certa: a última vez que você <em>pagou, parcelou ou fez acordo</em> — não a data da compra. Puxe o Registrato no Banco Central e o extrato do Serasa.</li>
+        <li style="margin-bottom:6px;">Procure a <strong>Defensoria Pública</strong> da sua cidade (advogado gratuito) ou um advogado de confiança, com esses documentos na mão.</li>
+        <li>Não assine, não faça acordo, não pague "só uma parcela pra ver" e não confirme a dívida por telefone antes disso.</li>
+      </ol>
+      <p style="margin-bottom:0;">Se confirmarem que a dívida ainda vale, volte aqui, ajuste o tempo de atraso e a carta é gerada normalmente.</p>
+    `;
+    atualizarGateCarta();
+    return;
+  }
+
   const c = buildCartaTexto();
   const html = `
     <h2 style="text-align:center;font-size:14px;letter-spacing:0.05em;margin:0 0 24px;font-weight:700;text-transform:uppercase;">${c.titulo}</h2>
@@ -736,6 +822,7 @@ function renderCarta() {
     <p style="margin-top:30px;white-space:pre-line;">${c.encerramento}</p>
   `;
   document.getElementById('carta-preview').innerHTML = html;
+  atualizarGateCarta();
 }
 
 function cartaPlainText() {
@@ -774,6 +861,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const bw = document.getElementById('btn-baixar-word');
   const bc = document.getElementById('btn-copiar-carta');
   const be = document.getElementById('btn-enviar-email');
+  const ack = document.getElementById('ack-prescricao');
+  if (ack) {
+    ack.checked = false; // o navegador restaura checkbox no reload; o aviso tem que ser lido de novo
+    ack.addEventListener('change', atualizarGateCarta);
+  }
+  atualizarGateCarta();
   if (bw) bw.addEventListener('click', baixarCartaWord);
   if (bc) bc.addEventListener('click', () => {
     navigator.clipboard.writeText(cartaPlainText()).then(() => {
@@ -800,7 +893,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const valorFmt = valor > 0 ? formatBRL(valor) : '[valor]';
     const dispFmt = disp > 0 ? formatBRL(disp) : '[proposta]';
     const pctDesc = valor > 0 && disp > 0 ? Math.round((1 - disp/valor) * 100) : null;
-    const resumo = `Olá! Sou ${nome}, titular do contrato/cartão de final ${final} junto ao ${credor}.\n\nVenho propor formalmente a QUITAÇÃO À VISTA do meu débito de ${valorFmt} pelo valor de ${dispFmt}${pctDesc ? ` (desconto de ${pctDesc}%)` : ''}.\n\nA proposta tem fundamento no CDC (art. 43), Súmula 548/STJ, Lei 14.181/2021 (Superendividamento) e MP do Novo Desenrola Brasil (04/05/2026).\n\nPosso enviar a carta jurídica completa por e-mail se preferirem. Aguardo retorno por escrito para confirmar:\n\n1. Termo de acordo formal\n2. Carta de quitação em 5 dias úteis após pagamento\n3. Exclusão de meu CPF de Serasa/SPC em 5 dias úteis (Súmula 548/STJ)\n\nAtenciosamente, ${nome}`;
+    const resumo = `Olá! Sou ${nome}, titular do contrato/cartão de final ${final} junto ao ${credor}.\n\nVenho propor formalmente a QUITAÇÃO À VISTA do meu débito de ${valorFmt} pelo valor de ${dispFmt}${pctDesc ? ` (desconto de ${pctDesc}%)` : ''}.\n\nA proposta tem fundamento no CDC (art. 43), na Súmula 548/STJ, na Lei 14.181/2021 (Superendividamento) e nos arts. 421 e 422 do Código Civil.\n\nPosso enviar a carta jurídica completa por e-mail se preferirem. Aguardo retorno por escrito para confirmar:\n\n1. Termo de acordo formal\n2. Carta de quitação em 5 dias úteis após pagamento\n3. Exclusão de meu CPF de Serasa/SPC em 5 dias úteis (Súmula 548/STJ)\n\nAtenciosamente, ${nome}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(resumo)}`, '_blank');
   });
 });
@@ -814,6 +907,21 @@ function calcular() {
   const result = document.getElementById('calc-result');
 
   const projEl = document.getElementById('proj-futuro');
+
+  // Mais de 5 anos: não é caso de calcular desconto, é caso de conferir se ainda se deve algo.
+  if (atraso === 'prescrito') {
+    result.className = 'calc-result muted';
+    result.innerHTML = `
+      <div style="text-align:left;font-size:14px;line-height:1.6;color:var(--text);">
+        <strong style="color:var(--red);">⏳ Pare aqui: pode ser que você não deva mais nada.</strong><br><br>
+        Dívida de consumo <strong>prescreve em 5 anos</strong> (Código Civil, art. 206, §5º, I), e o nome sai do Serasa/SPC em 5 anos (CDC, art. 43, §1º). O STJ decidiu em 30/08/2024 (REsp 2.103.726) que dívida prescrita <strong>não pode ser cobrada nem fora da Justiça</strong>.<br><br>
+        <strong>Não assine nada, não pague "uma parcela pra ver" e não confirme a dívida por telefone</strong> — reconhecer a dívida reinicia o prazo do zero (Código Civil, art. 202, VI).<br><br>
+        O que fazer: confirme a data do último pagamento ou acordo (não a da compra) no Registrato do Banco Central e no extrato do Serasa, e leve isso à <strong>Defensoria Pública</strong> da sua cidade (advogado gratuito) ou a um advogado de confiança. Só depois disso decida se negocia.
+      </div>`;
+    if (projEl) projEl.style.display = 'none';
+    return;
+  }
+
   if (!valor) {
     result.className = 'calc-result muted';
     result.innerHTML = '<div style="font-size:14px;color:var(--text-soft);">Preencha o valor da dívida acima</div>';
@@ -829,11 +937,10 @@ function calcular() {
     return;
   }
 
-  /* Dados atualizados 2026 — fontes:
-     - MP Desenrola 2026 (Min. Fazenda, 04/05/2026): 30%-90%
+  /* Faixas de desconto praticadas no mercado — fontes:
      - Serasa Limpa Nome: 40%-99% (feirões)
      - CNN Brasil / FDR: cartão 40% (90-120 dias) -> 90% (1+ ano)
-     - Bônus à vista no Desenrola: +12% sobre principal já com desconto */
+     Referência, não promessa: quem decide o desconto é o credor. */
   const ranges = {
     cartao: { recente: [40,70], medio: [60,85], antigo: [75,90], muito: [80,95] },
     cheque: { recente: [50,75], medio: [65,85], antigo: [80,90], muito: [85,95] },
@@ -884,15 +991,30 @@ function calcular() {
   const bancoKey = (document.getElementById('d-banco')?.value || '').toLowerCase();
   const banco = bancos[bancoKey];
   if (projEl) {
-    // Taxa default por tipo se banco não escolhido (média BACEN modalidade)
-    const taxaPadrao = { cartao: 14.0, cheque: 12.0, emprestimo: 5.5, loja: 7.0, telefone: 9.0, veiculo: 1.8 };
-    const taxaMes = (banco && (tipo === 'cartao' || tipo === 'cheque')) ? banco.taxaMes : (taxaPadrao[tipo] || 5);
-    const em3 = valor * Math.pow(1 + taxaMes/100, 3);
-    const em6 = valor * Math.pow(1 + taxaMes/100, 6);
-    const em12 = valor * Math.pow(1 + taxaMes/100, 12);
-    const fonte = (banco && (tipo === 'cartao' || tipo === 'cheque')) ? banco.nome : `${tipo === 'cartao' ? 'cartão' : tipo === 'cheque' ? 'cheque especial' : tipo} (média de mercado)`;
+    /* Taxa de referência por modalidade — cada uma tem a sua:
+       - cartão: taxa do banco escolhido (rotativo) ou a média BACEN do rotativo;
+       - cheque especial: teto de 8% ao mês da Res. CMN 4.765/2019. As taxas por banco
+         listadas neste app são de rotativo de CARTÃO e não se aplicam ao cheque especial. */
+    const taxaPadrao = { cartao: 14.0, cheque: 8.0, emprestimo: 5.5, loja: 7.0, telefone: 9.0, veiculo: 1.8 };
+    const usaTaxaDoBanco = !!banco && tipo === 'cartao';
+    const taxaMes = usaTaxaDoBanco ? banco.taxaMes : (taxaPadrao[tipo] || 5);
+    /* Teto da Lei 14.690/2023, art. 28 (vigente desde 03/01/2024): juros e encargos do
+       rotativo e do parcelamento de fatura do cartão não podem passar de 100% do valor
+       original — a dívida do cartão, no máximo, dobra. */
+    const teto = tipo === 'cartao' ? valor * 2 : Infinity;
+    const proj = (m) => Math.min(valor * Math.pow(1 + taxaMes/100, m), teto);
+    const em3 = proj(3);
+    const em6 = proj(6);
+    const em12 = proj(12);
+    const fonte = usaTaxaDoBanco ? banco.nome
+      : (tipo === 'cartao' ? 'média do rotativo — BACEN'
+        : tipo === 'cheque' ? 'teto do cheque especial — Res. CMN 4.765/2019'
+        : `${tipo} (média de mercado)`);
+    const notaTeto = tipo === 'cartao'
+      ? `<div style="font-size:12px;color:var(--text-soft);margin-top:10px;line-height:1.5;">A conta do cartão para em <strong>${formatBRL(valor * 2)}</strong>: desde 03/01/2024, juros e encargos do rotativo e do parcelamento da fatura não podem passar de 100% do valor original (Lei 14.690/2023, art. 28). Mesmo assim, é a sua dívida dobrando.</div>`
+      : '';
     document.getElementById('proj-conteudo').innerHTML = `
-      <div style="margin-bottom:8px;">Sem negociar, com juros de <strong>${taxaMes}%/mês</strong> (${fonte}), seus <strong>${formatBRL(valor)}</strong> viram:</div>
+      <div style="margin-bottom:8px;">Sem negociar, com juros de <strong>${fmtTaxa(taxaMes)}%/mês</strong> (${fonte}), seus <strong>${formatBRL(valor)}</strong> viram:</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;">
         <div style="text-align:center;padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
           <div style="font-size:11px;color:var(--text-mute);margin-bottom:2px;">3 meses</div>
@@ -907,29 +1029,39 @@ function calcular() {
           <div style="font-weight:700;color:var(--red);">${formatBRL(em12)}</div>
         </div>
       </div>
+      ${notaTeto}
     `;
     projEl.style.display = 'block';
   }
+}
+
+// Taxa em português: 16.74 -> "16,74"
+function fmtTaxa(v) {
+  return String(v).replace('.', ',');
 }
 
 function formatBRL(v) {
   return 'R$ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
-/* === ANÁLISE DE ABUSIVIDADE (Súmula 530 STJ) ===
-   Fontes BACEN — Estatísticas Monetárias e de Crédito 2026:
-   - Janeiro/2026: 424,5% a.a. (média BACEN)
-   - Fevereiro/2026: 435,9% a.a.
-   - Março/2026: 428,6% a.a. (referência atual usada)
+/* === REFERÊNCIA DE TAXAS (informação de mercado, NÃO veredito jurídico) ===
+   Atenção: não existe "limite de abusividade" por múltiplo da média. A Súmula 530/STJ
+   trata de QUAL taxa aplicar quando não se prova a contratada; a Súmula 382/STJ e o
+   Tema 27 (REsp 1.061.530/RS) dizem que superar a média NÃO configura abuso por si só.
+   Aqui a média serve para o usuário barganhar e pedir o contrato — nada além disso.
+
+   Média do ROTATIVO DO CARTÃO — BACEN, Estatísticas Monetárias e de Crédito 2026:
+   - Janeiro/2026: 424,5% a.a. | Fevereiro/2026: 435,9% a.a. | Março/2026: 428,6% a.a.
    - Dataset oficial: https://dadosabertos.bcb.gov.br/dataset/22022
-   Taxas por banco (BACEN 2026):
+   Taxas por banco (rotativo de cartão, BACEN 2026):
    - Itaú 540,77% | BB 453,5% | Santander 437,83% | Bradesco 390,34%
    - Nubank 356,18% | Caixa 254,97%
-   - Limite abusividade STJ (Súmula 530): 2x média = 857,2% a.a.        */
+   Cheque especial NÃO usa nada disso: tem norma própria (Res. CMN 4.765/2019,
+   teto de 8% ao mês).                                                            */
 const TAXA_MEDIA_BACEN = 428.6;
 const TAXA_MES_REF = 'março/2026';
 const TAXA_HISTORICO = '424,5% (jan/2026) → 435,9% (fev/2026) → 428,6% (mar/2026)';
-const LIMITE_ABUSIVIDADE = TAXA_MEDIA_BACEN * 2;
+const TETO_CHEQUE_ESPECIAL_MES = 8;
 const bancos = {
   itau: { nome: 'Itaú Unibanco', taxaAno: 540.77, taxaMes: 16.74 },
   bb: { nome: 'Banco do Brasil', taxaAno: 453.5, taxaMes: 15.33 },
@@ -943,41 +1075,51 @@ const bancos = {
   picpay: { nome: 'PicPay', taxaAno: 360, taxaMes: 13.6, estimado: true },
 };
 
-function renderAbusividade() {
-  const el = document.getElementById('abusividade-result');
+/* Leitura de mercado — nunca veredito de abusividade.
+   Cartão: compara a taxa do banco com a média BACEN do rotativo.
+   Cheque especial: mostra o teto próprio da modalidade (Res. CMN 4.765/2019). */
+function renderReferenciaTaxas() {
+  const el = document.getElementById('taxas-result');
   const hint = document.getElementById('banco-hint');
   if (!el) return;
   const bancoKey = (state.dados.banco || '').toLowerCase();
   const banco = bancos[bancoKey];
   const tipo = state.dados.tipo;
-  const tipoElegivel = (tipo === 'cartao' || tipo === 'cheque');
-  // Mostra hint quando o tipo não é elegível pra análise
-  if (hint) hint.style.display = tipoElegivel ? 'none' : 'block';
-  if (!banco || !tipoElegivel) {
+  // O hint explica que as taxas por banco só valem pro cartão.
+  if (hint) hint.style.display = (tipo === 'cartao') ? 'none' : 'block';
+
+  if (tipo === 'cheque') {
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:14px 16px;margin-top:10px;font-size:14px;line-height:1.5;">
+        <div style="font-weight:700;color:var(--text);margin-bottom:6px;">Cheque especial tem regra própria</div>
+        <div style="color:var(--text-soft);">A <strong>Resolução CMN 4.765/2019</strong> limita os juros do cheque especial a <strong style="color:var(--text);">${TETO_CHEQUE_ESPECIAL_MES}% ao mês</strong>. Veja no seu extrato ou na fatura qual taxa o banco cobra do limite usado. <strong style="color:var(--text);">Passou de ${TETO_CHEQUE_ESPECIAL_MES}% ao mês, é descumprimento da norma do CMN</strong> — reclame no banco, no consumidor.gov.br e no Banco Central (RDR).</div>
+        <div style="font-size:12px;color:var(--text-mute);margin-top:8px;">As taxas por banco deste app são do <strong>rotativo do cartão</strong> e não valem para cheque especial.</div>
+      </div>
+    `;
+    return;
+  }
+
+  if (!banco || tipo !== 'cartao') {
     el.style.display = 'none';
     return;
   }
   el.style.display = 'block';
   const acimaMedia = banco.taxaAno > TAXA_MEDIA_BACEN;
-  const abusivo = banco.taxaAno > LIMITE_ABUSIVIDADE;
-  const cor = abusivo ? 'var(--red)' : (acimaMedia ? 'var(--gold)' : 'var(--green)');
-  const corSoft = abusivo ? 'var(--red-soft)' : (acimaMedia ? 'var(--gold-soft)' : 'var(--green-soft)');
-  let veredito = '';
-  if (abusivo) {
-    veredito = `<strong style="color:var(--red);">⚖️ INDÍCIO DE JUROS ABUSIVOS</strong><br>Taxa acima do dobro da média BACEN (${LIMITE_ABUSIVIDADE.toFixed(1)}% ao ano). Pela <strong>Súmula 530 do STJ</strong>, há fundamento jurídico pra revisão do contrato. Sua carta vai citar esse fato.`;
-  } else if (acimaMedia) {
-    veredito = `<strong style="color:var(--gold);">⚠️ TAXA ACIMA DA MÉDIA</strong><br>Acima da média BACEN de ${TAXA_MEDIA_BACEN}% ao ano, mas ainda dentro do limite da Súmula 530/STJ. Use como argumento de barganha.`;
-  } else {
-    veredito = `<strong style="color:var(--green);">✓ TAXA ABAIXO DA MÉDIA DE MERCADO</strong><br>Abaixo da média BACEN. Não há indício formal de abusividade dos juros — foque a negociação no desconto à vista (Desenrola/Limpa Nome).`;
-  }
+  const difPct = Math.abs(Math.round(((banco.taxaAno / TAXA_MEDIA_BACEN) - 1) * 1000) / 10);
+  const cor = acimaMedia ? 'var(--gold)' : 'var(--green)';
+  const corSoft = acimaMedia ? 'var(--gold-soft)' : 'var(--green-soft)';
+  const leitura = acimaMedia
+    ? `<strong style="color:var(--gold);">Sua taxa está ${fmtTaxa(difPct)}% acima da média do rotativo divulgada pelo BACEN.</strong><br>Isso é <strong>informação de mercado</strong>, não veredito jurídico: juro acima da média não é abusivo por si só (Súmula 382/STJ e Tema 27 do STJ). Serve como argumento de barganha — e como motivo pra pedir o contrato e o demonstrativo do saldo devedor.`
+    : `<strong style="color:var(--green);">Sua taxa está ${fmtTaxa(difPct)}% abaixo da média do rotativo divulgada pelo BACEN.</strong><br>Leitura de mercado, não veredito jurídico. Foque a negociação no desconto à vista e peça o contrato e o demonstrativo do saldo devedor.`;
   el.innerHTML = `
     <div style="background:${corSoft};border:1px solid ${cor};border-radius:11px;padding:14px 16px;margin-top:10px;font-size:14px;line-height:1.5;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
         <span style="font-weight:700;color:var(--text);">${banco.nome}${banco.estimado ? ' (estimado)' : ''}</span>
-        <span style="font-weight:700;color:${cor};font-size:16px;">${banco.taxaMes}%/mês · ${banco.taxaAno}%/ano</span>
+        <span style="font-weight:700;color:${cor};font-size:16px;">${fmtTaxa(banco.taxaMes)}%/mês · ${fmtTaxa(banco.taxaAno)}%/ano</span>
       </div>
-      <div style="font-size:12px;color:var(--text-mute);margin-bottom:8px;">Média BACEN ${TAXA_MES_REF}: <strong>${TAXA_MEDIA_BACEN}% ao ano</strong> · Limite Súmula 530/STJ: <strong>${LIMITE_ABUSIVIDADE.toFixed(1)}% ao ano</strong><br>Histórico recente: ${TAXA_HISTORICO}</div>
-      <div style="color:var(--text);">${veredito}</div>
+      <div style="font-size:12px;color:var(--text-mute);margin-bottom:8px;">Média do rotativo (BACEN, ${TAXA_MES_REF}): <strong>${fmtTaxa(TAXA_MEDIA_BACEN)}% ao ano</strong><br>Histórico recente: ${TAXA_HISTORICO}</div>
+      <div style="color:var(--text);">${leitura}</div>
     </div>
   `;
 }
@@ -1064,8 +1206,8 @@ function copyText(text) {
 // === BIND ===
 document.querySelectorAll('input, select, textarea').forEach(el => {
   if (el.id.startsWith('d-')) {
-    el.addEventListener('input', () => { save(); calcular(); renderAbusividade(); renderCarta(); });
-    el.addEventListener('change', () => { save(); calcular(); renderAbusividade(); renderCarta(); });
+    el.addEventListener('input', () => { save(); calcular(); renderReferenciaTaxas(); renderCarta(); });
+    el.addEventListener('change', () => { save(); calcular(); renderReferenciaTaxas(); renderCarta(); });
   } else if (el.type === 'checkbox') {
     el.addEventListener('change', save);
   }
@@ -1074,7 +1216,7 @@ document.querySelectorAll('input, select, textarea').forEach(el => {
 // === INIT ===
 load();
 calcular();
-renderAbusividade();
+renderReferenciaTaxas();
 </script>
 
 </body>

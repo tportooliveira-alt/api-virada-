@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { 
-  ArrowDown, ArrowRight, ArrowUp, Mic, Sparkles, Award 
+import {
+  ArrowDown, ArrowRight, ArrowUp, FileSpreadsheet, Mic, Sparkles, Award
 } from "lucide-react";
 import { formatCurrency, formatDate, getDashboardMetrics, formatDecimal, isFromCurrentMonth } from "@/lib/utils";
 import { useVirada } from "@/providers/virada-provider";
@@ -88,6 +88,32 @@ export default function InicioPage() {
     .sort((a, b) => b.date.localeCompare(a.date) || Math.abs(b.value) - Math.abs(a.value))
     .slice(0, 6);
 
+  // A planilha real do comprador vive no Drive dele (provider: sheet.sheetUrl, já com /edit).
+  // Este banner apontava para a prévia — quem clicava nunca chegava na planilha de verdade.
+  // Quem ainda não tem planilha vai para /app/conta, o único lugar que fala com o Google.
+  // O estado "carregando" não aparece aqui: acima, sem data.isReady a página é o Skeleton.
+  const sheetUrl = data.sheet.sheetUrl;
+  const sheetBanner = (
+    <>
+      <div className="flex items-center gap-3">
+        <div className="grid h-10 w-9 place-items-center rounded-lg bg-emerald-500 text-[#0F382C] shadow">
+          <FileSpreadsheet className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-xs font-bold text-emerald-300 uppercase tracking-wide">
+            Planilha Inteligente Google Sheets
+          </p>
+          <p className="text-sm font-semibold text-white">
+            {sheetUrl ? "Abrir minha planilha no Google Drive" : "Criar minha planilha agora"}
+          </p>
+        </div>
+      </div>
+      <span className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-emerald-300">
+        {sheetUrl ? "Abrir planilha" : "Criar planilha"} <ArrowRight className="h-3.5 w-3.5" />
+      </span>
+    </>
+  );
+
   return (
     <div className="space-y-5">
       {/* Hero — Fundo Escuro Executivo com Diagnóstico Real */}
@@ -155,27 +181,27 @@ export default function InicioPage() {
         </div>
 
         {/* Banner de Acesso à Planilha Executiva Google Sheets */}
-        <Link
-          href="/app/planilha-demo"
-          className="flex items-center justify-between rounded-xl bg-gradient-to-r from-emerald-900/60 to-emerald-950/90 border border-emerald-500/30 p-3.5 text-white transition hover:border-emerald-400/60"
-        >
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-9 place-items-center rounded-lg bg-emerald-500 text-[#0F382C] text-lg font-black shadow">
-              田
-            </div>
-            <div>
-              <p className="text-xs font-bold text-emerald-300 uppercase tracking-wide">
-                Planilha Inteligente Google Sheets
-              </p>
-              <p className="text-sm font-semibold text-white">
-                Abrir Painel Executivo com as 9 Abas Consolidadas
-              </p>
-            </div>
-          </div>
-          <span className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-emerald-300">
-            Acessar Planilha <ArrowRight className="h-3.5 w-3.5" />
-          </span>
-        </Link>
+        <div className="rounded-xl bg-gradient-to-r from-emerald-900/60 to-emerald-950/90 border border-emerald-500/30 p-3.5 transition hover:border-emerald-400/60">
+          {sheetUrl ? (
+            <a
+              href={sheetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between text-white"
+            >
+              {sheetBanner}
+            </a>
+          ) : (
+            <Link href="/app/conta" className="flex items-center justify-between text-white">
+              {sheetBanner}
+            </Link>
+          )}
+          <p className="mt-2.5 border-t border-emerald-500/20 pt-2.5 text-[11px] text-ink-400">
+            <Link href="/app/planilha-demo" className="font-semibold text-emerald-300 hover:text-emerald-200">
+              Prévia: ver como ela é por dentro
+            </Link>
+          </p>
+        </div>
 
         {/* Botão de Lançar Rápido */}
         <Link
@@ -254,7 +280,7 @@ export default function InicioPage() {
           </div>
 
           <p className="text-xs text-ink-500 pt-1">
-            💡 {intel.score.description}
+            {intel.score.description}
           </p>
         </section>
 

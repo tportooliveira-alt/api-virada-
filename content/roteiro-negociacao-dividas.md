@@ -4,6 +4,20 @@ Mensagens prontas para falar com bancos, lojas e empresas. Use, adapte, copie e 
 
 ---
 
+## Primeiro de tudo: há quanto tempo é essa dívida?
+
+**Dívida de consumo prescreve em 5 anos** (Código Civil, art. 206, §5º, I), e o nome sai do Serasa/SPC em 5 anos (CDC, art. 43, §1º). Em 30/08/2024 o STJ decidiu (REsp 2.103.726) que dívida prescrita **não pode ser cobrada nem fora da Justiça** — nem por telefone, carta ou WhatsApp.
+
+O detalhe que quase ninguém conta: **reconhecer a dívida reinicia a contagem do zero** (Código Civil, art. 202, VI). Fazer acordo, pagar "uma parcelinha pra ver", assinar proposta ou confirmar o débito por escrito — tudo isso é reconhecimento.
+
+Então, antes de usar qualquer mensagem deste roteiro:
+
+- Conte a partir do **último pagamento ou acordo**, não da data da compra.
+- Se deu **5 anos ou mais** — ou se você não sabe de quando é: **pare**. Não ligue, não assine, não pague. Puxe seu Registrato no Banco Central e o extrato do Serasa e leve à **Defensoria Pública** da sua cidade (advogado gratuito) ou a um advogado de confiança. Pode ser que você não deva mais nada.
+- Se tem menos de 5 anos: siga o roteiro abaixo sabendo que negociar é reconhecer a dívida — o que, nesse caso, é justamente o que você quer.
+
+---
+
 ## Antes de negociar — preparação
 
 Antes de pegar o telefone ou abrir o WhatsApp, faça este checklist:
@@ -99,8 +113,8 @@ Antes de pegar o telefone ou abrir o WhatsApp, faça este checklist:
 ## Após o pagamento
 
 - [ ] Guarde o comprovante por pelo menos 5 anos.
-- [ ] Em 7 dias, consulte gratuitamente seu CPF no Serasa, SPC e Cadin.
-- [ ] Se não houver baixa em 30 dias, registre reclamação em **consumidor.gov.br**.
+- [ ] Em 7 dias, consulte gratuitamente seu CPF no Serasa, no SPC e no **Registrato do Banco Central** (bcb.gov.br/cidadaniafinanceira/registrato) — ele mostra de graça todo empréstimo e financiamento no seu CPF.
+- [ ] Se não houver baixa em **5 dias úteis** (prazo legal da Súmula 548/STJ), registre reclamação em **consumidor.gov.br**.
 - [ ] Se a empresa se recusar a dar quitação, procure o Procon.
 
 ---
@@ -123,8 +137,9 @@ Antes de pegar o telefone ou abrir o WhatsApp, faça este checklist:
 ## Plataformas oficiais que ajudam
 
 - **Serasa Limpa Nome** — serasa.com.br — descontos de até 99% em dívidas negativadas.
-- **Desenrola Brasil** — desenrola.gov.br — programa do governo federal para quem ganha até 2 salários mínimos.
+- **Registrato (Banco Central)** — bcb.gov.br/cidadaniafinanceira/registrato — gratuito, com login gov.br: mostra todo empréstimo, financiamento e conta no seu CPF.
 - **Consumidor.gov.br** — registra reclamações e força negociação.
+- **Defensoria Pública** — advogado gratuito para quem não pode pagar. Procure antes de assinar qualquer coisa se a dívida tem 5 anos ou mais.
 
 ---
 

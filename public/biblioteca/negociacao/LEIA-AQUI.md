@@ -29,7 +29,7 @@ Página web do **Bônus 2 do Kit Duplo** — versão interativa.
 - Checklist "Antes de pagar" (6 itens de segurança)
 - Alerta de armadilhas comuns
 - Checklist "Depois do pagamento" (4 itens com prazos)
-- Links pra Serasa, Desenrola, Consumidor.gov
+- Links pra Serasa, Consumidor.gov e Registrato do Banco Central
 
 ## Diferencial competitivo
 
@@ -72,8 +72,11 @@ Igual aos outros: Netlify Drop ou subdomínio no Hostinger.
 - Lei 13.709/2018 (LGPD)
 - Resolução BCB 4.806/2020
 - Súmula 548/STJ — baixa em 5 dias úteis após pagamento
-- Súmula 530/STJ — juros abusivos > 2× média BACEN
-- MP do Novo Desenrola Brasil (04/05/2026) — descontos 30%-90% por 90 dias
+- Súmula 530/STJ — qual taxa aplicar quando não se prova a contratada (NÃO diz que
+  juro acima de 2× a média é abusivo; ver Súmula 382 e Tema 27, que dizem o contrário)
+- Lei 14.690/2023 art. 28 — juros do rotativo não passam de 100% do valor original
+- Res. CMN 4.765/2019 — teto de 8% ao mês no cheque especial
+- CC art. 202 VI e art. 206 §5º I — reconhecer a dívida reinicia o prazo de 5 anos
 
 ### Quando atualizar este app
 - **A cada 3 meses**: revisar média BACEN (publicada todo dia 25 do mês seguinte)

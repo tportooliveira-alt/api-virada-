@@ -12,7 +12,8 @@
 
 import { PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { LOGIN_SCOPES, saveGoogleToken } from "@/lib/sheets/oauth";
+import { MessageCircle } from "lucide-react";
+import { LOGIN_SCOPES, loadGoogleToken, saveGoogleToken } from "@/lib/sheets/oauth";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -238,9 +239,28 @@ export function AuthGate({ children }: PropsWithChildren) {
       return;
     }
 
-    // Já logado: confia por enquanto, revalida em background
+    // Já logado: confia por enquanto, revalida em background.
+    // A revalidação não é formalidade: é ela que (re)emite o cookie de membro, sem o
+    // qual o material pago (/downloads e /biblioteca, linkados no menu) fica barrado
+    // pelo middleware. Quem já estava logado antes deste porteiro existir passa aqui.
     setStage(stored.status === "ativo" ? "ok" : "not-member");
     loadGisScript();
+
+    if (stored.status === "ativo") {
+      const token = loadGoogleToken();
+      if (token) {
+        // Silencioso: se falhar, o app continua funcionando com a sessão local.
+        void fetch("/api/access/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accessToken: token.access_token }),
+        }).catch(() => {});
+      } else if (new URLSearchParams(window.location.search).has("precisa-entrar")) {
+        // Veio barrado ao clicar no material pago e o token do Google já venceu
+        // (ele dura 55 min). Um clique no botão do Google devolve o acesso.
+        setStage("needs-login");
+      }
+    }
   }, [pathname, loadGisScript, isPublic]);
 
   if (isPublic) return <>{children}</>;
@@ -386,7 +406,7 @@ function NeedsLogin({
           onClick={onDevLogin}
           className="mt-4 w-full rounded-xl border border-dashed border-ink-300 py-2.5 text-xs text-ink-600 transition hover:border-ink-300 hover:text-ink-500"
         >
-          ⚙ Entrar como Dev (localhost)
+          Entrar como Dev (localhost)
         </button>
       )}
     </>
@@ -394,6 +414,14 @@ function NeedsLogin({
 }
 
 function NotMember({ email, onSwitch }: { email: string; onSwitch: () => void }) {
+  // Aqui o dinheiro já entrou e a pessoa está a um passo de pedir reembolso.
+  // A mensagem já vai pronta com o e-mail tentado — ela não precisa explicar nada.
+  const whatsappHref = `https://wa.me/5577999395511?text=${encodeURIComponent(
+    email
+      ? `Olá! Comprei o Código da Virada e não estou conseguindo entrar no app. Tentei com o e-mail ${email}.`
+      : "Olá! Comprei o Código da Virada e não estou conseguindo entrar no app.",
+  )}`;
+
   return (
     <>
       <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Conta não encontrada na lista</p>
@@ -409,8 +437,20 @@ function NotMember({ email, onSwitch }: { email: string; onSwitch: () => void })
       >
         Tentar com outra conta Google
       </button>
+
+      <a
+        href={whatsappHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-green-700/40 bg-green-50 py-3 text-sm font-semibold text-green-700 transition hover:bg-green-100"
+      >
+        <MessageCircle className="h-4 w-4 shrink-0" aria-hidden />
+        Falar com a gente no WhatsApp
+      </a>
+
       <p className="mt-4 text-center text-xs text-ink-500">
-        Comprou agora? Pode levar 1-2 min até o pagamento aparecer aqui.
+        Comprou agora? Pode levar 1-2 min até o pagamento aparecer aqui. Se já passou disso, chama no WhatsApp que a
+        gente libera seu acesso.
       </p>
     </>
   );

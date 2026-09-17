@@ -228,7 +228,31 @@ INLINE_ITALIC = re.compile(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)")
 INLINE_CODE = re.compile(r"`([^`]+)`")
 
 
+# A Helvetica do reportlab so desenha Latin-1: emoji e simbolo fora disso viravam
+# letra solta no PDF entregue ("⚠️" saia como "II"). Troca os que usamos por
+# palavra e remove o resto, em vez de imprimir sujeira na cara do comprador.
+SIMBOLOS_FORA_DA_FONTE = {
+    "⚠️": "Atenção:", "⚠": "Atenção:",
+    "✅": "", "✔️": "", "✔": "",
+    "❌": "", "🚫": "",
+    "☐": "[  ]", "☑": "[X]", "☒": "[X]",
+    "→": "->", "←": "<-",
+}
+
+# A Helvetica desenha estes por WinAnsi mesmo passando de 255 — o bullet das listas
+# está aqui: filtrá-lo junto com os emoji deixava as listas sem marcador nenhum.
+FORA_DO_LATIN1_MAS_OK = set("•–—‘’“”…€")
+
+
+def limpa_glifos(texto: str) -> str:
+    for de, para in SIMBOLOS_FORA_DA_FONTE.items():
+        texto = texto.replace(de, para)
+    # Sobrou algo que a fonte não desenha? Sai, senão vira caractere aleatório no PDF.
+    return "".join(c for c in texto if ord(c) < 256 or c in FORA_DO_LATIN1_MAS_OK).strip()
+
+
 def inline_md_to_html(text: str) -> str:
+    text = limpa_glifos(text)
     text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     text = INLINE_BOLD.sub(r"<b>\1</b>", text)
     text = INLINE_ITALIC.sub(r"<i>\1</i>", text)
@@ -332,8 +356,8 @@ def md_to_flowables(md_text: str, styles: dict[str, ParagraphStyle]) -> list:
         if m:
             flush_paragraph()
             content = m.group(3).strip()
-            content = re.sub(r"^\[\s\]\s*", "☐ ", content)
-            content = re.sub(r"^\[x\]\s*", "☑ ", content, flags=re.IGNORECASE)
+            content = re.sub(r"^\[\s\]\s*", "[  ] ", content)
+            content = re.sub(r"^\[x\]\s*", "[X] ", content, flags=re.IGNORECASE)
             flows.append(
                 Paragraph(
                     f"• {inline_md_to_html(content)}", styles["bullet"]
@@ -739,28 +763,28 @@ def main() -> None:
             "bonus-50-ideias-renda-extra.md",
             "bonus-50-ideias.pdf",
             "50 IDEIAS DE\nRENDA EXTRA",
-            "Bônus 02 • Para começar do zero",
+            "Material extra • Fora da oferta atual",
             "Bônus — 50 ideias de renda extra",
         ),
         (
             "roteiro-negociacao-dividas.md",
             "roteiro-negociacao.pdf",
             "ROTEIRO DE\nNEGOCIAÇÃO",
-            "Bônus 03 • Scripts prontos",
+            "Bônus 1 • Scripts prontos",
             "Bônus — Roteiro de negociação",
         ),
         (
             "plano-7-dias.md",
             "plano-7-dias.pdf",
             "PLANO DE\n7 DIAS",
-            "Bônus 04 • Comece sua virada em uma semana",
+            "Bônus 2 • Comece sua virada em uma semana",
             "Bônus — Plano de 7 dias",
         ),
         (
             "checklist-mensal.md",
             "checklist-mensal.pdf",
             "CHECKLIST\nMENSAL",
-            "Bônus 05 • Revisão financeira de 30 minutos",
+            "Bônus 3 • Revisão financeira de 30 a 45 minutos",
             "Bônus — Checklist mensal",
         ),
     ]
