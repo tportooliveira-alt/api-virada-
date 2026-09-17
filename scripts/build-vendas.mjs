@@ -146,6 +146,35 @@ html = html.replace(
 );
 
 html = html.replace("<footer", AUTORIDADE + "<footer");
+
+// Rodapé: política e termos apontavam para âncoras DENTRO da própria landing
+// (#privacidade, #termos) — dois parágrafos-resumo que divergem das páginas
+// completas e não dizem uma palavra sobre o que o app pede à conta Google.
+// Duas consequências, e nenhuma é estética:
+//   1. A verificação do Google procura o link da política de privacidade na
+//      página inicial. Uma âncora para um parágrafo da própria página não serve,
+//      e é justamente essa verificação que hoje trava a conexão da planilha.
+//   2. Quem desconfia e vai ler encontra a versão curta, que não explica que o
+//      app só enxerga os arquivos que ele mesmo criou (escopo drive.file).
+// As seções de resumo ficam onde estão — servem como leitura rápida —, mas
+// ganham o caminho para o texto completo.
+html = html
+  .replace('href="#termos"', 'href="/termos-de-uso.html"')
+  .replace('href="#privacidade"', 'href="/politica-privacidade.html"');
+
+for (const [id, pagina, rotulo] of [
+  ["privacidade", "/politica-privacidade.html", "Ler a política de privacidade completa"],
+  ["termos", "/termos-de-uso.html", "Ler os termos de uso completos"],
+]) {
+  const marca = `id="${id}">`;
+  const corte = html.indexOf(marca);
+  if (corte === -1) continue;
+  const fim = html.indexOf("</div>", corte);
+  if (fim === -1) continue;
+  const link =
+    `<p style="margin:10px 0 0;"><a href="${pagina}" style="color:#CBD5E1; text-decoration:underline;">${rotulo} &rarr;</a></p>`;
+  html = html.slice(0, fim) + link + html.slice(fim);
+}
 {
   const marca = '<section id="comprar"';
   const i = html.indexOf(marca);
