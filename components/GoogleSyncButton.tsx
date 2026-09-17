@@ -33,6 +33,7 @@ import {
   META_EVENT,
   SCOPES,
   ehErroDeAutorizacao,
+  ehPlanilhaSumiu,
   gravarMeta,
   gravarToken,
   lerMeta,
@@ -48,6 +49,8 @@ import {
 /** Margem de segurança: não tentar usar um token que vence no meio do envio. */
 const FOLGA_TOKEN_MS = 60 * 1000;
 const VIDA_PADRAO_S = 3600;
+/** De quanto em quanto tempo a tela reconfere se a autorização ainda está viva. */
+const RELOGIO_MS = 30 * 1000;
 
 interface TokenResponse {
   error?: string;
@@ -97,6 +100,11 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
   const [status, setStatus] = useState<"idle" | "ok" | "err">("idle");
   const [errMsg, setErrMsg] = useState("");
   const [gisLoaded, setGisLoaded] = useState(false);
+  const [linkCopiado, setLinkCopiado] = useState(false);
+
+  // Enquanto houver token na mão, a conexão está de pé. É o que separa
+  // "Atualizada há 2 h, tudo certo" de "parou de atualizar e você não sabia".
+  const conexaoAtiva = tokenValido(token, Date.now());
 
   // O nome da variável de ambiente só existe aqui, onde só quem mantém o app
   // olha. Na tela, o comprador vê um caminho pra resolver.
@@ -131,6 +139,22 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     else if (salvo) limparToken();
   }, []);
 
+  // A autorização do Google vive ~1 h e NÃO tem renovação automática (ver o
+  // cabeçalho do sync-runner). Até 17/09/2026 o cartão continuava com o pontinho
+  // verde e "Atualizada há 2 h" depois de ela vencer: o automático já tinha
+  // parado, a planilha estava congelada, e quem pagou não tinha como saber.
+  // Este relógio é o que deixa a tela contar a verdade sem ninguém clicar.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setToken((atual) => {
+        if (!atual || tokenValido(atual, Date.now())) return atual;
+        limparToken(); // token morto não fica apodrecendo no aparelho
+        return null;
+      });
+    }, RELOGIO_MS);
+    return () => window.clearInterval(id);
+  }, []);
+
   // O automático também grava a meta (hora do último envio). Sem ouvir isso, o
   // cartão ficaria dizendo "Atualizada há 3 h" com a planilha recém-atualizada.
   useEffect(() => {
@@ -153,6 +177,17 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
         dados: { expenses, incomes, debts, goals, settings },
         email: userEmail,
         aoAtualizarLayout: setUpgrading,
+        // No instante em que a planilha nasce no Drive já mostramos o botão
+        // "Abrir planilha". Se o resto do envio falhar, a pessoa continua com o
+        // endereço na mão e a próxima tentativa termina ESTA planilha em vez de
+        // criar outra — foi o que encheu o Drive do dono de duplicatas.
+        aoCriar: (parcial) => {
+          gravarMeta(parcial);
+          setMeta(parcial);
+        },
+        // Só o botão pode substituir uma planilha que sumiu do Drive: é gesto
+        // explícito de quem está olhando a tela (ver `permitirRecriar`).
+        permitirRecriar: true,
       });
       gravarMeta(novo);
       setMeta(novo);
@@ -166,6 +201,9 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
         limparToken();
         setToken(null);
         setErrMsg("O Google desligou a conexão por segurança. Toque para religar.");
+      } else if (ehPlanilhaSumiu(err)) {
+        // Chega aqui quando nem a planilha nova conseguiu nascer.
+        setErrMsg("Sua planilha não está mais no Google Drive e não consegui criar outra agora. Tente de novo em alguns segundos.");
       } else {
         setErrMsg("Não deu para atualizar a planilha agora. Tente de novo em alguns segundos.");
       }
@@ -302,6 +340,21 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
     conectarAgora();
   }
 
+  // Saída de emergência do "não consigo abrir no Planilhas": em celular o toque
+  // no link às vezes cai no app do Google Planilhas logado em OUTRA conta, e a
+  // pessoa leva um "você precisa de permissão" sem entender por quê. Com o
+  // endereço copiado ela abre onde quiser, na conta certa.
+  async function copiarLink() {
+    if (!meta) return;
+    try {
+      await navigator.clipboard.writeText(meta.spreadsheetUrl);
+    } catch {
+      return; // navegador sem permissão de área de transferência: o link continua clicável
+    }
+    setLinkCopiado(true);
+    window.setTimeout(() => setLinkCopiado(false), 2500);
+  }
+
   function handleDisconnect() {
     limparToken();
     limparMeta();
@@ -378,16 +431,32 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
         <>
           <div className="flex items-center justify-between gap-2.5">
             <h3 className="text-lg font-bold text-ink-900">Virada Financeira</h3>
-            <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">
-              <i className="h-[7px] w-[7px] rounded-full bg-green-500" />
-              {upgrading ? "Aplicando o visual novo…" : syncing ? "Atualizando…" : `Atualizada ${timeAgo(meta.lastSync)}`}
+            {/* Verde só quando a conexão está de pé. Conexão vencida em verde,
+                dizendo "Atualizada há 2 h", é mentira confortável: a planilha
+                parou de andar e ninguém avisou. */}
+            <span
+              className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${
+                conexaoAtiva || syncing || upgrading ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-800"
+              }`}
+            >
+              <i className={`h-[7px] w-[7px] rounded-full ${conexaoAtiva || syncing || upgrading ? "bg-green-500" : "bg-amber-500"}`} />
+              {upgrading
+                ? "Aplicando o visual novo…"
+                : syncing
+                  ? "Atualizando…"
+                  : conexaoAtiva
+                    ? `Atualizada ${timeAgo(meta.lastSync)}`
+                    : "Conexão pausada"}
             </span>
           </div>
           <div className="grid grid-cols-2 gap-2">
+            {/* target=_blank + rel: no app instalado (PWA em tela cheia) é o que
+                manda a planilha pro navegador, em vez de engolir o app do
+                Virada dentro do Google Planilhas e não ter como voltar. */}
             <a
               href={meta.spreadsheetUrl}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] border border-amber-300 bg-white text-sm font-bold text-amber-800 transition-colors duration-150 hover:bg-amber-100"
             >
               Abrir planilha <ExternalLink className="h-4 w-4" />
@@ -399,16 +468,38 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
               className="flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] bg-green-500 text-sm font-bold text-green-900 transition-colors duration-150 hover:bg-green-400 disabled:opacity-60"
             >
               {syncing && <RefreshCcw className="h-4 w-4 animate-spin" />}
-              {syncing ? "Atualizando…" : "Atualizar agora"}
+              {syncing ? "Atualizando…" : conexaoAtiva ? "Atualizar agora" : "Religar e atualizar"}
             </button>
           </div>
-          <button
-            type="button"
-            onClick={handleDisconnect}
-            className="self-start py-1 text-[13px] font-semibold text-amber-800 underline transition-colors duration-150 hover:text-amber-700"
-          >
-            Desconectar planilha
-          </button>
+          {!conexaoAtiva && !syncing && (
+            <p className="text-[13px] leading-[1.45] text-amber-800">
+              O Google encerra a autorização sozinho depois de cerca de 1 hora — é normal e não some com nada. Enquanto isso a
+              planilha fica parada no último envio. Toque em <b className="font-semibold">Religar e atualizar</b> para mandar o
+              que ficou faltando.
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <button
+              type="button"
+              onClick={handleDisconnect}
+              className="py-1 text-[13px] font-semibold text-amber-800 underline transition-colors duration-150 hover:text-amber-700"
+            >
+              Desconectar planilha
+            </button>
+            {/* Se o toque no link não abrir (celular com o app do Google
+                Planilhas logado em outra conta), o endereço na mão resolve. */}
+            <button
+              type="button"
+              onClick={copiarLink}
+              className="py-1 text-[13px] font-semibold text-amber-800 underline transition-colors duration-150 hover:text-amber-700"
+            >
+              {linkCopiado ? "Link copiado" : "Copiar link da planilha"}
+            </button>
+          </div>
+          <p className="text-xs leading-[1.45] text-ink-500">
+            A planilha abre na conta Google que você autorizou. Se aparecer &quot;você precisa de permissão&quot;, é porque o
+            celular abriu com outra conta — troque de conta no Google Planilhas ou cole o link no navegador.
+          </p>
         </>
       )}
 

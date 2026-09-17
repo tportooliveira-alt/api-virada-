@@ -103,9 +103,29 @@ function lerJson<T>(chave: string): T | null {
   }
 }
 
+/**
+ * O endereço que a pessoa abre. Termina em `/edit` de propósito.
+ *
+ * Sem o `/edit` o Google responde um redirecionamento antes de mostrar a
+ * planilha, e no celular esse salto extra é onde a coisa desanda: o app do
+ * Google Planilhas intercepta o link, o navegador volta pro app instalado e a
+ * pessoa termina numa tela em branco ou num "arquivo não encontrado". Com a URL
+ * final o destino é o próprio documento, sem intermediário.
+ */
+export function urlDaPlanilha(spreadsheetId: string): string {
+  return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+}
+
+/**
+ * Meta gravado antes de 17/09/2026 guardava a URL sem `/edit`. Normalizar na
+ * LEITURA conserta de uma vez os quatro lugares que mostram o link (o botão da
+ * Conta, o card do Início, o de Relatórios e o provider) sem precisar de
+ * migração nem de novo envio ao Google.
+ */
 export function lerMeta(): SheetMeta | null {
   const meta = lerJson<SheetMeta>(SHEET_KEY);
-  return meta?.spreadsheetId ? meta : null;
+  if (!meta?.spreadsheetId) return null;
+  return { ...meta, spreadsheetUrl: urlDaPlanilha(meta.spreadsheetId) };
 }
 
 export function gravarMeta(meta: SheetMeta): void {
@@ -230,6 +250,29 @@ export function ehErroDeAutorizacao(err: unknown): boolean {
   return err instanceof ErroDeAutorizacao || (err instanceof Error && err.name === "ErroDeAutorizacao");
 }
 
+/**
+ * O id que está gravado no aparelho não aponta mais pra nenhuma planilha: a
+ * pessoa mandou o arquivo pra lixeira, esvaziou a lixeira, ou o id ficou órfão
+ * de alguma outra forma.
+ *
+ * Isso tem que ser um erro À PARTE porque o tratamento é o oposto de insistir:
+ * enquanto o id morto ficava no aparelho, TODA tentativa devolvia 404 — o
+ * automático desistia calado e o botão só sabia dizer "tente de novo em alguns
+ * segundos", pra sempre. A pessoa ficava com um cartão "Atualizada há 3 dias" e
+ * um botão "Abrir planilha" que leva a "arquivo não encontrado", sem nenhum
+ * caminho de volta a não ser Desconectar (que ninguém adivinha).
+ */
+export class ErroPlanilhaSumiu extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ErroPlanilhaSumiu";
+  }
+}
+
+export function ehPlanilhaSumiu(err: unknown): boolean {
+  return err instanceof ErroPlanilhaSumiu || (err instanceof Error && err.name === "ErroPlanilhaSumiu");
+}
+
 export const googleFetch: GoogleFetch = async (method, endpoint, token, body) => {
   const url = endpoint.startsWith("http") ? endpoint : `https://sheets.googleapis.com/v4${endpoint}`;
   const res = await fetch(url, {
@@ -246,6 +289,10 @@ export const googleFetch: GoogleFetch = async (method, endpoint, token, body) =>
     if (res.status === 401 || (res.status === 403 && err.error?.status === "PERMISSION_DENIED")) {
       throw new ErroDeAutorizacao(detalhe);
     }
+    // 404 = o arquivo não existe mais. Ver ErroPlanilhaSumiu: quem chama recria.
+    if (res.status === 404 || err.error?.status === "NOT_FOUND") {
+      throw new ErroPlanilhaSumiu(detalhe);
+    }
     throw new Error(detalhe);
   }
   return res.json();
@@ -255,17 +302,52 @@ async function etapa<T>(nome: string, fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (err) {
-    if (ehErroDeAutorizacao(err)) throw err; // não embrulha: quem trata precisa reconhecer
+    // não embrulha: quem trata precisa reconhecer pelo tipo
+    if (ehErroDeAutorizacao(err) || ehPlanilhaSumiu(err)) throw err;
     throw new Error(`[${nome}] ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
 // ─── As três operações na planilha ────────────────────────────────────────────
 
-async function criarPlanilha(fetcher: GoogleFetch, token: string, email: string) {
+/**
+ * Cria a planilha no Drive da pessoa e a deixa pronta (visual, cabeçalhos,
+ * gráficos).
+ *
+ * `aoNascer` é o conserto do bug nº 1 desta tela (17/09/2026). O POST
+ * /spreadsheets já cria o ARQUIVO; as três chamadas seguintes só o enfeitam. Se
+ * qualquer uma delas falhava — rede do celular oscilando, cota do Google, aba
+ * fechada no meio —, o erro subia, o meta NUNCA era gravado, e o cartão da tela
+ * Conta voltava pro estado "Conectar sua planilha": sem link, sem id, como se
+ * nada tivesse acontecido. O próximo toque criava OUTRA planilha. Foi assim que
+ * o Drive do dono acumulou mais de dez "Virada Financeira — <email>" enquanto
+ * ele dizia "não consigo abrir no Planilhas" — ele nunca chegou a receber um
+ * link, e nenhuma das dez estava terminada.
+ *
+ * Avisando aqui, o aparelho já guarda o id no instante em que o arquivo existe:
+ * o cartão passa a mostrar "Abrir planilha" na hora, e a tentativa seguinte cai
+ * no caminho de ATUALIZAR essa mesma planilha (o `layoutVersion` fica ausente,
+ * então o `atualizarLayout` termina o serviço) em vez de criar mais uma.
+ */
+async function criarPlanilha(
+  fetcher: GoogleFetch,
+  token: string,
+  email: string,
+  aoNascer?: (spreadsheetId: string, spreadsheetUrl: string) => void,
+) {
   const created = (await fetcher("POST", "/spreadsheets", token, createWorkbookBody(email))) as SpreadsheetInfo & {
     spreadsheetId: string;
   };
+  const spreadsheetUrl = urlDaPlanilha(created.spreadsheetId);
+  // A partir desta linha o arquivo EXISTE no Drive. Avisar antes de qualquer
+  // outra chamada é o que impede a planilha duplicada (ver acima).
+  try {
+    aoNascer?.(created.spreadsheetId, spreadsheetUrl);
+  } catch (err) {
+    // Gravar o carimbo é melhor-esforço: se o localStorage recusar, seguimos —
+    // o meta final ainda é devolvido por `sincronizar`.
+    console.warn("[sync] não consegui guardar o endereço da planilha recém-criada:", err);
+  }
   const ids = readSheetIds(created);
 
   // Layout: banner, kpi, formatos, proteção, ajuda
@@ -275,10 +357,7 @@ async function criarPlanilha(fetcher: GoogleFetch, token: string, email: string)
   // Gráficos
   await etapa("gráficos", () => fetcher("POST", `/spreadsheets/${created.spreadsheetId}:batchUpdate`, token, chartsCall(ids)));
 
-  return {
-    spreadsheetId: created.spreadsheetId,
-    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${created.spreadsheetId}`,
-  };
+  return { spreadsheetId: created.spreadsheetId, spreadsheetUrl };
 }
 
 /**
@@ -339,6 +418,26 @@ export interface SincronizarArgs {
   agora?: () => number;
   /** Avisa a tela que o visual está sendo reaplicado (é a etapa demorada). */
   aoAtualizarLayout?: (ativo: boolean) => void;
+  /**
+   * Chamado no INSTANTE em que a planilha nasce no Drive, antes de ela estar
+   * enfeitada — e chamado de novo quando uma planilha órfã é substituída. Quem
+   * recebe tem uma obrigação: gravar esse meta no aparelho AGORA. É isso que
+   * garante que a pessoa tenha o link mesmo se o resto do envio falhar, e que a
+   * próxima tentativa continue a mesma planilha em vez de criar outra.
+   * O padrão já grava; quem quiser também atualizar a tela passa o seu.
+   */
+  aoCriar?: (meta: SheetMeta) => void;
+  /**
+   * Pode substituir uma planilha que sumiu do Drive (404) por uma nova?
+   *
+   * Só o BOTÃO passa `true`. O automático fica de fora de propósito: o 404 pode
+   * ser passageiro (arquivo na lixeira, id ainda propagando no Google) e criar
+   * arquivo no Drive de alguém que não tocou em nada é justamente o que a
+   * decisão #4(a) proíbe — além de ser como nascem planilhas duplicadas. Sem
+   * permissão, o erro sobe: o automático desiste calado, a tela Conta passa a
+   * dizer "Atualização automática parada" e quem decide é a pessoa, no botão.
+   */
+  permitirRecriar?: boolean;
 }
 
 /**
@@ -378,37 +477,65 @@ export function sincronizar(args: SincronizarArgs): Promise<SheetMeta> {
   return meuEnvio;
 }
 
-async function enviarPlanilha({
-  token,
-  meta,
-  dados,
-  email,
-  fetcher = googleFetch,
-  agora = Date.now,
-  aoAtualizarLayout,
-}: SincronizarArgs): Promise<SheetMeta> {
-  let spreadsheetId = meta?.spreadsheetId;
-  let spreadsheetUrl = meta?.spreadsheetUrl;
+async function enviarPlanilha(args: SincronizarArgs): Promise<SheetMeta> {
+  const {
+    token,
+    meta,
+    dados,
+    email,
+    fetcher = googleFetch,
+    agora = Date.now,
+    aoAtualizarLayout,
+    aoCriar = gravarMeta,
+    permitirRecriar = false,
+  } = args;
 
-  if (!spreadsheetId) {
-    const criada = await criarPlanilha(fetcher, token, email);
-    spreadsheetId = criada.spreadsheetId;
-    spreadsheetUrl = criada.spreadsheetUrl;
-  } else if (meta?.layoutVersion !== LAYOUT_VERSION) {
-    // planilha antiga: traz o visual novo antes de mandar os dados
-    aoAtualizarLayout?.(true);
+  // Carimbo do "acabou de nascer": sem layoutVersion nem baseline de propósito.
+  // Assim, se o envio parar no meio, a próxima tentativa vê uma planilha "de
+  // layout desconhecido" e vai pelo caminho do `atualizarLayout`, que termina o
+  // serviço na MESMA planilha.
+  const carimbarNova = (spreadsheetId: string, spreadsheetUrl: string) =>
+    aoCriar({ spreadsheetId, spreadsheetUrl, lastSync: new Date(agora()).toISOString() });
+
+  const nascerEEnviar = async (): Promise<{ spreadsheetId: string; spreadsheetUrl: string }> => {
+    const criada = await criarPlanilha(fetcher, token, email, carimbarNova);
+    await mandarDados(fetcher, token, criada.spreadsheetId, dados);
+    return criada;
+  };
+
+  const usarExistente = async (spreadsheetId: string): Promise<{ spreadsheetId: string; spreadsheetUrl: string }> => {
+    if (meta?.layoutVersion !== LAYOUT_VERSION) {
+      // planilha antiga (ou criada pela metade): traz o visual novo antes dos dados
+      aoAtualizarLayout?.(true);
+      try {
+        await atualizarLayout(fetcher, token, spreadsheetId, meta?.layoutVersion);
+      } finally {
+        aoAtualizarLayout?.(false);
+      }
+    }
+    await mandarDados(fetcher, token, spreadsheetId, dados);
+    return { spreadsheetId, spreadsheetUrl: urlDaPlanilha(spreadsheetId) };
+  };
+
+  let alvo: { spreadsheetId: string; spreadsheetUrl: string };
+  if (!meta?.spreadsheetId) {
+    alvo = await nascerEEnviar();
+  } else {
     try {
-      await atualizarLayout(fetcher, token, spreadsheetId, meta?.layoutVersion);
-    } finally {
-      aoAtualizarLayout?.(false);
+      alvo = await usarExistente(meta.spreadsheetId);
+    } catch (err) {
+      // Só o 404 tem saída automática. Erro de autorização e erro de rede sobem:
+      // criar uma planilha nova porque a internet caiu seria o mesmo estrago que
+      // este conserto veio evitar.
+      if (!ehPlanilhaSumiu(err) || !permitirRecriar) throw err;
+      console.warn("[sync] a planilha gravada neste aparelho não existe mais no Drive; criando outra:", err);
+      alvo = await nascerEEnviar();
     }
   }
 
-  await mandarDados(fetcher, token, spreadsheetId, dados);
-
   return {
-    spreadsheetId,
-    spreadsheetUrl: spreadsheetUrl ?? `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
+    spreadsheetId: alvo.spreadsheetId,
+    spreadsheetUrl: alvo.spreadsheetUrl,
     lastSync: new Date(agora()).toISOString(),
     layoutVersion: LAYOUT_VERSION,
     baseline: assinaturaDados(dados),

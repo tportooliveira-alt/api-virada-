@@ -67,12 +67,27 @@ export function chartsCall(ids: Record<string, number>) {
   return { requests: buildChartRequests(ids) };
 }
 
-/** Planilha de uma versão antiga pode não ter todas as abas de hoje. null = nada a criar. */
+/**
+ * Planilha de uma versão antiga pode não ter todas as abas de hoje. null = nada
+ * a criar.
+ *
+ * A aba nova nasce com a MESMA grade que teria numa planilha criada do zero
+ * (`buildSheetSpecs`). Sem isso o Google usa o padrão dele — 1.000 linhas por 26
+ * colunas —, e a planilha de quem já era cliente ficava diferente da de quem
+ * comprou depois: Bolsos e Filtros com um descampado de colunas à direita e
+ * (nas abas de dados) uma grade que não bate com a faixa formatada do layout.
+ */
 export function missingTabsCall(ids: Record<string, number>) {
   const faltando = TAB_ORDER.filter((key) => ids[TAB[key]] === undefined);
   if (!faltando.length) return null;
+  const specs = buildSheetSpecs();
   // index = posição de hoje, pra Bolsos/Filtros não caírem depois de "Como usar"
-  return { requests: faltando.map((key) => ({ addSheet: { properties: { title: TAB[key], index: TAB_ORDER.indexOf(key) } } })) };
+  return {
+    requests: faltando.map((key) => {
+      const spec = specs.find((s) => s.properties.title === TAB[key]);
+      return { addSheet: { properties: { ...spec?.properties, title: TAB[key], index: TAB_ORDER.indexOf(key) } } };
+    }),
+  };
 }
 
 // Até o layout 2026-09-11.1 o painel lateral das abas de dados ficava em J:L
