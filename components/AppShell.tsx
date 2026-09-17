@@ -8,6 +8,7 @@ import { BottomNav, isActivePath, mainNavItems } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { AutoPlanilha } from "@/components/AutoPlanilha";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { useVirada } from "@/providers/virada-provider";
 
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
   "/app/inicio": {
@@ -38,11 +39,62 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
 
 const sidebarItems = [
   ...mainNavItems,
-  { href: "/app/planilha-demo", label: "Planilha Inteligente", icon: FileSpreadsheet },
+  // Esta tela é uma PRÉVIA desenhada dentro do app, não a planilha do Drive.
+  // Chamá-la de "Planilha Inteligente" fazia o comprador achar que a planilha dele
+  // não funcionava. A de verdade se abre pelo banner do Início e pela tela Conta.
+  { href: "/app/planilha-demo", label: "Prévia da planilha", icon: FileSpreadsheet },
   { href: "/biblioteca/negociacao/index.html", label: "Negociar dívida", icon: HandCoins, externo: true },
   { href: "/downloads/ebook-codigo-da-virada.pdf", label: "E-book", icon: BookOpen, externo: true },
   { href: "/app/instalar", label: "Instalar app", icon: Smartphone },
 ];
+
+/**
+ * Estado real da planilha no rodapé da barra lateral.
+ *
+ * Antes era texto fixo dizendo "Planilha Conectada" — aparecia igual para quem
+ * nunca tinha conectado nada. Um estado falso cravado no HTML: o comprador lia
+ * que tinha cópia de segurança quando não tinha.
+ */
+function EstadoDaPlanilha() {
+  const { sheet, isReady } = useVirada();
+  if (!isReady) return null;
+
+  return (
+    <div className="mt-auto rounded-xl border border-ink-200 bg-white p-3.5">
+      {sheet.sheetUrl ? (
+        <>
+          <p className="text-[13px] font-semibold text-ink-900">Planilha conectada</p>
+          <p className="mt-1 text-xs leading-[18px] text-ink-500">
+            Seus lançamentos viram uma planilha no seu Google Drive quando você toca em
+            &ldquo;Atualizar agora&rdquo;, na tela Conta.
+          </p>
+          <a
+            href={sheet.sheetUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-xs font-semibold text-emerald-700 hover:underline"
+          >
+            Abrir no Google Drive
+          </a>
+        </>
+      ) : (
+        <>
+          <p className="text-[13px] font-semibold text-ink-900">Planilha ainda não criada</p>
+          <p className="mt-1 text-xs leading-[18px] text-ink-500">
+            Seus dados estão só neste aparelho. A planilha no seu Google Drive é a cópia
+            de segurança deles.
+          </p>
+          <Link
+            href="/app/conta"
+            className="mt-2 inline-block text-xs font-semibold text-emerald-700 hover:underline"
+          >
+            Criar minha planilha
+          </Link>
+        </>
+      )}
+    </div>
+  );
+}
 
 function MonthChip() {
   const month = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date());
@@ -96,12 +148,7 @@ export function AppShell({ children }: PropsWithChildren) {
           })}
         </nav>
 
-        <div className="mt-auto rounded-xl border border-ink-200 bg-white p-3.5">
-          <p className="text-[13px] font-semibold text-ink-900">Planilha Conectada</p>
-          <p className="mt-1 text-xs leading-[18px] text-ink-500">
-            Seus dados locais refletem na Planilha Google Inteligente com diagnóstico de liberdade financeira.
-          </p>
-        </div>
+        <EstadoDaPlanilha />
       </aside>
 
       {/* Conteúdo principal */}

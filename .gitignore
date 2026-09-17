@@ -57,3 +57,4 @@ data/membros.json
 
 # backups de env (nunca versionar)
 .env*.bak*
+__pycache__/

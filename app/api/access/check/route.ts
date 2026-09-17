@@ -10,6 +10,7 @@
 import { NextResponse } from "next/server";
 import { isMember } from "@/lib/access/members";
 import { ADMIN_COOKIE, createAdminSession } from "@/lib/access/admin-session";
+import { MEMBER_COOKIE, createMemberSession } from "@/lib/access/member-session";
 
 interface TokenInfo {
   aud?: string;
@@ -132,6 +133,22 @@ export async function POST(request: Request) {
           sameSite: "lax",
           path: "/",
           maxAge: 12 * 60 * 60,
+        });
+      }
+    }
+
+    // Comprou (ou e admin): emite o cookie que libera o material pago em
+    // /downloads e /biblioteca. Sem ele, o middleware manda a pessoa entrar.
+    // Vale 30 dias: o comprador volta ao material semanas depois.
+    if (ativo) {
+      const membro = await createMemberSession(profile.email);
+      if (membro) {
+        response.cookies.set(MEMBER_COOKIE, membro, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: 30 * 24 * 60 * 60,
         });
       }
     }

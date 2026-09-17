@@ -116,7 +116,9 @@ Lista organizada por velocidade:
 - 7 frases-chave durante negociação
 - 6 cuidados antes de aceitar acordo + 4 sinais de armadilha
 - Tabela de descontos médios por tipo de dívida (cartão 70-95%, cheque especial 75-95%, empréstimo 60-85%, crediário 80-95%)
-- Plataformas oficiais: Serasa Limpa Nome, Desenrola Brasil, consumidor.gov.br
+- Plataformas oficiais: Serasa Limpa Nome, consumidor.gov.br, Registrato do Banco Central
+  (o Novo Desenrola saiu da lista: a MP 1.355/2026 perdeu eficacia em 31/08/2026,
+  ato no DOU de 08/09/2026 — nao citar como programa ativo)
 
 **Regra de ouro aplicada em 10/05:** nunca fechar acordo na 1ª ligação. "Vou pensar e retorno em [prazo]" — operadores liberam desconto extra na 2ª chamada.
 
