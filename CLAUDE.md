@@ -83,15 +83,28 @@ Fluxo: compra → webhook libera acesso (SQLite) → cliente usa offline (Indexe
      ("—" quando não se aplica): `*` não casa célula vazia.
    **Chave de mês (decisão do juiz, rodada 1):** `"2026-09"` — mesmo gravado com apóstrofo — tem
    cara de data, e o `SOMASES` real pode coagir o critério pra data e zerar KPIs, Filtros e Bolsos.
-   Sem credencial ninguém viu renderizar, então a chave é `mesChave()` = `"2026-09 (set)"`
+   Sem credencial ninguém viu a chave NOVA renderizar, então ela é `mesChave()` = `"2026-09 (set)"`
    (AAAA-MM + nome do mês entre parênteses): nenhum parser de data engole, ordena
    cronologicamente, e é a MESMA função em Lançamentos!J, Dashboard!B3, lista Filtros!H e
    Bolsos!B6.
 
-   > ⚠️ **NENHUMA fórmula desta planilha jamais foi renderizada no Google de verdade.** Não há
-   > credencial neste repositório: toda a prova é offline (o mini-avaliador roda as fórmulas em
-   > JS). **Este é o maior risco antes de vender** — fórmula que o Sheets recusa não dá erro
-   > nenhum no app: aparece como `#NOME?`, `#ERRO!` ou `#VALOR!` na tela de quem pagou.
+   > ⚠️ **CORREÇÃO (17/09/2026) — esta nota já esteve errada.** Ela afirmava que "a planilha
+   > nunca foi criada de verdade no Google". **Falso, e o dono teve de corrigir duas vezes.**
+   > A planilha É criada, abre no Google Planilhas e sincroniza: no Drive dele há mais de dez
+   > arquivos "Virada Financeira — <email>", e o da conta principal foi atualizado pelo próprio
+   > sync em **17/09/2026 16:03**, com os lançamentos certos e ZERO `#NOME?`/`#ERRO!`/`#VALOR!`.
+   > O fluxo consentimento → criar → 9 abas → gravar dados está provado em produção.
+   >
+   > O que de fato nunca rodou no Google é **o layout NOVO deste branch**. As planilhas vivas
+   > estão no layout ANTIGO: 9 abas (sem `Bolsos`, sem `Filtros`), Dashboard "PAINEL EXECUTIVO
+   > DE TRANSFORMAÇÃO FINANCEIRA" com KPIs "SOBRA REAL (%)" e "DIAS DE RESPIRO (RUNWAY)", e a
+   > linha fantasma `Sem dívidas em aberto | baixa | quitada | R$ 0,00` na aba Dívidas — que
+   > este branch já removeu. Ou seja: **o que está no Drive é o que a VPS publicada produz; o
+   > trabalho deste branch nunca foi publicado.**
+   >
+   > Risco que sobra, e é outro: quando o código novo alcançar uma planilha que já existe no
+   > layout antigo, `upgradeLayout` precisa criar as duas abas que faltam e reescrever um
+   > Dashboard de forma DIFERENTE — se errar, estraga a planilha de quem já é cliente.
    > **Roteiro da PRIMEIRA criação real** (5 minutos, nesta ordem):
    > 1. `Dashboard!B3` mostra `2026-09 (set)` como TEXTO (alinhado à esquerda), não como data.
    > 2. `Dashboard!A6`, `D6` e `J6` (Entradas, Gastos e Nº de lançamentos do mês) batem com a
