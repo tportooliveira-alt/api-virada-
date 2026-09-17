@@ -119,9 +119,11 @@ Descobrir entrega quebrada com dinheiro de tráfego rodando é o erro mais caro 
   `scripts/build-vendas.mjs` (o `vendas.html` é gerado, não editar na mão). Importa duas
   vezes: a verificação do Google procura o link da política na página inicial, e o
   parágrafo da landing não fala nada de escopo.
-- **`docs/configurar-google-sheets.md` está obsoleto do começo ao fim** — ensina a criar
-  conta de serviço e colar `GOOGLE_SERVICE_ACCOUNT_JSON` no `.env.local`. O app não usa
-  nada disso. Reescrever ou apagar.
+- ~~**`docs/configurar-google-sheets.md` está obsoleto do começo ao fim**~~ → **reescrito em
+  17/09/2026**: agora descreve o que o app de fato precisa (APIs ativadas, tela de
+  consentimento com **só** `drive.file`, client id OAuth em `NEXT_PUBLIC_GOOGLE_CLIENT_ID`) e
+  registra que a conta de serviço nunca foi usada. Quem tiver um `.json` de conta de serviço
+  baixado por causa da versão antiga: apagar e revogar a chave.
 - **`docs/estrategia-google-sync.md:54`** ainda lista os dois escopos; hoje é só `drive.file`.
 - Outras divergências menores estão listadas em `CLAUDE.md`, seção "A casa a organizar".
 
@@ -159,13 +161,33 @@ Descobrir entrega quebrada com dinheiro de tráfego rodando é o erro mais caro 
 
 ## 7. Deploy
 
+> **Passo a passo completo e copiável: [`docs/PUBLICAR-NA-VPS.md`](PUBLICAR-NA-VPS.md)** —
+> variáveis de ambiente uma por uma, o `data/` do SQLite, as 8 verificações pós-deploy e o
+> rollback. Use aquele arquivo; o resumo abaixo é só o esqueleto.
+
+⚠️ **Dois avisos que o resumo antigo não dava, e que custam caro:**
+
+1. **Ele publicava `main`.** O trabalho desta fase está em `claude/abra-app-fe1urv` e
+   **nunca foi publicado** — quem compra hoje recebe `origin/main`, sem auto-sync da
+   planilha, com o escopo sensível `auth/spreadsheets`, com `/obrigado` atrás do login e
+   com o painel de compradores aberto por um header forjável. Publicar `main` não muda nada.
+2. **Faltava `npm ci`.** O `package.json` mudou nesta rodada (saiu a `googleapis`); sem
+   reinstalar, a VPS constrói com o `node_modules` velho.
+
 ```bash
-git bundle create /tmp/v.bundle main
-scp /tmp/v.bundle vps-paperclip:/root/v.bundle
+# na sua máquina
+SHA=$(git rev-parse --short HEAD)
+git bundle create /tmp/virada-$SHA.bundle origin/main..claude/abra-app-fe1urv
+scp /tmp/virada-$SHA.bundle vps-paperclip:/root/virada-$SHA.bundle
+echo "$SHA"   # é o que /api/version tem que devolver depois
+
+# na VPS (troque <SHA>)
 ssh vps-paperclip 'export PATH=/usr/local/bin:$PATH && cd /var/www/codigo-da-virada \
-  && git fetch -q /root/v.bundle main:refs/remotes/bundle/novo \
-  && git checkout -q -B main bundle/novo && npm run build \
+  && git fetch -q /root/virada-<SHA>.bundle \
+       refs/heads/claude/abra-app-fe1urv:refs/remotes/bundle/novo \
+  && git checkout -q -B main bundle/novo && npm ci && npm run build \
   && pm2 restart codigo-da-virada --update-env'
+
 curl -s https://codigodavirada.net.br/api/version
 ```
 
