@@ -91,8 +91,8 @@ function runAuditoria() {
 
   const totalIncomesSheet = Number(findVal("Dashboard!A6"));
   const totalExpensesSheet = Number(findVal("Dashboard!D6"));
-  const taxaSobraDecimalSheet = Number(findVal("Dashboard!G6"));
-  const runwayTextoSheet = String(findVal("Dashboard!J6"));
+  const saldoSheet = Number(findVal("Dashboard!G6"));
+  const lancamentosSheet = Number(findVal("Dashboard!J6"));
 
   // 3. Checagens Cirúrgicas
   const tests: { name: string; appVal: unknown; sheetVal: unknown; ok: boolean }[] = [
@@ -115,16 +115,22 @@ function runAuditoria() {
       ok: balanceApp === round(totalIncomesSheet - totalExpensesSheet),
     },
     {
-      name: "4. Taxa de Sobra / Poupança Real (%)",
-      appVal: `${intelApp.savingsRate.pct.toFixed(2)}%`,
-      sheetVal: `${(taxaSobraDecimalSheet * 100).toFixed(2)}%`,
-      ok: Math.abs(intelApp.savingsRate.pct - taxaSobraDecimalSheet * 100) < 0.05,
+      // O card "Sobrou no mês" do app e o KPI "SALDO ATUAL" da planilha têm que
+      // dizer o mesmo. Substituiu a antiga "taxa de sobra", que a planilha
+      // mostrava em verde mesmo quando o mês fechava no vermelho.
+      name: "4. Saldo do período (card do app x KPI da planilha)",
+      appVal: `R$ ${balanceApp.toFixed(2)}`,
+      sheetVal: `R$ ${saldoSheet.toFixed(2)}`,
+      ok: balanceApp === round(saldoSheet),
     },
     {
-      name: "5. Runway (Dias de Respiro)",
-      appVal: `${intelApp.runway.days} dias`,
-      sheetVal: runwayTextoSheet.split(" ")[0] + " dias",
-      ok: runwayTextoSheet.includes(String(intelApp.runway.days)),
+      // Substituiu o "runway": aquela conta somava meta de quitação de dívida
+      // como se fosse caixa e inventava R$ 1.500 de gasto quando não havia
+      // despesa — superestimava 42%.
+      name: "5. Lançamentos contados (app x planilha)",
+      appVal: `${testExpenses.length + testIncomes.length} lançamentos`,
+      sheetVal: `${lancamentosSheet} lançamentos`,
+      ok: lancamentosSheet === testExpenses.length + testIncomes.length,
     },
     {
       name: "6. Dívidas em Aberto (Excluindo quitadas)",
