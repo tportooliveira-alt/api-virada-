@@ -29,6 +29,7 @@ import type {
 import { createId, storageKey } from "@/lib/utils";
 import { missions } from "@/lib/constants";
 import { loadData, saveData, clearData } from "@/lib/db/virada-store";
+import { normalizeSheetUrl } from "@/lib/sheets/oauth";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -86,6 +87,7 @@ interface LocalAccount {
 }
 
 interface LocalSheetMeta {
+  spreadsheetId?: string;
   spreadsheetUrl?: string;
   lastSync?: string;
 }
@@ -97,7 +99,11 @@ function readSheetMeta(): { sheetUrl: string | null; lastSync: string | null } {
     const raw = localStorage.getItem(sheetMetaKey);
     if (!raw) return noSheet;
     const meta = JSON.parse(raw) as LocalSheetMeta;
-    return { sheetUrl: meta.spreadsheetUrl ?? null, lastSync: meta.lastSync ?? null };
+    // Planilha antiga foi salva sem "/edit" e não abria no app instalado — corrige na leitura.
+    const sheetUrl = meta.spreadsheetId
+      ? normalizeSheetUrl(meta.spreadsheetUrl, meta.spreadsheetId)
+      : meta.spreadsheetUrl ?? null;
+    return { sheetUrl, lastSync: meta.lastSync ?? null };
   } catch {
     return noSheet;
   }
@@ -203,11 +209,14 @@ export function ViradaProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
-  // Salvar no IndexedDB sempre que os dados mudarem — avisando se falhar
+  // Salvar no IndexedDB quando os dados mudarem — avisando se falhar.
+  // Espera meio segundo de silêncio antes de gravar: digitar um valor muda `data` a
+  // cada tecla, e cada tecla regravava a base INTEIRA. Era isso que travava o celular.
   useEffect(() => {
     if (!isReady || skipSave.current) { skipSave.current = false; return; }
     let active = true;
-    void (async () => {
+
+    async function gravar() {
       try {
         await saveData(data);
         if (active) setSaveError(false);
@@ -215,9 +224,24 @@ export function ViradaProvider({ children }: PropsWithChildren) {
         // Não engole mais em silêncio: sinaliza que o salvamento falhou
         if (active) setSaveError(true);
       }
-    })();
+    }
+
+    const timer = setTimeout(() => void gravar(), 500);
+
+    // O Android fecha a aba sem avisar: se o app sair da frente, grava na hora.
+    // Sem isto, a espera acima poderia custar o último lançamento da pessoa.
+    function gravarAgoraSeSair() {
+      if (document.visibilityState === "hidden") {
+        clearTimeout(timer);
+        void gravar();
+      }
+    }
+    document.addEventListener("visibilitychange", gravarAgoraSeSair);
+
     return () => {
       active = false;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", gravarAgoraSeSair);
     };
   }, [data, isReady]);
 

@@ -52,11 +52,37 @@ export function loadGoogleToken(): GoogleToken | null {
   }
 }
 
+/**
+ * O editor do Sheets só abre com `/edit` no fim. Sem ele, tocar no link dentro do
+ * app instalado (PWA em tela cheia) não abre nada — foi o "a planilha não abre".
+ */
+export function sheetUrlFor(spreadsheetId: string): string {
+  return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+}
+
+/**
+ * Planilha criada antes do conserto tem a URL sem `/edit` GRAVADA no aparelho.
+ * Corrigir só a montagem não alcançaria quem já comprou — por isso normalizamos na leitura.
+ */
+export function normalizeSheetUrl(url: string | undefined | null, spreadsheetId: string): string {
+  if (!url) return sheetUrlFor(spreadsheetId);
+  const semQuery = url.split("?")[0].split("#")[0];
+  return semQuery.endsWith("/edit") ? url : sheetUrlFor(spreadsheetId);
+}
+
 export function loadSheetMeta(): SheetMeta | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(SHEET_KEY);
-    return raw ? (JSON.parse(raw) as SheetMeta) : null;
+    if (!raw) return null;
+    const meta = JSON.parse(raw) as SheetMeta;
+    const spreadsheetUrl = normalizeSheetUrl(meta.spreadsheetUrl, meta.spreadsheetId);
+    if (spreadsheetUrl !== meta.spreadsheetUrl) {
+      const corrigido = { ...meta, spreadsheetUrl };
+      localStorage.setItem(SHEET_KEY, JSON.stringify(corrigido));
+      return corrigido;
+    }
+    return meta;
   } catch {
     return null;
   }

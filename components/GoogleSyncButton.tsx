@@ -29,7 +29,7 @@ import {
   buildSyncBatch,
   type SyncInput,
 } from "@/lib/sheets/builder";
-import { SHEETS_SCOPE, SHEET_KEY, TOKEN_KEY, type SheetMeta } from "@/lib/sheets/oauth";
+import { SHEETS_SCOPE, SHEET_KEY, TOKEN_KEY, loadSheetMeta, normalizeSheetUrl, sheetUrlFor, type SheetMeta } from "@/lib/sheets/oauth";
 
 // Só drive.file. O Google marca este escopo como "não sensível (recomendado)" e ele
 // já autoriza criar e atualizar a planilha que o PRÓPRIO app cria (é o caso aqui).
@@ -196,7 +196,7 @@ export async function createWorkbook(token: string, email: string): Promise<{ sp
 
   return {
     spreadsheetId: created.spreadsheetId,
-    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${created.spreadsheetId}`,
+    spreadsheetUrl: sheetUrlFor(created.spreadsheetId),
     ids,
   };
 }
@@ -254,9 +254,9 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
 
   useEffect(() => {
     try {
-      const savedMeta = localStorage.getItem(SHEET_KEY);
+      const savedMeta = loadSheetMeta();
       const savedToken = localStorage.getItem(TOKEN_KEY);
-      if (savedMeta) setMeta(JSON.parse(savedMeta) as SheetMeta);
+      if (savedMeta) setMeta(savedMeta);
       if (savedToken) {
         const t = JSON.parse(savedToken) as Token;
         if (t.expires_at > Date.now()) setToken(t);
@@ -285,7 +285,7 @@ export function GoogleSyncButton({ expenses, incomes, debts, goals, userEmail }:
       await pushData(accessToken, sheetId, { expenses, incomes, debts, goals });
       const newMeta: SheetMeta = {
         spreadsheetId: sheetId,
-        spreadsheetUrl: sheetUrl ?? `https://docs.google.com/spreadsheets/d/${sheetId}`,
+        spreadsheetUrl: normalizeSheetUrl(sheetUrl, sheetId),
         lastSync: new Date().toISOString(),
         layoutVersion: LAYOUT_VERSION,
       };

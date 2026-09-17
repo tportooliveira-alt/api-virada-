@@ -1,1 +1,12 @@
-https://aquamarine-crumble-9be5b2.netlify.app/
+https://codigodavirada.net.br
+
+Este é o endereço de produção — VPS (pm2 "codigo-da-virada" + nginx), pasta
+/var/www/codigo-da-virada. É o único lugar onde o app está no ar.
+
+O app fica em /app · a landing de vendas em / e /vendas.
+Para conferir qual versão está publicada: https://codigodavirada.net.br/api/version
+
+MORTO — não usar: https://aquamarine-crumble-9be5b2.netlify.app/
+Era o endereço antigo no Netlify e serve uma build velha. Quem instalou o app no
+celular por esse link precisa DESINSTALAR e instalar de novo por codigodavirada.net.br,
+senão continua testando código antigo e "consertado" nunca aparece.
