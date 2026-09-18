@@ -53,10 +53,10 @@ export default function ContaPage() {
         <section className="surface-card order-2 flex flex-col gap-3 p-[18px] lg:order-none">
           <p className="eyebrow">O que veio junto</p>
           {[
-            { href: "/biblioteca/negociacao/index.html", Icon: HandCoins, titulo: "Negociar dívida", desc: "Calcula o desconto, escreve os scripts e gera a carta pro banco." },
-            { href: "/downloads/ebook-codigo-da-virada.pdf", Icon: BookOpen, titulo: "E-book", desc: "O método completo, em 5 capítulos." },
-            { href: "/biblioteca/plano-7-dias/index.html", Icon: ListChecks, titulo: "Plano de 7 dias", desc: "Uma ação por dia pra sair do lugar." },
-            { href: "/biblioteca/checklist/index.html", Icon: CalendarCheck, titulo: "Checklist mensal", desc: "A revisão de todo fim de mês, em 15 minutos." },
+            { href: "/api/material/biblioteca/negociacao/index.html", Icon: HandCoins, titulo: "Negociar dívida", desc: "Calcula o desconto, escreve os scripts e gera a carta pro banco." },
+            { href: "/api/material/downloads/ebook-codigo-da-virada.pdf", Icon: BookOpen, titulo: "E-book", desc: "O método completo, em 5 capítulos." },
+            { href: "/api/material/biblioteca/plano-7-dias/index.html", Icon: ListChecks, titulo: "Plano de 7 dias", desc: "Uma ação por dia pra sair do lugar." },
+            { href: "/api/material/biblioteca/checklist/index.html", Icon: CalendarCheck, titulo: "Checklist mensal", desc: "A revisão de todo fim de mês, em 15 minutos." },
           ].map(({ href, Icon, titulo, desc }) => (
             <a
               key={href}

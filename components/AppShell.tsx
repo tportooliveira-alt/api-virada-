@@ -43,8 +43,8 @@ const sidebarItems = [
   // Chamá-la de "Planilha Inteligente" fazia o comprador achar que a planilha dele
   // não funcionava. A de verdade se abre pelo banner do Início e pela tela Conta.
   { href: "/app/planilha-demo", label: "Prévia da planilha", icon: FileSpreadsheet },
-  { href: "/biblioteca/negociacao/index.html", label: "Negociar dívida", icon: HandCoins, externo: true },
-  { href: "/downloads/ebook-codigo-da-virada.pdf", label: "E-book", icon: BookOpen, externo: true },
+  { href: "/api/material/biblioteca/negociacao/index.html", label: "Negociar dívida", icon: HandCoins, externo: true },
+  { href: "/api/material/downloads/ebook-codigo-da-virada.pdf", label: "E-book", icon: BookOpen, externo: true },
   { href: "/app/instalar", label: "Instalar app", icon: Smartphone },
 ];
 
