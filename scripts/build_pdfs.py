@@ -1,7 +1,7 @@
 """
 Gera os PDFs diagramados do produto "O Código da Virada Financeira".
 
-Saída: public/downloads/
+Saída: material-pago/downloads/
 - ebook-codigo-da-virada.pdf  (com capa + sumário)
 - bonus-50-ideias.pdf
 - roteiro-negociacao.pdf
@@ -241,13 +241,26 @@ SIMBOLOS_FORA_DA_FONTE = {
 
 # A Helvetica desenha estes por WinAnsi mesmo passando de 255 — o bullet das listas
 # está aqui: filtrá-lo junto com os emoji deixava as listas sem marcador nenhum.
-FORA_DO_LATIN1_MAS_OK = set("•–—‘’“”…€")
+FORA_DO_LATIN1_MAS_OK = set("•–—‘’“”…€−≠≤≥±×÷≈→←↔")
+
+# Operador matematico NAO pode ser apagado em silencio: o filtro comeu o "−" de
+# "Receitas − Despesas = Sobra" (ebook.md:50) e o metodo do produto virou
+# "Receitas Despesas = Sobra" no PDF entregue. Cicatriz de 2026-09-17.
+SUBSTITUI_SE_NAO_DESENHA = {"−": "-", "≠": "!=", "≤": "<=", "≥": ">=", "±": "+/-",
+                            "×": "x", "÷": "/", "≈": "~", "→": "->", "←": "<-", "↔": "<->"}
 
 
 def limpa_glifos(texto: str) -> str:
     for de, para in SIMBOLOS_FORA_DA_FONTE.items():
         texto = texto.replace(de, para)
-    # Sobrou algo que a fonte não desenha? Sai, senão vira caractere aleatório no PDF.
+    # Operador matemático vira o equivalente ASCII em vez de sumir.
+    for de, para in SUBSTITUI_SE_NAO_DESENHA.items():
+        texto = texto.replace(de, para)
+    # Sobrou algo que a fonte não desenha? Avisa ALTO antes de descartar — build
+    # que come conteúdo do produto pago em silêncio foi o que criou esta cicatriz.
+    descartados = {c for c in texto if ord(c) >= 256 and c not in FORA_DO_LATIN1_MAS_OK}
+    if descartados:
+        print(f"   !! GLIFOS DESCARTADOS (confira o texto): {sorted(descartados)}")
     return "".join(c for c in texto if ord(c) < 256 or c in FORA_DO_LATIN1_MAS_OK).strip()
 
 
@@ -752,7 +765,7 @@ def build_bonus(
 def main() -> None:
     root = Path(__file__).resolve().parent.parent
     content_dir = root / "content"
-    out_dir = root / "public" / "downloads"
+    out_dir = root / "material-pago" / "downloads"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("→ Construindo e-book principal…")

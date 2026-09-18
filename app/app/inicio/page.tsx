@@ -50,6 +50,12 @@ export default function InicioPage() {
     [data.expenses],
   );
 
+  // Mesma contagem que a planilha mostra no KPI "Lançamentos".
+  const totalLancamentos = useMemo(
+    () => expensesMonth.length + data.incomes.filter((item) => isFromCurrentMonth(item.date)).length,
+    [expensesMonth, data.incomes],
+  );
+
   const intel = useMemo(() => {
     if (!data.isReady) return null;
     return computeFinancialIntelligence({
@@ -166,16 +172,20 @@ export default function InicioPage() {
             <p className="mt-1 text-[11px] text-ink-400">Despesas do mês</p>
           </div>
 
-          {/* KPI Comercial: Taxa de Sobra / Poupança Real & Runway */}
+          {/* Quanto sobrou e quantos lançamentos — os mesmos dois números que a
+              planilha e a página de vendas mostram. Antes aqui havia "Sobra Real (%)"
+              e "Runway: N dias de respiro": o runway tratava o resultado do mês como
+              se fosse dinheiro guardado, então todo dia 1º dizia zero, e "runway" não
+              é palavra de quem está apertado. */}
           <div className="col-span-2 min-w-0 rounded-xl bg-white/[0.06] px-3.5 py-3.5 sm:col-span-1 sm:px-4 border border-white/[0.05]">
             <p className="flex items-center gap-1.5 text-xs text-ink-400">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-400" /> Sobra Real (%)
+              <Sparkles className="h-3.5 w-3.5 text-emerald-400" /> Sobrou no mês
             </p>
             <p className="money mt-1.5 font-display text-lg font-bold text-white sm:text-xl">
-              {formatDecimal(intel.savingsRate.pct)}%
+              {formatCurrency(metrics.balanceMonth)}
             </p>
-            <p className="mt-1 text-[11px] text-emerald-300 font-medium">
-              Runway: {intel.runway.days} dias de respiro
+            <p className="mt-1 text-[11px] text-ink-400">
+              {totalLancamentos === 1 ? "1 lançamento" : `${totalLancamentos} lançamentos`} no mês
             </p>
           </div>
         </div>

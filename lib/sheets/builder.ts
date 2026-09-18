@@ -77,7 +77,7 @@ export const HEADERS: Partial<Record<TabKey, string[]>> = {
  * atrasada, reaplica o visual sozinho no próximo "Atualizar agora".
  * Só valores mudam sem bump.
  */
-export const LAYOUT_VERSION = "2026-09-12.1";
+export const LAYOUT_VERSION = "2026-09-17.1";
 
 // Cores das barras de participação do Dashboard — mesma sequência da legenda
 // da pizza no design (Planilha Virada - Redesign).
@@ -410,8 +410,8 @@ function applyNumberFormats(requests: unknown[], ids: Record<string, number>) {
   // Dashboard: aplica apenas numberFormat nos blocos com valores para nao apagar o contraste dos cards.
   requests.push(dashboardNumber(5, 6, 0, 1, { type: "CURRENCY", pattern: FORMAT.brlPlain }, "LEFT"));
   requests.push(dashboardNumber(5, 6, 3, 4, { type: "CURRENCY", pattern: FORMAT.brlPlain }, "LEFT"));
-  requests.push(dashboardNumber(5, 6, 6, 7, { type: "PERCENT", pattern: FORMAT.percent }, "LEFT"));
-  requests.push(dashboardNumber(5, 6, 9, 10, { type: "TEXT", pattern: "@" }, "LEFT"));
+  requests.push(dashboardNumber(5, 6, 6, 7, { type: "CURRENCY", pattern: FORMAT.brlPlain }, "LEFT"));
+  requests.push(dashboardNumber(5, 6, 9, 10, { type: "NUMBER", pattern: FORMAT.intCount }, "LEFT"));
 
   requests.push(dashboardNumber(11, 21, 1, 2, { type: "CURRENCY", pattern: FORMAT.brlPlain }));
   requests.push(dashboardNumber(11, 21, 7, 8, { type: "CURRENCY", pattern: FORMAT.brlPlain }));
@@ -446,7 +446,7 @@ export function buildStaticValues() {
   data.push(
     { range: `${TAB.dashboard}!A1`, values: [["CÓDIGO DA VIRADA • PAINEL EXECUTIVO DE TRANSFORMAÇÃO FINANCEIRA"]] },
     { range: `${TAB.dashboard}!A2`, values: [[`Atualizado em ${new Date().toLocaleString("pt-BR")}`]] },
-    { range: `${TAB.dashboard}!A5`, values: [["ENTRADAS CONFIRMADAS", "", "", "SAÍDAS & CUSTOS", "", "", "SOBRA REAL (%)", "", "", "DIAS DE RESPIRO (RUNWAY)", "", ""]] },
+    { range: `${TAB.dashboard}!A5`, values: [["ENTRADAS DO PERÍODO", "", "", "SAÍDAS DO PERÍODO", "", "", "SALDO ATUAL", "", "", "LANÇAMENTOS", "", ""]] },
     { range: `${TAB.dashboard}!A6`, values: [[0, "", "", 0, "", "", 0, "", "", 0, "", ""]] },
     { range: `${TAB.dashboard}!A9`, values: [["Top categorias de gasto"], ["As dez categorias com maior saída financeira no período sincronizado."]] },
     { range: `${TAB.dashboard}!G9`, values: [["Comparativo mensal"], ["Leitura mensal de entradas, saídas e resultado para enxergar tendência."]] },
@@ -630,16 +630,9 @@ function buildTotals(
   const worstMonth = resumo.length ? resumo.reduce((best, row) => (Number(row[3]) < Number(best[3]) ? row : best), resumo[0]) : null;
 
   const taxaSobraDecimal = totalEntradas > 0 ? (totalEntradas - totalSaidas) / totalEntradas : 0;
-  const avgBurn = totalSaidas > 0 ? totalSaidas : 1500;
-  const reserveTotal = goals.reduce((sum, item) => sum + (Number(item.currentValue) || 0), 0);
-  const availableLiquidity = Math.max(0, saldo + reserveTotal);
-  const runwayMonths = avgBurn > 0 ? availableLiquidity / avgBurn : 0;
-  const runwayDays = Math.round(runwayMonths * 30);
 
   return {
     taxaSobraDecimal,
-    runwayDays,
-    runwayMonths,
     totalEntradas,
     totalSaidas,
     saldo,
@@ -694,8 +687,8 @@ function buildValueRanges(input: {
     { range: `${TAB.dashboard}!A2`, values: [[`Atualizado em ${new Date().toLocaleString("pt-BR")}`]] },
     { range: `${TAB.dashboard}!A6`, values: [[totals.totalEntradas]] },
     { range: `${TAB.dashboard}!D6`, values: [[totals.totalSaidas]] },
-    { range: `${TAB.dashboard}!G6`, values: [[totals.taxaSobraDecimal]] },
-    { range: `${TAB.dashboard}!J6`, values: [[`${totals.runwayDays} dias`]] },
+    { range: `${TAB.dashboard}!G6`, values: [[totals.saldo]] },
+    { range: `${TAB.dashboard}!J6`, values: [[totals.totalLancamentos]] },
     { range: `${TAB.dashboard}!A12:B21`, values: totals.topCategoriasRows },
     { range: `${TAB.dashboard}!G12:J21`, values: totals.resumoDashboardRows },
     { range: `${TAB.lancamentos}!K4:K7`, values: totals.panel.lancamentos },

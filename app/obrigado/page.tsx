@@ -17,10 +17,10 @@ export const metadata: Metadata = {
 };
 
 const EXTRAS = [
-  { href: "/downloads/ebook-codigo-da-virada.pdf", icon: BookOpen, label: "E-book Código da Virada", desc: "O método em 5 capítulos, em PDF." },
-  { href: "/biblioteca/negociacao/index.html", icon: HandCoins, label: "Negociar dívida", desc: "Calcula o desconto justo e escreve a carta pro banco." },
-  { href: "/downloads/plano-7-dias.pdf", icon: CalendarCheck, label: "Plano de 7 dias", desc: "Uma tarefa por dia, a primeira semana inteira." },
-  { href: "/downloads/checklist-mensal.pdf", icon: ListChecks, label: "Checklist mensal", desc: "A revisão de 15 minutos que segura o mês." },
+  { href: "/api/material/downloads/ebook-codigo-da-virada.pdf", icon: BookOpen, label: "E-book Código da Virada", desc: "O método em 5 capítulos, em PDF." },
+  { href: "/api/material/biblioteca/negociacao/index.html", icon: HandCoins, label: "Negociar dívida", desc: "Calcula o desconto justo e escreve a carta pro banco." },
+  { href: "/api/material/downloads/plano-7-dias.pdf", icon: CalendarCheck, label: "Plano de 7 dias", desc: "Uma tarefa por dia, a primeira semana inteira." },
+  { href: "/api/material/downloads/checklist-mensal.pdf", icon: ListChecks, label: "Checklist mensal", desc: "A revisão de 15 minutos que segura o mês." },
 ];
 
 export default function ObrigadoPage() {
